@@ -27,9 +27,11 @@ diag_result_t hal_screen_init(void)
 {
     if (s_initialised) return DIAG_PASSED;
 
-    /* Backlight off during init */
-    gpio_set_direction(CONFIG_LCD_BL_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_level(CONFIG_LCD_BL_PIN, 0);
+    /*
+     * NOTE: GPIO20 (LCD_BL) is NOT touched here — it is shared with
+     * the USB D+ signal.  Driving it as a GPIO disconnects USB.
+     * The bootloader leaves the backlight in a usable state.
+     */
 
     /* Initialise SPI bus */
     spi_bus_config_t bus_cfg = {
@@ -79,9 +81,6 @@ diag_result_t hal_screen_init(void)
         screen_GC9A01_write_pixels(&black, chunk);
     }
 
-    /* Backlight on */
-    gpio_set_level(CONFIG_LCD_BL_PIN, 1);
-
     s_initialised = true;
     ESP_LOGI(TAG, "CoreS3 screen HAL ready");
     return DIAG_PASSED;
@@ -91,7 +90,6 @@ void hal_screen_deinit(void)
 {
     if (!s_initialised) return;
     screen_GC9A01_deinit();
-    gpio_set_level(CONFIG_LCD_BL_PIN, 0);
     spi_bus_remove_device(s_spi);
     spi_bus_free(CONFIG_LCD_SPI_NUM);
     s_spi = NULL;
@@ -253,7 +251,8 @@ int hal_screen_font_height(void) { return s_fh[s_font_idx]; }
 
 void hal_screen_set_backlight(uint8_t b)
 {
-    gpio_set_level(CONFIG_LCD_BL_PIN, (b > 0) ? 1 : 0);
+    (void)b;
+    /* No-op: GPIO20 is shared with USB D+ — see hal_screen_init(). */
 }
 
 int hal_screen_width(void)  { return CONFIG_LCD_WIDTH; }
