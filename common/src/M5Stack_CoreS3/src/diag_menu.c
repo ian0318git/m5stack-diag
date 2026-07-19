@@ -1,9 +1,9 @@
 /*
- * diag_menu.c - UART Console Menu Implementation
+ * diag_menu.c - USB Serial/JTAG Console Menu Implementation
  *
  * INTERFACE ADAPTER layer.  Presents an interactive command-line menu
- * over UART, dispatches user commands to the test runner, and formats
- * test results for display.
+ * over the ESP32-S3 built-in USB Serial/JTAG (visible as /dev/ttyACM0).
+ * Dispatches user commands to the test runner and formats test results.
  *
  * References: example/fugazi_ng_diag/common/src/fugazi/mb_tests.c
  *
@@ -17,71 +17,66 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <ctype.h>
+#include "freertos/FreeRTOS.h"
 
 /*===========================================================================*/
-/* UART driver wrapper (ESP-IDF)                                             */
+/* USB Serial/JTAG driver wrapper (ESP-IDF)                                  */
 /*===========================================================================*/
 
 /*
- * We use ESP-IDF's UART driver directly.  The menu layer is the only
- * code that talks to the UART peripheral; every other layer prints via
- * diag_menu_printf().
+ * CoreS3 uses the ESP32-S3 built-in USB Serial/JTAG controller.
+ * No GPIO configuration needed — it is fixed-function hardware.
  */
-#include "driver/uart.h"
-#include "driver/gpio.h"
+#include "driver/usb_serial_jtag.h"
 
-static const uart_port_t s_uart_num = CONFIG_UART_NUM;
+static bool s_console_initialised = false;
 
-static diag_result_t uart_init(void)
+static diag_result_t console_init(void)
 {
-    const uart_config_t cfg = {
-        .baud_rate           = CONFIG_UART_BAUDRATE,
-        .data_bits           = UART_DATA_8_BITS,
-        .parity              = UART_PARITY_DISABLE,
-        .stop_bits           = UART_STOP_BITS_1,
-        .flow_ctrl           = UART_HW_FLOWCTRL_DISABLE,
-        .source_clk          = UART_SCLK_DEFAULT,
+    if (s_console_initialised) return DIAG_PASSED;
+
+    usb_serial_jtag_driver_config_t cfg = {
+        .tx_buffer_size = CONFIG_CONSOLE_BUF_SIZE,
+        .rx_buffer_size = CONFIG_CONSOLE_BUF_SIZE,
     };
 
-    esp_err_t err = uart_driver_install(s_uart_num,
-                                        CONFIG_UART_BUF_SIZE,
-                                        0, 0, NULL, 0);
-    if (err != ESP_OK) return DIAG_FAILED;
+    esp_err_t err = usb_serial_jtag_driver_install(&cfg);
+    if (err != ESP_OK) {
+        return DIAG_FAILED;
+    }
 
-    err = uart_param_config(s_uart_num, &cfg);
-    if (err != ESP_OK) return DIAG_FAILED;
-
-    err = uart_set_pin(s_uart_num,
-                       CONFIG_UART_TX_PIN,
-                       CONFIG_UART_RX_PIN,
-                       UART_PIN_NO_CHANGE,
-                       UART_PIN_NO_CHANGE);
-    if (err != ESP_OK) return DIAG_FAILED;
-
+    s_console_initialised = true;
     return DIAG_PASSED;
 }
 
-static void uart_putchar(char c)
+static void console_putchar(char c)
 {
-    uart_write_bytes(s_uart_num, &c, 1);
+    usb_serial_jtag_write_bytes(&c, 1, CONFIG_CONSOLE_TX_TIMEOUT_MS);
 }
 
-static void uart_puts(const char *s)
+static void console_puts(const char *s)
 {
-    uart_write_bytes(s_uart_num, s, strlen(s));
+    if (!s) return;
+    size_t len = strlen(s);
+    if (len > 0) {
+        usb_serial_jtag_write_bytes(s, len, CONFIG_CONSOLE_TX_TIMEOUT_MS);
+    }
 }
 
-static int uart_getchar(int timeout_ms)
+static int console_getchar(int timeout_ms)
 {
     uint8_t c;
-    int len = uart_read_bytes(s_uart_num, &c, 1,
-                              pdMS_TO_TICKS(timeout_ms));
+    int len = usb_serial_jtag_read_bytes(&c, 1, pdMS_TO_TICKS(timeout_ms));
     return (len == 1) ? (int)c : -1;
 }
 
-static void uart_flush_rx(void)
+static void console_flush_rx(void)
 {
-    uart_flush_input(s_uart_num);
+    /* Drain any pending input bytes */
+    uint8_t tmp[64];
+    while (usb_serial_jtag_read_bytes(tmp, sizeof(tmp), 0) > 0) {
+        /* discard */ ;
+    }
 }
 
 /*===========================================================================*/
@@ -115,7 +110,7 @@ void diag_menu_printf(const char *fmt, ...)
     va_end(ap);
 
     if (n > 0) {
-        uart_puts(buf);
+        console_puts(buf);
     }
 }
 
@@ -145,13 +140,13 @@ static int read_line(char *buf, size_t size)
     int c;
 
     while (pos < size - 1) {
-        c = uart_getchar(CONFIG_UART_RX_TIMEOUT_MS);
+        c = console_getchar(CONFIG_CONSOLE_RX_TIMEOUT_MS);
         if (c < 0) {
             continue;   /* timeout — keep waiting */
         }
 
         if (c == '\r' || c == '\n') {
-            uart_puts("\r\n");
+            console_puts("\r\n");
             buf[pos] = '\0';
             return (int)pos;
         }
@@ -159,23 +154,23 @@ static int read_line(char *buf, size_t size)
         if (c == '\b' || c == 0x7F) {  /* backspace / DEL */
             if (pos > 0) {
                 pos--;
-                uart_puts("\b \b");     /* erase on terminal */
+                console_puts("\b \b");   /* erase on terminal */
             }
             continue;
         }
 
         if (c >= ' ' && c <= '~') {     /* printable ASCII */
             buf[pos++] = (char)c;
-            uart_putchar((char)c);
+            console_putchar((char)c);
         }
     }
 
     /* Buffer full — discard rest of line */
     buf[size - 1] = '\0';
-    while ((c = uart_getchar(50)) >= 0 && c != '\r' && c != '\n') {
+    while ((c = console_getchar(50)) >= 0 && c != '\r' && c != '\n') {
         /* drain */ ;
     }
-    uart_puts("\r\n");
+    console_puts("\r\n");
     return (int)(size - 1);
 }
 
@@ -323,10 +318,8 @@ static diag_result_t cmd_run_all(diag_runner_t *runner, int argc, char *argv[])
 
     diag_menu_printf("Running ALL tests...\r\n\n");
 
-    /* Per-test completion prints to UART. */
     int failures = diag_runner_run_all(runner, NULL, NULL);
 
-    /* Print summary. */
     const diag_test_suite_t *suite = diag_runner_get_suite(runner);
     if (!suite) return DIAG_ERROR;
 
@@ -379,8 +372,7 @@ static diag_result_t cmd_help_verbose(diag_runner_t *runner,
     diag_menu_printf("  exit            Exit the menu (returns to monitor)\r\n");
     diag_menu_printf("\r\n");
     diag_menu_printf("Navigation:\r\n");
-    diag_menu_printf("  Commands are case-sensitive.  Use TAB completion\r\n");
-    diag_menu_printf("  is not yet implemented — type full command names.\r\n");
+    diag_menu_printf("  Commands are case-sensitive.\r\n");
     diag_menu_printf("\r\n");
 
     return DIAG_PASSED;
@@ -439,7 +431,7 @@ static diag_result_t dispatch(diag_runner_t *runner, int argc, char *argv[])
 
 diag_result_t diag_menu_init(void)
 {
-    diag_result_t r = uart_init();
+    diag_result_t r = console_init();
     if (r != DIAG_PASSED) {
         return r;
     }
@@ -452,19 +444,19 @@ void diag_menu_loop(diag_runner_t *runner)
 {
     if (!runner) return;
 
-    uart_puts("\r\n");
-    uart_puts("============================================\r\n");
-    uart_puts("   M5Stack CoreS3 Diagnostic System v1.0\r\n");
-    uart_puts("============================================\r\n");
-    uart_puts("Type 'help' for available commands.\r\n");
-    uart_puts("\r\n");
+    console_puts("\r\n");
+    console_puts("============================================\r\n");
+    console_puts("   M5Stack CoreS3 Diagnostic System v1.0\r\n");
+    console_puts("============================================\r\n");
+    console_puts("Type 'help' for available commands.\r\n");
+    console_puts("\r\n");
 
     char line[CONFIG_MENU_LINE_BUF_SIZE];
     char *argv[CONFIG_MENU_MAX_ARGS];
 
     while (1) {
-        uart_puts(CONFIG_MENU_PROMPT);
-        uart_flush_rx();
+        console_puts(CONFIG_MENU_PROMPT);
+        console_flush_rx();
 
         int len = read_line(line, sizeof(line));
         if (len < 0) continue;

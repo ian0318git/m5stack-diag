@@ -18,15 +18,17 @@ extern "C" {
 #endif
 
 /*===========================================================================*/
-/* Console (UART) Configuration                                              */
+/* Console (USB Serial/JTAG) Configuration                                   */
 /*===========================================================================*/
 
-#define CONFIG_UART_NUM           1           /* UART1 for console          */
-#define CONFIG_UART_TX_PIN        GPIO_NUM_43 /* CoreS3 USB-TTL TX         */
-#define CONFIG_UART_RX_PIN        GPIO_NUM_44 /* CoreS3 USB-TTL RX         */
-#define CONFIG_UART_BAUDRATE      115200
-#define CONFIG_UART_BUF_SIZE      4096
-#define CONFIG_UART_RX_TIMEOUT_MS 10
+/*
+ * CoreS3 connects to the host via the ESP32-S3 built-in USB Serial/JTAG
+ * controller.  The port appears as /dev/ttyACM0 on Linux.
+ */
+
+#define CONFIG_CONSOLE_TX_TIMEOUT_MS   50
+#define CONFIG_CONSOLE_RX_TIMEOUT_MS   10
+#define CONFIG_CONSOLE_BUF_SIZE        4096
 
 /*===========================================================================*/
 /* I2C Bus Configuration                                                     */
