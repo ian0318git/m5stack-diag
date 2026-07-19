@@ -8,8 +8,12 @@
  */
 
 #include "imu_BMI270.h"
+#include "imu_BMI270_config.h"
 #include "esp_log.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
 #include <string.h>
+#include <stdbool.h>
 
 static const char *TAG = "BMI270";
 static i2c_master_dev_handle_t s_dev = NULL;
@@ -42,6 +46,47 @@ static int read_regs(uint8_t reg, uint8_t *buf, size_t len)
 }
 
 /*===========================================================================*/
+/* Config blob loading (required for sensor data output)                     */
+/*===========================================================================*/
+
+static int load_config(void)
+{
+    static bool loaded = false;
+    if (loaded) return 0;
+
+    uint16_t addr = BMI270_CONFIG_START_ADDR;
+    write_reg(0x5B, (uint8_t)(addr & 0xFF));
+    write_reg(0x5C, (uint8_t)((addr >> 8) & 0xFF));
+
+    for (size_t i = 0; i < sizeof(bmi270_config_file); i += 32) {
+        size_t chunk = sizeof(bmi270_config_file) - i;
+        if (chunk > 32) chunk = 32;
+        uint8_t buf[33];
+        buf[0] = 0x5E;
+        memcpy(&buf[1], &bmi270_config_file[i], chunk);
+        i2c_master_transmit(s_dev, buf, 1 + chunk, -1);
+    }
+
+    write_reg(0x59, 1);
+    vTaskDelay(pdMS_TO_TICKS(BMI270_INIT_WAIT_MS));
+
+    uint8_t ctrl = 0xFF;
+    for (int r = 0; r < 50 && ctrl != 0; r++) {
+        read_reg(0x59, &ctrl);
+        esp_rom_delay_us(1000);
+    }
+
+    if (ctrl != 0) {
+        ESP_LOGW(TAG, "Config init timeout (0x%02X)", ctrl);
+        return -1;
+    }
+
+    loaded = true;
+    ESP_LOGI(TAG, "Config loaded (%u B)", (unsigned)sizeof(bmi270_config_file));
+    return 0;
+}
+
+/*===========================================================================*/
 /* Public API                                                                */
 /*===========================================================================*/
 
@@ -64,11 +109,16 @@ int imu_BMI270_init(i2c_master_dev_handle_t dev)
     write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
     esp_rom_delay_us(2000);
 
-    /* Enable accel + gyro, wait for stabilisation */
+    /* Disable power save and enable sensors */
     write_reg(BMI270_REG_PWR_CONF, 0x00);
     esp_rom_delay_us(1000);
     write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN);
-    esp_rom_delay_us(50000);   /* 50 ms — gyro needs ~30 ms to stabilise */
+    esp_rom_delay_us(10000);
+
+    /* Load firmware config blob (required for sensor data output) */
+    if (load_config() != 0) {
+        ESP_LOGW(TAG, "Config load failed — sensor may not output data");
+    }
 
     s_init = true;
     ESP_LOGI(TAG, "BMI270 initialised (chip_id=0x%02X)", chip_id);
