@@ -74,13 +74,16 @@ static diag_result_t test_i2c_scan(void *context)
             /* Known devices get named labels */
             const char *name = NULL;
             switch (addr) {
-                case CONFIG_I2C_ADDR_TOUCH: name = "FT6336 (Touch)";  break;
-                case 0x3A:                  name = "FT6336 alt (Touch)"; break;
-                case 0x40:                  name = "AW88298/Audio?";  break;
-                case CONFIG_I2C_ADDR_RTC:   name = "BM8563 (RTC)";    break;
-                case 0x58:                  name = "Audio/Mic?";      break;
-                case CONFIG_I2C_ADDR_IMU:   name = "BMI270 (IMU)";    break;
-                case CONFIG_I2C_ADDR_POWER: name = "AXP2101 (Power)"; break;
+                case CONFIG_I2C_ADDR_TOUCH:     name = "FT6336U (Touch)";    break;
+                case 0x3A:                      name = "FT6336 alt (Touch)"; break;
+                case CONFIG_I2C_ADDR_RTC:       name = "BM8563 (RTC)";       break;
+                case CONFIG_I2C_ADDR_IMU:       name = "BMI270 (IMU)";       break;
+                case CONFIG_I2C_ADDR_POWER:     name = "AXP2101 (PMU)";      break;
+                case CONFIG_I2C_ADDR_AUDIO_ADC: name = "ES7210 (Audio ADC)"; break;
+                case CONFIG_I2C_ADDR_SPK_AMP:   name = "AW88298 (Speaker)";  break;
+                case CONFIG_I2C_ADDR_GPIO_EXP:  name = "AW9523B (GPIO Exp)"; break;
+                case CONFIG_I2C_ADDR_CAMERA:    name = "GC0308 (Camera)";    break;
+                case CONFIG_I2C_ADDR_PROXIMITY: name = "LTR-553ALS (Proximity)"; break;
             }
             if (name) {
                 diag_menu_printf("    [ OK ] 0x%02X — %s\r\n", addr, name);
@@ -153,10 +156,10 @@ static diag_result_t test_screen(void *context)
 
     diag_result_t r = hal_screen_init();
     if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx, "GC9A01 screen init failed");
+        diag_err_add(&s_err_ctx, "ILI9342C screen init failed");
         diag_err_set_debug(&s_err_ctx,
-                           "Check SPI bus connections (MOSI=GPIO14, SCLK=GPIO21)",
-                           "Check LCD reset sequence");
+                           "Check SPI bus (MOSI=G37, SCLK=G36, CS=G3, DC=G35)",
+                           "Check AW9523B P1_1 LCD_RST and AXP2101 DLDO1 backlight");
         return r;
     }
 
@@ -365,7 +368,7 @@ static diag_result_t fugazi_test_power(int param)     { (void)param; return test
 
 static const diag_menu_xtable_t s_main_menu[] = {
     { "I2C Bus Scan",             fugazi_test_i2c_scan, 0, F_I2C,   NULL, 0 },
-    { "Display (GC9A01)",         fugazi_test_screen,   0, F_PERIPH, NULL, 0 },
+    { "Display (ILI9342C)",       fugazi_test_screen,   0, F_PERIPH, NULL, 0 },
     { "Touch (FT6336)",           fugazi_test_touch,    0, F_PERIPH, NULL, 0 },
     { "RTC (BM8563)",             fugazi_test_rtc,      0, F_PERIPH, NULL, 0 },
     { "IMU (BMI270)",             fugazi_test_imu,      0, F_PERIPH, NULL, 0 },

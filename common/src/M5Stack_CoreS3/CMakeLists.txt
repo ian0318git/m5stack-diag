@@ -11,21 +11,23 @@ idf_component_register(
         "src/hal/hal_rtc.c"
         "src/hal/hal_imu.c"
         "src/hal/hal_power.c"
-        "${PROJECT_DIR}/common/chips/screen_GC9A01/screen_GC9A01.c"
+        "${PROJECT_DIR}/common/chips/lcd_ILI9342C/lcd_ILI9342C.c"
         "${PROJECT_DIR}/common/chips/touch_FT6336/touch_FT6336.c"
         "${PROJECT_DIR}/common/chips/rtc_BM8563/rtc_BM8563.c"
         "${PROJECT_DIR}/common/chips/imu_BMI270/imu_BMI270.c"
         "${PROJECT_DIR}/common/chips/power_AXP2101/power_AXP2101.c"
+        "${PROJECT_DIR}/common/chips/aw9523b/aw9523b.c"
 
     INCLUDE_DIRS
         "include"
         "include/hal"
         "src/hal"
-        "${PROJECT_DIR}/common/chips/screen_GC9A01"
+        "${PROJECT_DIR}/common/chips/lcd_ILI9342C"
         "${PROJECT_DIR}/common/chips/touch_FT6336"
         "${PROJECT_DIR}/common/chips/rtc_BM8563"
         "${PROJECT_DIR}/common/chips/imu_BMI270"
         "${PROJECT_DIR}/common/chips/power_AXP2101"
+        "${PROJECT_DIR}/common/chips/aw9523b"
 
     REQUIRES
         esp_driver_usb_serial_jtag
