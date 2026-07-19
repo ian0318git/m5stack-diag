@@ -1,0 +1,75 @@
+#!/bin/sh
+# $Id: version,v 1.5 2018/07/23 08:10:47 meho Exp $
+# $Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/common/src/overlord/neptune/cavium/version,v $
+#------------------------------------------------------------------
+# Version control file for Neptune Data Plane
+#
+# Copyright (c) 2016-2018 by cisco Systems, Inc.
+# All rights reserved.
+#
+#------------------------------------------------------------------
+# $Log: version,v $
+# Revision 1.5  2018/07/23 08:10:47  meho
+# Bump up to version 4.3.2
+#
+# Revision 1.4  2018/07/23 07:44:46  meho
+# Bump up to version4.3.1
+#
+# Revision 1.3  2018/06/14 01:37:52  meho
+# Bump up to version4.3.0
+#
+# Revision 1.2  2018/05/18 09:24:58  alpeng
+#  Neptune merge to trunk with tag <neptune-branch-0518>
+#
+# Revision 1.1.2.16  2018/05/11 03:47:43  alpeng
+# bump to version 4.2.0 for pre-RDT build release
+#
+# Revision 1.1.2.15  2018/03/01 02:56:56  meho
+# Release V4.1.0 for P2.
+#
+# Revision 1.1.2.14  2018/02/08 06:50:55  meho
+# Release V4.0.0 for P2
+#
+# Revision 1.1.2.13  2017/11/29 05:51:36  leschen
+# Bump version up from V3.1.0 to V3.2.0 for supporting Nep-P1D and VG450.
+#
+# Revision 1.1.2.12  2017/09/11 05:50:53  leschen
+# V3.1.0 supports Neptune P1C special build with PLX switch with ROMMON.
+#
+# Revision 1.1.2.11  2017/08/14 19:00:21  ptong
+# V3.0.0 supports Neptune P1C with ROMMON
+#
+# Revision 1.1.2.10  2017/06/20 02:34:47  alpeng
+# Bump up to version 2.0.0
+#
+# Revision 1.1.2.9  2017/05/17 07:53:16  meho
+# Bump up to version 1.3.0
+#
+# Revision 1.1.2.8  2017/04/18 08:36:11  leschen
+# Bump up to version 1.2.0
+#
+# Revision 1.1.2.7  2017/03/21 10:02:00  alpeng
+# bump to version 1.1.1
+#
+# Revision 1.1.2.6  2017/02/17 22:37:30  ptong
+# Released V1.1.0 for P1B to work with the latest FPGA changes
+#
+# Revision 1.1.2.5  2017/01/04 19:20:44  ptong
+#  Set nepx86_diag and nepcvm_diag to V1.0.0 for P1B build release
+#
+# Revision 1.1.2.4  2016/11/11 01:56:51  ptong
+# Bump nepx86_diag and nepcvm_diag to V0.0.2
+#
+# Revision 1.1.2.3  2016/10/31 23:37:01  ptong
+# nepx86_diag and nepcvs_diag version start at 0.0.1
+#
+# Revision 1.1.2.2  2016/06/20 09:38:17  xiaoyizh
+# Display the correct CPU name according to core number.
+#
+#
+# $Endlog$
+#
+
+MAJOR_VERSION=4
+MINOR_VERSION=3
+RELEASE=2

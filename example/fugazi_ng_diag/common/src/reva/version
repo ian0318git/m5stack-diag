@@ -1,0 +1,27 @@
+#!/bin/sh
+# $Id: version,v 1.4 2018/07/23 07:15:43 easochen Exp $
+# $Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/common/src/reva/version,v $
+#------------------------------------------------------------------
+# Version control file for Reva
+#
+# Copyright (c) 2015-2018 by cisco Systems, Inc.
+# All rights reserved.
+#
+#------------------------------------------------------------------
+# $Log: version,v $
+# Revision 1.4  2018/07/23 07:15:43  easochen
+# Reva: Release new version V0.0.4
+#
+# Revision 1.3  2016/05/09 13:06:37  umlin
+# Collapse reva-branch to Main Trunk, Reva module side release version start from 0.0.3
+#
+# Revision 1.2  2016/05/06 03:43:53  umlin
+# Reva: Commit Reva module side diag codes to main trunk
+#
+#
+# $Endlog$
+#
+
+MAJOR_VERSION=0
+MINOR_VERSION=0
+RELEASE=4

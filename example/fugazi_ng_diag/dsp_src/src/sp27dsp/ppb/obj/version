@@ -1,0 +1,29 @@
+# $Id: version,v 1.2 2012/10/04 23:37:13 srane Exp $
+# $Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/dsp_src/src/sp27dsp/ppb/obj/version,v $
+#------------------------------------------------------------------
+# version
+#
+# Oct 2012, Smita Rane
+#
+# Copyright (c) 2012 by Cisco Systems, Inc.
+# All rights reserved.
+#
+#------------------------------------------------------------------
+
+MAJOR=0
+MINOR=0
+
+VER=$(MAJOR).$(MINOR)
+BUILD=1
+
+# /******** History ********
+# $Log: version,v $
+# Revision 1.2  2012/10/04 23:37:13  srane
+# Version control.
+#
+# Revision 1.1  2012/10/02 23:18:07  srane
+# Initial commit
+#
+#
+# $Endlog$
+

@@ -1,0 +1,23 @@
+/* $Id: diag_reset_button_lib.h,v 1.2 2019/01/10 06:36:27 wilbhuan Exp $ 
+ * $Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/common/src/betelgeuse/diag_reset_button_lib.h,v $
+ *------------------------------------------------------------------
+ * 
+ * diag_reset_button_lib.h
+ *
+ * Copyright (c) 2018 - 2019 by Cisco Systems, Inc.
+ * All rights reserved.
+ *
+ *------------------------------------------------------------------
+ */
+
+extern int clear_reset_button_status(void);
+extern int config_reset_button_mask(boolean);
+extern int set_reset_button_config(uint);
+
+/*-------------------------------------------------
+ * $Log: diag_reset_button_lib.h,v $
+ * Revision 1.2  2019/01/10 06:36:27  wilbhuan
+ * The beginning of Betelgeuse application code.
+ *
+ *-------------------------------------------------
+ */

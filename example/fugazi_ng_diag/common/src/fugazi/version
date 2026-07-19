@@ -1,0 +1,95 @@
+#!/bin/sh
+# $Id: version,v 1.3 2021/08/27 09:00:17 iachang Exp $
+# $Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/common/src/fugazi/version,v $
+#------------------------------------------------------------------
+# Version control file for espn-turbo
+#
+# Copyright (c) 2019-2020 by cisco Systems, Inc.
+# All rights reserved.
+#
+#------------------------------------------------------------------
+# $Log: version,v $
+# Revision 1.3  2021/08/27 09:00:17  iachang
+# Bump up to V3.0.0
+#
+# Revision 1.2  2021/06/02 08:22:36  iachang
+# CSCvo59196-33 : Merge Fugazi from ASR1K-main-branch to ISR main trunk
+#
+# Revision 1.1.8.6  2021/05/25 08:36:17  iachang
+# Bump up to V2.0.1
+#
+# Revision 1.1.8.5  2021/03/24 03:05:58  iachang
+# Bump up to V2.0.0
+#
+# Revision 1.1.8.4  2021/01/22 06:47:49  iachang
+# Bump up to V1.0.2
+#
+# Revision 1.1.8.3  2020/11/09 08:01:05  iachang
+# Bump up to V1.0.1
+#
+# Revision 1.1.8.2  2020/08/26 02:32:47  iachang
+# Merge Fugazi code into main trunk
+#
+# Revision 1.1.6.15  2020/08/04 08:37:07  iachang
+# Update Copyright to 2020
+#
+# Revision 1.1.6.14  2020/07/30 05:50:19  iachang
+# Bump up to v0.0.12
+#
+# Revision 1.1.6.13  2020/06/19 07:07:42  iachang
+# Bump up to v0.0.11
+#
+# Revision 1.1.6.12  2020/05/04 06:11:26  iachang
+# Bump up to v0.0.10
+#
+# Revision 1.1.6.11  2020/03/23 08:39:57  iachang
+# Bump up to v0.0.9
+#
+# Revision 1.1.6.10  2020/02/11 01:37:50  iachang
+# Bump up to v0.0.8
+#
+# Revision 1.1.6.9  2019/12/10 02:08:25  iachang
+# Bump up to v0.0.7
+#
+# Revision 1.1.6.8  2019/08/12 06:52:24  iachang
+# Bump up to v0.0.6
+#
+# Revision 1.1.6.7  2019/06/17 06:23:09  iachang
+# Bump up to v0.0.5
+#
+# Revision 1.1.6.6  2019/05/15 01:52:48  letsai
+# Bump up to 0.0.4
+#
+# Revision 1.1.6.5  2019/04/26 22:08:37  letsai
+# 1. Fixed FPGA board type unknow.
+# 2. Bump up to 0.0.3
+# 3. Remove m2sata related word.
+#
+# Revision 1.1.6.4  2019/04/10 18:47:30  iachang
+# Update version
+#
+# Revision 1.1.6.3  2019/03/18 23:17:10  iachang
+# update version
+#
+# Revision 1.1.6.2  2019/03/14 03:49:12  letsai
+# Initial check in.
+#
+# Revision 1.1.4.2  2019/03/14 01:32:44  letsai
+# Initial check in.
+#
+# Revision 1.1.2.2  2019/03/12 12:04:02  letsai
+# 1. Clean up code
+# 2. Renamed functions and parameter definition
+# 3. Removed unused files
+# 4. Fixed dump error of temp sensor
+#
+# Revision 1.1.2.1  2018/12/19 12:28:24  letsai
+# Initial code base for Fugazi
+#
+#
+# $Endlog$
+#
+
+MAJOR_VERSION=3
+MINOR_VERSION=0
+RELEASE=0

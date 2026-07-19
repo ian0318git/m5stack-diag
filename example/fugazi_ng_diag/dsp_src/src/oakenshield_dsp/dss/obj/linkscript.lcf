@@ -1,0 +1,787 @@
+;; $Id: linkscript.lcf,v 1.2 2017/07/28 07:58:35 harrchan Exp $
+;; $Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/dsp_src/src/oakenshield_dsp/dss/obj/linkscript.lcf,v $
+;;------------------------------------------------------------------
+;;
+;; linkerscript.lcf
+;;
+;; Mar 2012
+;; Copyright (c) 2012-2017 by Cisco Systems, Inc.
+;; All rights reserved.
+;;
+;;**********************************************************************
+
+.provide _SR_Setting, 0x03EC008C    ; The value to set the SR after reset:
+    ; all interrupts masked (OSEck startup code will unmask all interrupts)
+    ; interrupts disabled
+    ; exception mode
+    ; saturation on (OSEck startup code enforces this setting)
+    ; rounding mode: Twos-complement rounding
+   
+
+;;;;;;;;;;;;;;;;
+;IMPORTANT NOTE: 
+;;;;;;;;;;;;;;;;
+    ;- IPL will be forced to 0 (all interrupt unmasked) by OSEck startup code.
+    ;- OSEck startup code will force saturation on for both 16 & 32 bits (SM/SM2=1)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; System Memory
+; bank 1:  0x00000000  ROM (program)
+; bank 2:  0x00080000  ROM (program)
+; bank 3:  0x00100000  ROM (program)
+; bank 4:  0x00180000  ROM (program)
+; bank 5:  0x00200000  ROM (program)
+; bank 6:  0x00280000  ROM (program)
+; bank 7:  0x00300000  RAM (data)
+; bank 8:  0x00380000  RAM (data)
+; bank 9:  0x00400000  RAM (data)
+; bank 10: 0x00480000  RAM (data)
+; bank 11: 0x00500000  Uncached SharedPools (for video cross core sharing)
+; bank 12: 0x00580000  UnCached area and CM buffers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+.provide  _SysMemBankSize,      512*1024
+.provide  _SysMemStart,         0 *_SysMemBankSize
+.provide  _SysMemSize,          _SysMemBankSize * 10
+.provide  _SysMemEnd,           _SysMemStart + _SysMemSize
+.provide  _SysMemStart_RAM,     _SysMemEnd - _SysMemBankSize * 4
+
+.memory   _SysMemStart,  _SysMemEnd - 1,  "rwx"
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;  Section renaming
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; OS critical code should be placed in a fast memory
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;.rename "*libos*.elb(arch_asm.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(alloc.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(allocnil.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(current.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(def_idle.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(free.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(krnmulticore.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(pool_alg2.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(receive.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(s_alloc.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(s_allnil.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(send.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(swap.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libos*.elb(timer.eln)", ".cotext_*", ".OS_critical_text"
+
+;.rename "*libbsp*.elb(bspkrntimer_sp2704.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libbsp*.elb(bsptstimer_generic.eln)", ".cotext_*", ".OS_critical_text"
+;.rename "*libbsp*.elb(bsptstimer_sp2704.eln)", ".cotext_*", ".OS_critical_text"
+
+;.rename "*libts*.elb(ts_api.eln)", ".cotext_*", ".OS_critical_text"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; OS normal code
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;.rename "*libos*.elb(addresse.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(addticks.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(arch.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(assign_lnh.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(attach.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(condhalt.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(cre_ppdata.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(cre_proc.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(crepool.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(creproc.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(cresem.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(def_err.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(delay.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(detach.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(dispatch.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(error.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(get_ppdata.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(get_pri.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(get_ptype.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(getfsem.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(getsem.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(getticks.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(hunt.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(id.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(killpool.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(killproc.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(killsem.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(ppdata.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(process.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(rec_wtmo.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(respool.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(restore.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(rmm.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(rmm_bitarray.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(rmm_evt.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(rmm_hash.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(rmm_pool.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(sd_hooks.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(sender.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(setfsem.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(set_pri.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(setsigsz.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(si_context.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(si_features.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libos*.elb(si_hooks.eln)", ".cotext_*", ".OS_normal_text"
+;
+;.rename "*libbsp*.elb(bspdevmem.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libbsp*.elb(bspint_asm_sp2704.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libbsp*.elb(bspint_sp2704.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libbsp*.elb(bspleds_sp2704.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libbsp*.elb(bspshmem-sp2704.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libbsp*.elb(bspspinlock_sp2704.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libbsp*.elb(whatstring.eln)", ".cotext_*", ".OS_normal_text"
+;
+;.rename "*libheap*.elb(heap_calloc.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libheap*.elb(heap_main.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libheap*.elb(heap_realloc.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libheap*.elb(heap_traverse.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libheap*.elb(whatstring.eln)", ".cotext_*", ".OS_normal_text"
+;
+;.rename "*libts*.elb(whatstring.eln)", ".cotext_*", ".OS_normal_text"
+;
+;.rename "*liblinx*.elb(rlnh.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*liblinx*.elb(linx_bmark_shell_cmd.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*liblinx*.elb(linx_shell_cmd_utils.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*liblinx*.elb(linxls_shell_cmd.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*liblinx*.elb(perf_timer.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*liblinx*.elb(rlnh_trace.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*liblinx*.elb(whatstring.eln)", ".cotext_*", ".OS_normal_text"
+
+;.rename "*libcmcl*.elb(cmcl.eln)", ".cotext_*", ".OS_normal_text"
+;.rename "*libcmcl*.elb(whatstring.eln)", ".cotext_*", ".OS_normal_text"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; OS initialization code is only executed once during boot
+; - doesn't matter if we place this in slow memory
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;.rename "*libos*.elb(init.eln)", ".cotext_*", ".OS_init_text"
+;.rename "*libos*.elb(main.eln)", ".cotext_*", ".OS_init_text"
+;.rename "*libos*.elb(startose.eln)", ".cotext_*", ".OS_init_text"
+
+;.rename "*libheap*.elb(heap_init.eln)", ".cotext_*", ".OS_init_text"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;.rename "*SPDSS3400e_G729_III.elb(*729ab*)", ".text", "RamCode"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Move some things to critical_text segment
+
+;.rename "*api*.o", ".cotext*", ".ddr_text"
+;.rename "*cntler.o", ".cotext*", ".ddr_text"
+;.rename "*rfc2198.o", ".cotext*", ".ddr_text"
+;.rename "*lven.o", ".cotext*", ".ddr_text"
+;.rename "*lvpc.o", ".cotext*", ".ddr_text"
+;.rename "*drelay.o", ".cotext*", ".ddr_text"
+;.rename "*frdrelay.o", ".cotext*", ".ddr_text"
+;.rename "*vpcdigit.o", ".cotext*", ".ddr_text"
+;.rename "*vpcpeermsg.o", ".cotext*", ".ddr_text"
+;.rename "*vpctone.o", ".cotext*", ".ddr_text"
+;.rename "*utran.o", ".cotext*", ".ddr_text"
+;.rename "*voicecap.o", ".cotext*", ".ddr_text"
+;.rename "*express.o", ".cotext*", ".ddr_text"
+;.rename "*osd.o", ".cotext*", ".ddr_text"
+;.rename "*nano*.o", ".cotext*", ".ddr_text"
+;.rename "*platform*.o", ".cotext*", ".ddr_text"
+;.rename "*debug*.o", ".cotext*", ".ddr_text"
+;.rename "*gr909*.o", ".cotext*", ".ddr_text"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Other cotext
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+.rename "*", ".cotext_*", ".ctext"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; OS bss and data sections
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;.rename "*libbsp*.elb(*)", ".data", ".bsp_data"
+;.rename "*libbsp*.elb(*)", ".bss", ".bsp_bss"
+
+;.rename "*libos*.elb(*)", ".data", ".krn_data"
+;.rename "*libos*.elb(*)", ".bss", ".krn_bss"
+
+;.rename "*libts*.elb(*)", ".data", ".ts_data"
+;.rename "*libts*.elb(*)", ".bss", ".ts_bss"
+
+;.rename "*libheap*.elb(*)", ".data", ".heap_data"
+;.rename "*libheap*.elb(*)", ".bss", ".heap_bss"
+
+;.rename "*liblinx*.elb(*)", ".data", ".linx_data"
+;.rename "*liblinx*.elb(*)", ".bss", ".linx_bss"
+
+;.rename "*libcmcl*.elb(*)", ".data", ".cmcl_data"
+;.rename "*libcmcl*.elb(*)", ".bss", ".cmcl_bss"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Rename noisefree library
+; Uncomment below when integrating Noise Free SP2704 library 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;.rename "*/noiseFree.elb*", "NOISEFREE_PROG", ".ctext"
+;.rename "*/noiseFree.elb*", "NOISEFREE_ROM", ".rom"
+;.rename "*/noiseFree.elb*", "NOISEFREE_DATA", ".data"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Video Libraries
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; h263 library is broken, FIXME (uncomment) when new lib is available
+.rename "*", "critical_rom*", ".rom"
+
+.rename "*", "critical_*", ".ctext"
+.rename "*", "noncrit_text*", ".noncr_text"
+.rename "*", "init_text*", ".noncr_text"
+.rename "*", "noncrit_rom*", ".rom"
+
+
+.org      _SysMemStart
+; so that this unreferenced function can be linked in
+; SR ?? .xref _pfm_trap_null_function_ptr
+.segment  .trap, ".trap"     ; used to trap null function pointer
+
+; intvec must start at 0x1000 (hardcoded in ./sp26/drv-27/ppb/dev/sp_ppb_dev_api.c)
+.align 0x1000
+.segment  .intvec,    ".intvec"
+.provide  _VBAddr, @segaddr(".intvec")
+.entry _VBAddr               ; start execution here
+
+.segment  .OS_critical_text, ".OS_critical_text"
+.segment  .OS_normal_text, ".OS_normal_text"
+.segment  .OS_init_text, ".OS_init_text"
+
+.segment  .text,      ".text", ".perf_funcs", ".perf_funcs_2"
+.segment  .ctext,     ".ctext"
+.segment  .rodata,    ".rodata"
+;.provide  _ROMStart,  @segaddr(".rotable")
+.segment  .rotable,   ".init_table"
+.segment  .roinit,    ".rom_init", ".staticinit"
+.segment  .rom,       ".rom", ".perf_rom"
+
+; put non-critical code on system memory since we still have room for it
+; move it to DDR once we are short on system memory
+.segment .ddr_text, ".ddr_text", ".noncr_text"
+.segment .EOSysROM, ".EOSysROM"
+
+.org      _SysMemStart_RAM
+; allocate one bank for each core
+.align 0x80000
+.segment  .ciscoMemoryBlockL2_DSS0, ".ciscoMemoryBlockL2_DSS0"
+.align 0x80000
+.segment  .ciscoMemoryBlockL2_DSS1, ".ciscoMemoryBlockL2_DSS1"
+.align 0x80000
+.segment  .ciscoMemoryBlockL2_DSS2, ".ciscoMemoryBlockL2_DSS2"
+.align 0x80000
+.segment  .ciscoMemoryBlockL2_DSS3, ".ciscoMemoryBlockL2_DSS3"
+
+;.org      _SharedPoolsMemStart
+;.segment  .shared_pools, ".pool3"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Uncached Video Sharing System Memory
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.provide  _VideoShrSysMemStart,    0xC0000000 + _SysMemSize + _SysMemStart
+.provide  _VideoShrSysMemBankSize, 512*1024
+.provide  _VideoShrSysMemSize,     _VideoShrSysMemBankSize
+.provide  _VideoShrSysMemEnd,      _VideoShrSysMemStart + _VideoShrSysMemSize
+
+.memory   _VideoShrSysMemStart,    _VideoShrSysMemEnd - 1, "rwx"
+
+.org      _VideoShrSysMemStart
+.segment  .ciscoMemoryUCSysDataHR, ".ciscoMemoryUCSysDataHR"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Uncached System Memory
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.provide  _UncachedSysMemStart,     0xC0000000 + _SysMemSize + _SysMemStart + _VideoShrSysMemSize
+
+.provide  _UncachedSysMemBankSize,  512*1024
+.provide  _UncachedSysMemSize,      _UncachedSysMemBankSize * 12 - _SysMemSize - _SysMemStart - _LinxSharedMemTotSize - _VideoShrSysMemSize
+.provide  _UncachedSysMemEnd,       _UncachedSysMemStart + _UncachedSysMemSize
+
+.memory   _UncachedSysMemStart, _UncachedSysMemEnd - 1, "rwx"
+
+.org      _UncachedSysMemStart
+
+; For SYSMEM,PCE buffs need to be in uncached memory
+.align 0x100
+; TDM tx/rx buffers, must be in uncached system memory
+.segment  .abu_buffer, ".abu_buffer"
+.no_init  ".abu_buffer"
+
+.segment  .shared_data, ".shared_data"
+
+.segment  .trace_buffer_DSS0, ".trace_buffer_DSS0"
+.segment  .trace_buffer_DSS1, ".trace_buffer_DSS1"
+.segment  .trace_buffer_DSS2, ".trace_buffer_DSS2"
+.segment  .trace_buffer_DSS3, ".trace_buffer_DSS3"
+.no_init  ".trace_buffer_DSS0", ".trace_buffer_DSS1", ".trace_buffer_DSS2", ".trace_buffer_DSS3"
+.segment  .ppb_info, ".ppb_info"
+
+.segment  .systemMemoryUnc, ".systemMemoryUnc"
+
+.align 0x400
+.segment  PktDrvPceUCsys, "PktDrvPceUCsys"
+
+;; .segment .ciscoMemoryBlockSU_DSS0, ".ciscoMemoryBlockSU_DSS0"
+;; .segment .ciscoMemoryBlockSU_DSS1, ".ciscoMemoryBlockSU_DSS1"
+;; .segment .ciscoMemoryBlockSU_DSS2, ".ciscoMemoryBlockSU_DSS2"
+;; .segment .ciscoMemoryBlockSU_DSS3, ".ciscoMemoryBlockSU_DSS3"
+
+;; We should have sections for the Shared Memory CM here 
+.provide _LinxSharedMemBuffEnd,        0xC0600000
+.provide _LinxSharedMemCtrAreaSize,    128
+.provide _LinxSharedMemCtrAreaNumber,  28
+.provide _LinxSharedMemBuffSize,       4096
+.provide _LinxSharedMemBuffNumber,     12
+.provide _LinxSharedMemCtrAreaTotSize, _LinxSharedMemCtrAreaNumber * _LinxSharedMemCtrAreaSize
+.provide _LinxSharedMemBuffersTotSize, _LinxSharedMemBuffNumber * _LinxSharedMemBuffSize
+.provide _LinxSharedMemCtrAreaStart,   _LinxSharedMemBuffEnd - _LinxSharedMemCtrAreaTotSize
+.provide _LinxSharedMemTotSize,        _LinxSharedMemCtrAreaTotSize + _LinxSharedMemBuffersTotSize
+.provide _LinxSharedMemBuffStart,      _LinxSharedMemCtrAreaStart - _LinxSharedMemBuffersTotSize
+
+
+;definition for DSS0 / 1 / 2 / 3 to PPB0 / 1 communication
+
+.memory   _LinxSharedMemBuffStart, _LinxSharedMemCtrAreaStart - 1, "rwx"
+
+.org      _LinxSharedMemBuffStart + 0*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss0ToDss1, ".shMemBufferDss0ToDss1"
+.org      _LinxSharedMemBuffStart + 1*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss0ToDss2, ".shMemBufferDss0ToDss2"
+.org      _LinxSharedMemBuffStart + 2*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss0ToDss3, ".shMemBufferDss0ToDss3"
+.org      _LinxSharedMemBuffStart + 3*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss1ToDss0, ".shMemBufferDss1ToDss0"
+.org      _LinxSharedMemBuffStart + 4*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss1ToDss2, ".shMemBufferDss1ToDss2"
+.org      _LinxSharedMemBuffStart + 5*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss1ToDss3, ".shMemBufferDss1ToDss3"
+.org      _LinxSharedMemBuffStart + 6*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss2ToDss0, ".shMemBufferDss2ToDss0"
+.org      _LinxSharedMemBuffStart + 7*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss2ToDss1, ".shMemBufferDss2ToDss1"
+.org      _LinxSharedMemBuffStart + 8*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss2ToDss3, ".shMemBufferDss2ToDss3"
+.org      _LinxSharedMemBuffStart + 9*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss3ToDss0, ".shMemBufferDss3ToDss0"
+.org      _LinxSharedMemBuffStart + 10*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss3ToDss1, ".shMemBufferDss3ToDss1"
+.org      _LinxSharedMemBuffStart + 11*_LinxSharedMemBuffSize
+.segment  .shMemBufferDss3ToDss2, ".shMemBufferDss3ToDss2"
+
+.memory   _LinxSharedMemCtrAreaStart, _LinxSharedMemBuffEnd - 1, "rwx"
+
+.org      _LinxSharedMemCtrAreaStart + 0*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss0ToPpb0, ".shMemCtrAreaDss0ToPpb0"
+.org      _LinxSharedMemCtrAreaStart + 1*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaPpb0ToDss0, ".shMemCtrAreaPpb0ToDss0"
+
+.org      _LinxSharedMemCtrAreaStart + 2*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss0ToPpb1, ".shMemCtrAreaDss0ToPpb1"
+.org      _LinxSharedMemCtrAreaStart + 3*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaPpb1ToDss0, ".shMemCtrAreaPpb1ToDss0"
+
+.org      _LinxSharedMemCtrAreaStart + 4*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss1ToPpb0, ".shMemCtrAreaDss1ToPpb0"
+.org      _LinxSharedMemCtrAreaStart + 5*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaPpb0ToDss1, ".shMemCtrAreaPpb0ToDss1"
+
+.org      _LinxSharedMemCtrAreaStart + 6*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss1ToPpb1, ".shMemCtrAreaDss1ToPpb1"
+.org      _LinxSharedMemCtrAreaStart + 7*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaPpb1ToDss1, ".shMemCtrAreaPpb1ToDss1"
+
+.org      _LinxSharedMemCtrAreaStart + 8*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss2ToPpb0, ".shMemCtrAreaDss2ToPpb0"
+.org      _LinxSharedMemCtrAreaStart + 9*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaPpb0ToDss2, ".shMemCtrAreaPpb0ToDss2"
+
+.org      _LinxSharedMemCtrAreaStart + 10*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss2ToPpb1, ".shMemCtrAreaDss2ToPpb1"
+.org      _LinxSharedMemCtrAreaStart + 11*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaPpb1ToDss2, ".shMemCtrAreaPpb1ToDss2"
+
+.org      _LinxSharedMemCtrAreaStart + 12*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss3ToPpb0, ".shMemCtrAreaDss3ToPpb0"
+.org      _LinxSharedMemCtrAreaStart + 13*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaPpb0ToDss3, ".shMemCtrAreaPpb0ToDss3"
+
+.org      _LinxSharedMemCtrAreaStart + 14*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss3ToPpb1, ".shMemCtrAreaDss3ToPpb1"
+.org      _LinxSharedMemCtrAreaStart + 15*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaPpb1ToDss3, ".shMemCtrAreaPpb1ToDss3"
+
+.org      _LinxSharedMemCtrAreaStart + 16*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss0ToDss1, ".shMemCtrAreaDss0ToDss1"
+.org      _LinxSharedMemCtrAreaStart + 17*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss1ToDss0, ".shMemCtrAreaDss1ToDss0"
+
+.org      _LinxSharedMemCtrAreaStart + 18*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss0ToDss2, ".shMemCtrAreaDss0ToDss2"
+.org      _LinxSharedMemCtrAreaStart + 19*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss2ToDss0, ".shMemCtrAreaDss2ToDss0"
+
+.org      _LinxSharedMemCtrAreaStart + 20*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss0ToDss3, ".shMemCtrAreaDss0ToDss3"
+.org      _LinxSharedMemCtrAreaStart + 21*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss3ToDss0, ".shMemCtrAreaDss3ToDss0"
+
+.org      _LinxSharedMemCtrAreaStart + 22*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss1ToDss2, ".shMemCtrAreaDss1ToDss2" 
+.org      _LinxSharedMemCtrAreaStart + 23*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss2ToDss1, ".shMemCtrAreaDss2ToDss1"
+
+.org      _LinxSharedMemCtrAreaStart + 24*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss1ToDss3, ".shMemCtrAreaDss1ToDss3"
+.org      _LinxSharedMemCtrAreaStart + 25*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss3ToDss1, ".shMemCtrAreaDss3ToDss1"
+
+.org      _LinxSharedMemCtrAreaStart + 26*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss2ToDss3, ".shMemCtrAreaDss2ToDss3"
+.org      _LinxSharedMemCtrAreaStart + 27*_LinxSharedMemCtrAreaSize
+.segment  .shMemCtrAreaDss3ToDss2, ".shMemCtrAreaDss3ToDss2"
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; DSS Local Memory
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.provide  _LocMemStart,     0x40000000
+.provide  _LocMemBankSize,  64*1024
+.provide  _LocMemSize,      _LocMemBankSize * 4
+.provide  _LocMemEnd,       _LocMemStart + _LocMemSize
+
+.memory   _LocMemStart,     _LocMemEnd - 1,  "rwx"
+
+.org      _LocMemStart
+
+;.provide _DSSPPB_Cfg, _LocMemStart
+;.org _DSSPPB_Cfg
+
+; Packet Driver message queues begin at 0x0
+;.segment PktDrvSeg, "PktDrvSeg"
+;.no_init "PktDrvSeg"
+;.assert(@secsize("PktDrvSeg")>=0x800)
+
+.align 4096
+;
+; rename .odo_vectors to .odo_vectors_rw as a flag to conv26x to treat the
+; section as writeable.  .odo_vectors_rw gets modified to install interrupt handlers for
+; the packet driver
+;
+.rename "*", ".odo_vectors", ".odo_vectors_rw"
+.segment   .odovectors, ".odo_vectors_rw"        ; the actual vector table used
+
+.segment   RamCode, "RamCode"
+.align  0x100
+.segment .ciscoDssBufs, ".ciscoDssBufs"
+.segment   .data, ".data", ".bsp_data", ".krn_data", ".ts_data", ".heap_data", ".linx_data", ".cmcl_data"
+.segment   .bss, ".bss", ".bsp_bss", ".krn_bss", ".ts_bss", ".heap_bss", ".linx_bss", ".cmcl_bss", "local_siu_sec"
+.segment   .pools, ".pool0", ".pool1" 
+
+.provide   _LocHeapStart, @segaddr(".data")+@segsize(".data")
+
+.segment .EOLocal, ".EOLocal"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Stacks
+;   NOTE: constants _TopOfStack and _StackStart used by startup.asm (RTLIB)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+.provide _TopOfStack,             _LocMemEnd - 4
+.provide _NormalStackSize,        3*1024
+.provide _UserInterruptStackSize, 2*1024
+.provide _StackStart,             _TopOfStack - _NormalStackSize - _UserInterruptStackSize
+
+.reserve _StackStart, _TopOfStack
+
+.no_init ".shMemBufferDss0ToDss1", ".shMemBufferDss0ToDss2", ".shMemBufferDss0ToDss3", ".shMemBufferDss1ToDss0", ".shMemBufferDss1ToDss2", ".shMemBufferDss1ToDss3", ".shMemBufferDss2ToDss0", ".shMemBufferDss2ToDss1", ".shMemBufferDss2ToDss3", ".shMemBufferDss3ToDss0", ".shMemBufferDss3ToDss1", ".shMemBufferDss3ToDss2", ".shMemCtrAreaDss0ToPpb0", ".shMemCtrAreaPpb0ToDss0", ".shMemCtrAreaDss0ToPpb1", ".shMemCtrAreaPpb1ToDss0", ".shMemCtrAreaDss1ToPpb0", ".shMemCtrAreaPpb0ToDss1", ".shMemCtrAreaDss1ToPpb1", ".shMemCtrAreaPpb1ToDss1", ".shMemCtrAreaDss2ToPpb0", ".shMemCtrAreaPpb0ToDss2", ".shMemCtrAreaDss2ToPpb1", ".shMemCtrAreaPpb1ToDss2", ".shMemCtrAreaDss3ToPpb0", ".shMemCtrAreaPpb0ToDss3", ".shMemCtrAreaDss3ToPpb1", ".shMemCtrAreaPpb1ToDss3", ".shMemCtrAreaDss0ToDss1", ".shMemCtrAreaDss1ToDss0", ".shMemCtrAreaDss0ToDss2", ".shMemCtrAreaDss2ToDss0", ".shMemCtrAreaDss0ToDss3", ".shMemCtrAreaDss3ToDss0", ".shMemCtrAreaDss1ToDss2", ".shMemCtrAreaDss2ToDss1", ".shMemCtrAreaDss1ToDss3", ".shMemCtrAreaDss3ToDss1", ".shMemCtrAreaDss2ToDss3", ".shMemCtrAreaDss3ToDss2", ".pool0", ".pool1", ".pool2", ".pool3", ".pool4", ".pool5", ".pool6", ".pool7", ".pool8", ".pool9", ".pool10", ".pool11", ".pool12", ".pool13", ".pool14", ".pool15"
+
+; Prevent dead-data removal
+; SR ?? .xref _odo_debug_info
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; HW registers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.provide _OCE_REGS_BASE,         0x80000000
+.provide _CPF_REGS_BASE,         0x80108000
+.provide _MPU_REGS_BASE,         0x80110000
+.provide _ICU_REGS_BASE,         0x90000000
+.provide _PCC_REGS_BASE,         0x90100000
+.provide _DCC_REGS_BASE,         0x90200000
+.provide _LTC_REGS_BASE,         0x90300000
+.provide _TDM_REGS_BASE,         0x98010000
+.provide _TDM_SWTU_PTR_REGS_BASE, 0x98020000
+.provide _CAR_REGS_BASE,         0x98012000
+.provide _DDR3PHYDP_BASE,		 0x98030000
+.provide _DDR3PHYADR_BASE,		 0x98032000
+.provide _DDR3PHYTOP_BASE,		 0x98034000
+.provide _DDR3PHYDPEXTERNAL_BASE, 0x98036000
+.provide _DBM_REGS_BASE,         0x98050000
+.provide _DBM_DMAC_G0_BASE,      0x98064000
+.provide _DBM_DMAC_G1_BASE,      0x98065000
+.provide _DDR3_REGS_BASE,		 0x9C000000
+.provide _DPRAMS_BASE,           0xC1000000
+.provide _TRNG_REGS_BASE,        0xC3008000
+.provide _NANDFLASH_BASE,		 0xC3010000
+.provide _PCE0_REGS_BASE,        0xC3040000
+.provide _TXD0_REGS_BASE,		 0xC3043000
+.provide _MAC0_REGS_BASE,		 0xC3044000
+.provide _PPB_GPIO_REGS_BASE,    0xC3046000
+.provide _PCE1_REGS_BASE,        0xC3048000
+.provide _TXD1_REGS_BASE,		 0xC304B000
+.provide _MAC1_REGS_BASE,		 0xC304C000
+
+.provide _DSS_REGS_BASE,         0xCF000000
+.provide _DMAC_REGS_BASE,        0xCF001000
+.provide _TIMER_REGS_BASE,       0xCF002000
+.provide _WDOG_REGS_BASE,        0xCF003000
+.provide _GPIO_REGS_BASE,        0xCF004000
+
+
+.memory _CAR_REGS_BASE , _CAR_REGS_BASE + 0x1000 - 1,	"rw"
+.org _CAR_REGS_BASE
+.segment car_regs, "car_regs"
+
+.memory _CPF_REGS_BASE , _CPF_REGS_BASE + 0x1000 - 1,	"rw"
+.org _CPF_REGS_BASE
+.segment cpf_regs, "cpf_regs"
+
+.memory _DBM_REGS_BASE , _DBM_REGS_BASE + 0x10000 - 1,	"rw"
+.org _DBM_REGS_BASE
+.segment dbm_regs, "dbm_regs"
+
+.memory _LTC_REGS_BASE , _LTC_REGS_BASE + 0x1000 - 1,	"rw"
+.org _LTC_REGS_BASE
+.segment ltc_regs, "ltc_regs"
+
+.memory _DCC_REGS_BASE , _DCC_REGS_BASE + 0x1000 - 1,	"rw"
+.org _DCC_REGS_BASE
+.segment dcc_regs, "dcc_regs"
+
+.memory _DDR3PHYDP_BASE , _DDR3PHYDP_BASE + 0x2000 - 1,	"rw"
+.org _DDR3PHYDP_BASE
+.segment ddr3phydp_regs, "ddr3phydp_regs"
+
+.memory _DDR3PHYADR_BASE , _DDR3PHYADR_BASE + 0x2000 - 1,	"rw"
+.org _DDR3PHYADR_BASE
+.segment ddr3phyadr_regs, "ddr3phyadr_regs"
+
+.memory _DDR3PHYTOP_BASE , _DDR3PHYTOP_BASE + 0x2000 - 1,	"rw"
+.org _DDR3PHYTOP_BASE
+.segment ddr3phytop_regs, "ddr3phytop_regs"
+
+.memory _DDR3PHYDPEXTERNAL_BASE , _DDR3PHYDPEXTERNAL_BASE + 0x2000 - 1,	"rw"
+.org _DDR3PHYDPEXTERNAL_BASE
+.segment ddr3phydpexternal_regs, "ddr3phydpexternal_regs"
+
+.memory _DDR3_REGS_BASE , _DDR3_REGS_BASE + 0x2000 - 1,	"rw"
+.org _DDR3_REGS_BASE
+.segment ddr3_regs, "ddr3_regs"
+
+
+.memory _DMAC_REGS_BASE , _DMAC_REGS_BASE + 0x1000 - 1,	"rw"
+.org _DMAC_REGS_BASE
+.segment dmac_regs, "dmac_regs"
+
+.memory _DBM_DMAC_G0_BASE , _DBM_DMAC_G0_BASE + 0x1000 - 1,	"rw"
+.org _DBM_DMAC_G0_BASE
+.segment dbm_dmac_g0_regs, "dbm_dmac_g0_regs"
+
+.memory _DBM_DMAC_G1_BASE , _DBM_DMAC_G1_BASE + 0x1000 - 1,	"rw"
+.org _DBM_DMAC_G1_BASE
+.segment dbm_dmac_g1_regs, "dbm_dmac_g1_regs"
+
+.memory _DSS_REGS_BASE , _DSS_REGS_BASE + 0x1000 - 1,	"rw"
+.org _DSS_REGS_BASE
+.segment dss_regs, "dss_regs"
+
+.memory _GPIO_REGS_BASE , _GPIO_REGS_BASE + 0x1000 - 1,	"rw"
+.org _GPIO_REGS_BASE
+.segment gpio_regs, "gpio_regs"
+
+.memory _PPB_GPIO_REGS_BASE , _PPB_GPIO_REGS_BASE + 0x1000 - 1,	"rw"
+.org _PPB_GPIO_REGS_BASE
+.segment ppb_gpio_regs, "ppb_gpio_regs"
+
+.memory _ICU_REGS_BASE , _ICU_REGS_BASE + 0x2000 - 1,	"rw"
+.org _ICU_REGS_BASE
+.segment icu_regs, "icu_regs"
+
+.memory _MAC0_REGS_BASE , _MAC0_REGS_BASE + 0x1000 - 1,	"rw"
+.org _MAC0_REGS_BASE
+.segment mac0_regs, "mac0_regs"
+
+.memory _MAC1_REGS_BASE , _MAC1_REGS_BASE + 0x1000 - 1,	"rw"
+.org _MAC1_REGS_BASE
+.segment mac1_regs, "mac1_regs"
+
+.memory _MPU_REGS_BASE , _MPU_REGS_BASE + 0x1000 - 1,	"rw"
+.org _MPU_REGS_BASE
+.segment mpu_regs, "mpu_regs"
+
+.memory _OCE_REGS_BASE , _OCE_REGS_BASE + 0x1000 - 1,	"rw"
+.org _OCE_REGS_BASE
+.segment oce_regs, "oce_regs"
+
+.memory _PCC_REGS_BASE , _PCC_REGS_BASE + 0x1000 - 1,	"rw"
+.org _PCC_REGS_BASE
+.segment pcc_regs, "pcc_regs"
+
+.memory _NANDFLASH_BASE , _NANDFLASH_BASE + 0x3000 - 1,	"rw"
+.org _NANDFLASH_BASE
+.segment nandflash_regs, "nandflash_regs"
+
+.memory _PCE0_REGS_BASE , _PCE0_REGS_BASE + 0x3000 - 1,	"rw"
+.org _PCE0_REGS_BASE
+.segment pce0_regs, "pce0_regs"
+
+.memory _PCE1_REGS_BASE , _PCE1_REGS_BASE + 0x3000 - 1,	"rw"
+.org _PCE1_REGS_BASE
+.segment pce1_regs, "pce1_regs"
+
+.memory _TDM_REGS_BASE , _TDM_REGS_BASE + 0x2000 - 1,	"rw"
+.org _TDM_REGS_BASE
+.segment tdm_regs, "tdm_regs"
+
+.memory _TDM_SWTU_PTR_REGS_BASE , _TDM_SWTU_PTR_REGS_BASE + 0x10000 - 1,	"rw"
+.org _TDM_SWTU_PTR_REGS_BASE
+.segment tdm_swtu_ptr_regs, "tdm_swtu_ptr_regs"
+
+.memory _TIMER_REGS_BASE , _TIMER_REGS_BASE + 0x1000 - 1,	"rw"
+.org _TIMER_REGS_BASE
+.segment timer_regs, "timer_regs"
+
+.memory _TRNG_REGS_BASE , _TRNG_REGS_BASE + 0x1000 - 1,	"rw"
+.org _TRNG_REGS_BASE
+.segment trng_regs, "trng_regs"
+
+.memory _TXD0_REGS_BASE , _TXD0_REGS_BASE + 0x1000 - 1,	"rw"
+.org _TXD0_REGS_BASE
+.segment txd0_regs, "txd0_regs"
+
+.memory _TXD1_REGS_BASE , _TXD1_REGS_BASE + 0x1000 - 1,	"rw"
+.org _TXD1_REGS_BASE
+.segment txd1_regs, "txd1_regs"
+
+.memory _WDOG_REGS_BASE , _WDOG_REGS_BASE + 0x1000 - 1,	"rw"
+.org _WDOG_REGS_BASE
+.segment wdog_regs, "wdog_regs"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; PPB Dual Port Memory
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;.memory _DPRAMS_BASE , _DPRAMS_BASE + 512*1024 - 1,	"rw"
+;.org _DPRAMS_BASE
+;.segment dprams , "dprams"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; DDR3 Cached/Uncached memory
+
+; Layout all memory in the uncached area, then move the
+; DDRCacheData and DDRCacheCode to cached space
+; Divide up total of 512M (0x20000000) bytes of DDR
+;
+; Code    32M
+; Data    128M
+; Uncached Data 95M
+; Reserved for ARM 1M
+; These will be adjusted as needed
+; Put code section first to allow easy MPU protection.
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.provide _DDRMemStart,      0xF0000000
+.provide _DDRCodeMemSize,   0x02000000
+.provide _DDRDataMemSize,   0x08000000
+.provide _DDRUCMemSize,     0x05F00000
+.provide _DDRArmMemSize,    0x00100000
+
+.provide _DDRCodeMemStart, _DDRMemStart
+.provide _DDRCodeMemEnd,   _DDRCodeMemStart + _DDRCodeMemSize - 1
+.provide _DDRDataMemStart, _DDRCodeMemStart + _DDRCodeMemSize
+.provide _DDRDataMemEnd,   _DDRDataMemStart + _DDRDataMemSize - 1
+.provide _DDRUCMemStart,   _DDRDataMemStart + _DDRDataMemSize
+.provide _DDRUCMemEnd,     _DDRUCMemStart   + _DDRUCMemSize - 1
+.provide _DDRArmMemStart,  _DDRUCMemStart   + _DDRUCMemSize
+.provide _DDRArmMemEnd,    _DDRArmMemStart  + _DDRArmMemSize - 1
+;
+; todo, move DDR code to Cached memory
+.provide _DDRCacheCodeStart, _DDRCodeMemStart - 0xC0000000 
+.provide _DDRCacheCodeEnd,   _DDRCodeMemEnd - 0xC0000000
+; data is in Cached memory  
+.provide _DDRCacheDataStart, _DDRDataMemStart - 0xC0000000
+.provide _DDRCacheDataEnd,   _DDRDataMemEnd - 0xC0000000
+;
+; Define the sections
+;
+.memory _DDRCacheCodeStart,  _DDRCacheCodeEnd, "rx"
+.memory _DDRCacheDataStart,  _DDRCacheDataEnd, "rw"
+.memory _DDRUCMemStart,      _DDRUCMemEnd, "rw"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; DDR External reserved for ARM - This must match AMRDDR3
+; in obj-ppb/linkscript.lcf
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.reserve _DDRArmMemStart,    _DDRArmMemEnd
+
+.org _DDRCacheCodeStart
+;.segment .ddr_text, ".ddr_text", ".noncr_text"
+.segment  .osd_font, ".textFontLibrary"
+
+.org _DDRCacheDataStart
+.segment  .ciscoMemoryBlockDDR_DSS0, ".ciscoMemoryBlockDDR_DSS0"
+.segment  .ciscoMemoryBlockDDR_DSS1, ".ciscoMemoryBlockDDR_DSS1"
+.segment  .ciscoMemoryBlockDDR_DSS2, ".ciscoMemoryBlockDDR_DSS2"
+.segment  .ciscoMemoryBlockDDR_DSS3, ".ciscoMemoryBlockDDR_DSS3"
+.segment  .ciscoMallocDDR_DSS0, ".ciscoMallocDDR_DSS0"
+.segment  .ciscoMallocDDR_DSS1, ".ciscoMallocDDR_DSS1"
+.segment  .ciscoMallocDDR_DSS2, ".ciscoMallocDDR_DSS2"
+.segment  .ciscoMallocDDR_DSS3, ".ciscoMallocDDR_DSS3"
+.segment  .rawHdrBufs, ".rawHdrBufs"
+.no_init ".rawHdrBufs"
+.segment .endOfDDR, ".endOfDDR"
+
+.org _DDRUCMemStart
+
+.align 0x400
+.segment  PktDrvPceBuffs, "PktDrvPceBuffs"
+.no_init  "PktDrvPceBuffs"
+
+.align 0x100
+.segment .ciscoMemoryBlockSU_DSS0, ".ciscoMemoryBlockSU_DSS0"
+.align 0x100
+.segment .ciscoMemoryBlockSU_DSS1, ".ciscoMemoryBlockSU_DSS1"
+.align 0x100
+.segment .ciscoMemoryBlockSU_DSS2, ".ciscoMemoryBlockSU_DSS2"
+.align 0x100
+.segment .ciscoMemoryBlockSU_DSS3, ".ciscoMemoryBlockSU_DSS3"
+
+.no_init "car_regs", "cpf_regs", "dbm_regs", "dcc_regs", "dmac_regs", "ltc_regs"
+.no_init "dss_regs", "gpio_regs", "icu_regs", "mac0_regs", "mac1_regs", "mpu_regs"
+.no_init "oce_regs", "pcc_regs", "pce0_regs", "pce1_regs", "pci_lcl_regs", "nandflash_regs"
+.no_init "pciio_regs", "tdm_regs", "tdm_swtu_ptr_regs", "timer_regs", "txd0_regs", "txd1_regs"
+.no_init "wdog_regs", "dprams", "ppb_gpio_regs", "dbm_dmac_g0_regs", "dbm_dmac_g1_regs"
+.no_init "ddr3phydp_regs", "ddr3phyadr_regs", "ddr3phytop_regs", "ddr3phydpexternal_regs", "ddr3_regs"
+.no_init ".ciscoMem*", ".ciscoMalloc*", ".ciscoDssBufs"
+
+;;######## HISTORY ########
+;; $Log: linkscript.lcf,v $
+;; Revision 1.2  2017/07/28 07:58:35  harrchan
+;; Collapse Oakenshield-branch to Main Trunk.
+;;
+;; Revision 1.1.2.1  2017/06/29 08:14:29  harrchan
+;; Initial commit code for Oakenshield
+;;
+;; Revision 1.1  2012/04/18 18:15:24  srane
+;; Initial checkin
+;;
+;;
+;; $Endlog$

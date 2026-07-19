@@ -1,0 +1,34 @@
+# ESP-IDF build output
+build/
+sdkconfig
+sdkconfig.old
+sdkconfig.defaults.*
+managed_components/
+dependencies.lock
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python virtual env
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Compiled binaries
+*.o
+*.elf
+*.map
+*.bin
+*.hex
+
+# Flash download config
+download.config
+
+# CVS (legacy from reference project)
+CVS/

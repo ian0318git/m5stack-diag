@@ -1,0 +1,20 @@
+1. Please refer to "Ch-23 Serial management Interface(SMI)" in "ARMADA 7K Family - 88F7040".
+2. Eexample:
+
+    #include "smi_drv.h"
+    int usage_example()
+    {
+        int ret = 0;
+        struct smi_dev *smi = NULL;
+    
+        ...
+        ret = smi_dev_create(&smi, 0xf212a200, SMI_REG_SPACE_SIZE, "smi-a");
+        ...
+        smi->drv->read(smi, phy, reg, &data);
+        ...
+        smi->drv->write(smi, phy, reg, &data);
+        ...
+        ret = smi_dev_free(smi);
+        ..
+    }
+

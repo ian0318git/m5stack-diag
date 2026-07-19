@@ -1,0 +1,62 @@
+
+-include version
+BUILD_VAR=$(shell date +%y.%m.%d_%H.%M.%S)-$(shell whoami)
+
+TMPF := $(shell mktemp)
+TMPR := $(shell \
+CROSS_COMPILE_PATH[0]="/auto/srg-diag-xcompiler/APM/ESPN/Toolchain/LE/apm-aarch64/6.0.4/bin/"; \
+CROSS_COMPILE_PATH[1]="/auto/isbu_crdc_sw1/offlinediag/users/projects/highrise/toolchain/aarch64-marvell-sdk10.0_ga-19.06.3-tools-233.0/bin"; \
+\
+CROSS_COMPILE[0]="aarch64-apm-linux-gnu-"; \
+CROSS_COMPILE[1]="aarch64-marvell-linux-gnu-"; \
+\
+LOCAL_CFLAGS[0]="-Wno-unused-but-set-variable"; \
+LOCAL_CFLAGS[1]="-Wno-unused-but-set-variable -Wno-error=format-overflow"; \
+\
+LOCAL_LDFLAGS[0]=""; \
+LOCAL_LDFLAGS[1]=""; \
+\
+NUM=2;       \
+idx=0;       \
+sel=$$idx;   \
+min=1024;    \
+tmp=0;       \
+\
+while [ $$idx -lt $$NUM ] ; do \
+    ls $${CROSS_COMPILE_PATH[$$idx]} >& /dev/null; \
+    let 'idx += 1'; \
+done; \
+\
+idx=0;\
+mount |grep 'type\s\+nfs' |sed 's/\s\+on\s\+\(\/[^[:space:]]*\).*$$/:\1/g' > $(TMPF); \
+while [ $$idx -lt $$NUM ] ; do                                                        \
+    P=$${CROSS_COMPILE_PATH[$$idx]};                                                  \
+    while read L ; do                                                                 \
+        M=$${L//*:/};                                                                 \
+        if [ "x$$P" != "x$${P/$$M\//}" ] ; then                                       \
+            M=$${L//:*};                                                              \
+            tmp=$$(traceroute $$M 2>/dev/null |wc -l);                                \
+            if [ $$tmp -lt $$min ] ; then                                             \
+                min=$$tmp;                                                            \
+                sel=$$idx;                                                            \
+            fi;                                                                       \
+        fi;                                                                           \
+    done < $(TMPF);                                                                   \
+    let 'idx += 1';                                                                   \
+done; \
+\
+echo "CROSS_COMPILE_PATH = $${CROSS_COMPILE_PATH[$$sel]}" > $(TMPF); \
+echo "CROSS_COMPILE      = $${CROSS_COMPILE_PATH[$$sel]}/$${CROSS_COMPILE[$$sel]}" >> $(TMPF); \
+echo "LOCAL_CFLAGS       = $${LOCAL_CFLAGS[$$sel]}"  >> $(TMPF); \
+echo "LOCAL_LDFLAGS      = $${LOCAL_LDFLAGS[$$sel]}" >> $(TMPF); \
+)
+include $(TMPF)
+
+$(warning "CROSS_COMPILE_PATH : $(CROSS_COMPILE_PATH)")
+$(warning "CROSS_COMPILE      : $(CROSS_COMPILE)")
+$(warning "LOCAL_CFLAGS       : $(LOCAL_CFLAGS)")
+$(warning "LOCAL_LDFLAGS      : $(LOCAL_LDFLAGS)")
+$(warning "MAJOR_VERSION      : $(MAJOR_VERSION)")
+$(warning "MINOR_VERSION      : $(MINOR_VERSION)")
+$(warning "RELEASE            : $(RELEASE)")
+$(warning "BUILD_VAR          : $(BUILD_VAR)")

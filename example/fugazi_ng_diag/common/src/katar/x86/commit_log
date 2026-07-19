@@ -1,0 +1,1928 @@
+/* $Id: commit_log,v 1.4 2021/04/15 02:21:43 peteteng Exp $
+* $Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/common/src/katar/x86/commit_log,v $
+*------------------------------------------------------------------
+*
+* commit log for katar project
+* Copyright (c) 2014-2019 by cisco Systems, Inc.
+* All rights reserved.
+*
+*------------------------------------------------------------------
+*/
+
+
+(M for modify ; A for add ; D/R for delete)
+
+peteteng commit on 2021/04/15
+V1.0.1 Release
+        M version
+
+peteteng commit on 2021/03/24
+Upgrade to TAM Lib-v3.4.24 based on PRRQ#5091945
+        M Makefile
+        M platform_cookie.c 
+        M tam_aikido_upgrade.c 
+
+mikech2 commit on 2019/06/14
+V1.0.0 Release
+	M version
+Update tam_act2_utils.c base on PRRQ#4758652
+    M ../../tam_act2_utils.c
+
+mikech2 commit on 2019/06/13
+Merge tam_act2_utils.c revision 1.15 from main trunk
+	M ../../tam_act2_utils.c
+
+benlu commit on 2019/06/13
+Add AQR412c FW ID and VER number in "System Information"
+    M platform_eth_util.c
+
+mikech2 commit on 2019/06/12
+Modify fan speed upper bound to 6300
+    M platform_fan.c
+Fix TSN compile warning
+    M ../../linux_i2c.c
+
+mikech2 commit on 2019/06/11
+Remove fan upper bound according to vendor recommendation
+	M platform_fan.c
+
+benlu commit on 2019/06/10
+Modify platform_ext_lpbk.c based on PRRQ#4685780 Comment#6 and remove unused code.
+        M platform_ext_lpbk.c
+
+mikech2 commit on 2019/06/10
+Modify diag_boot_flash_test.c base on PRRQ#4685780 Comment#1
+	M diag_boot_flash_test.c
+Remove diag_i2c_addr.h base on PRRQ#4685780 Comment#3
+    M Makefile
+    M diag_fpga_i2c_lib.c
+    R diag_i2c_addr.h
+Remove skip test function base on PRRQ#4685780 Comment#4
+	M diag.c
+	M mb_tests.c
+	M mb_tests.h
+Add test name for 2.5G cross-port test
+	M platform_ext_lpbk.c
+Remove platform_fru.h base on PRRQ#4685780 Comment#6
+	M Makefile
+	M diag_boot_flash_test.c
+	M mb_tests.c
+	R platform_fru.h
+	M platform_poe.c
+
+mikech2 commit on 2019/06/06
+clean out the unnecessary definitions and TSN string
+	M Makefile
+	R diag_fpga.h
+	M diag_fpga_i2c_lib.c
+	M platform_aikido.h
+	M platform_aikido_fpga.c
+
+mikech2 commit on 2019/06/05
+Add upper bound for fan high speed test
+	M platform_fan.c
+
+mikech2 commit on 2019/06/03
+V0.0.11 Release
+	M version
+Change FAN_HIGH_THRESHOLD to 4770
+	M platform_fan.c
+
+benlu commit on 2019/05/31
+V0.0.10 Release
+        M version
+
+benlu commit on 2019/05/31
+Add workaround for packet drop issue in both RDT and normal cross port tests, retry 5 times , serdes reset.
+        M platform_ext_lpbk.c
+
+mikech2 commit on 2019/05/29
+Code cleanup
+	M Makefile
+	M mb_tests.c
+	M platform_eth.h
+	M platform_ext_lpbk.c
+	M platform_ext_lpbk.h
+	R platform_phy_tests.c
+	M AQR4xx/src/AQ_API.c
+
+mikech2 commit on 2019/05/28
+V0.0.9 Release
+	M version
+
+benlu commit on 2019/05/27
+Add delay to wait KR link-up for "cross port test for RDT".
+        M platform_ext_lpbk.c
+
+benlu commit on 2019/05/24
+Add test item "cross port test for RDT" in MB test.
+        M platform_ext_lpbk.c
+        M mb_tests.c
+
+benlu commit on 2019/05/24
+Add AQR412c 1st packet drop workaround for RDT test
+Disable AQR412c PHY 5G Retrain Ability
+        M platform_ext_lpbk.c
+        M AQR4xx/src/AQ_API.c
+
+mikech2 commit on 2019/05/15
+Fix typo & missing error for set speed fail
+	M platform_eth_util.c	
+
+peteteng commit on 2019/05/10
+V0.0.8 Release
+        M version
+
+peteteng commit on 2019/05/08
+Update PCAMAP-v15
+        M platform_cookie.c 
+
+peteteng commit on 2019/05/06
+Update PCAMAP-v14
+        M platform_cookie.c 
+
+peteteng commit on 2019/05/02
+Update PCAMAP-v13
+        M platform_cookie.c 
+
+mikech2 commit on 2019/05/02
+Update linux_i2c base on PRRQ#4685761 Comment#4
+    M ../../linux_i2c.c
+
+mikech2 commit on 2019/04/30
+Code cleanup
+	M Makefile
+	M diag.c
+	M linux_main.c
+	M mb_tests.c
+	M platform_i2c.c
+	M platform_i2c.h
+	M platform_poe.c
+	M platform_stub.c
+
+mikech2 commit on 2019/04/26
+clean up Makefile
+	M Makefile
+	R dash_fpga.c
+	M platform_cookie.c
+	M platform_eth_util.c
+	M platform_ext_lpbk.c
+	M platform_i2c.c
+Remove 1G speed test for SFP+ module
+	M platform_eth_util.c
+
+mikech2 commit on 2019/04/25
+Disable force fan high when enter diag
+	M linux_main.c
+	M platform_fan.c
+Change I211 LEDCTL register default value
+	M platform_led.c
+
+peteteng commit on 2019/04/24
+Fix compiler warning
+        M diag_boot_flash_test.c
+
+peteteng commit on 2019/04/23
+Add bootflash switch test
+        M diag_boot_flash_test.c
+        M diag_storage_lib.h
+        M mb_tests.c
+
+mikech2 commit on 2019/04/22
+Update linux_i2c base on PRRQ#4685761 Comment#4
+	M ../../linux_i2c.c
+Fix -5 degree mb test fail issue
+	M platform_fan.c
+	M platform_temp_sensor.c
+Fix 10G internal lpbk print issue
+	M platform_eth_util.c
+Fix compiler warning
+	M platform_phy_tests.c
+	M AQR4xx/src/AQ_API.c
+
+peteteng commit on 2019/04/16
+Fix compiler warning
+        M platform_cookie.c
+
+mikech2 commit on 2019/04/16
+Code cleanup
+	M Makefile
+
+peteteng commit on 2019/04/12
+Code cleanup
+        M Makefile
+        M linux_main.c
+        M platform_cookie.c
+        R platform_cookie_overlord.c
+        M platform_ext_lpbk.c
+        R platform_slot.c
+        M platform_stub.c
+
+peteteng commit on 2019/04/11
+Based on code review PRRQ#CSCvo89304-2; Remove common/src/overlord/katar folder
+        M common/src/cookie_4_core.c
+
+peteteng commit on 2019/04/03
+V0.0.7 Release
+        M version
+
+peteteng commit on 2019/04/01
+Update PCAMAP-v11
+        M platform_cookie_overlord.c
+
+peteteng commit on 2019/03/28
+V0.0.6 Release
+        M version
+
+peteteng commit on 2019/03/27
+Fix bootflash test issue
+        M diag_boot_flash_test.c
+        M diag_storage_lib.h
+
+mikech2 commit on 2019/03/26
+Add SFP/SFP+ module check in AQC100 cross-port test
+	M diag.c
+	M platform_eth_util.c
+
+mikech2 commit on 2019/03/25
+Add 1G speed test for AQC100
+	M platform_eth_util.c
+
+benlu commit on 2019/03/21
+Modify the default value of select menu
+        M platform_led.c
+
+peteteng commit on 2019/03/14
+Code cleanup
+        M Makefile
+        R platform_124mux.c
+        R platform_idprom.h
+        R platform_idprom_utils.h
+        R platform_pem_utils.h
+
+peteteng commit on 2019/03/14
+Code cleanup
+        M Makefile
+        R comm.c
+        R platform_cpu.c
+        M tam_act2_api_drv_support.c
+        M tam_act2_api_drv_support.h
+
+mikech2 commit on 2019/03/13
+Modify fan test duration
+	M platform_fan.c
+Add trun led red in System LED color all util
+	M platform_led.c
+Clean up codes
+	M platform_poe.c
+
+peteteng commit on 2019/03/13
+Code cleanup
+        M diag_fpga_i2c_lib.c
+        M platform_cookie.c
+        M platform_i2c_api.c
+        M tam_act2_api_drv_support.c
+
+mikech2 commit on 2019/03/11
+Modify temperature sensor alert test threshold
+	M platform_temp_sensor.c
+
+mikech2 commit on 2019/03/08
+Add SFP sku check for SFP utility
+	M diag.c
+	M platform_intr_test.c
+
+mikech2 commit on 2019/03/08
+Clean up codes
+	M Makefile
+	M dash_fpga.c
+	M platform_poe.c
+	M platform_stub.c
+
+mikech2 commit on 2019/03/07
+Move reset button/SFP present test to utility
+	M diag.c
+	M mb_tests.c
+	M platform_intr_test.c
+
+mikech2 commit on 2019/03/06
+Add dump SFP eeprom in SFP intr test
+	M diag.c
+	M platform_intr_test.c
+
+mikech2 commit on 2019/03/05
+Clean up codes
+	M platform_eth_util.c
+	M platform_fpga.c
+	M platform_fpga.h
+	M platform_prom.c
+	M tam_aikido_upgrade.c
+
+mikech2 commit on 2019/03/05
+Use Aquantia tool dump SFP eeprom
+	M Makefile
+	M diag.c
+	M platform_led.c
+	R platform_sfp_cookie.c
+	R platform_sfp_cookie.h
+
+mikech2 commit on 2019/03/04
+Add temperature sensor alert test in Interrupt auto test
+	M platform_intr_test.c
+	M platform_temp_sensor.c
+	M platform_temp_sensor.h
+
+mikech2 commit on 2019/03/04
+Remove unnecessary files
+	M Makefile
+	R platform_sys_clk.c
+
+peteteng commit on 2019/03/04
+Move file from overlord to katar folder
+        M Makefile
+        A platform_slot.c
+
+mikech2 commit on 2019/03/04
+Clean up codes and remove unnecessary files
+	M Makefile
+	M linux_main.c
+	M mb_tests.c
+	R platform_margin_utils.c
+	R platform_margin_utils.h
+	M platform_sys_clk.c
+	R platform_vr.c
+	R platform_vr.h
+
+mikech2 commit on 2019/02/26
+Add internal loopback support for mb test
+	M mb_tests.c
+	M platform_eth_util.c
+
+mikech2 commit on 2019/02/26
+Fix AQC led control issue
+	M platform_led.c
+
+mikech2 commit on 2019/02/25
+Modify temperature sensor show register
+	M platform_temp_sensor.c
+
+mikech2 commit on 2019/02/20
+Add SFP present test in SPF intr test
+	M platform_fpga.c
+	M platform_fpga.h
+	M platform_intr_test.c
+	M platform_sfp_cookie.c
+
+mikech2 commit on 2019/02/19
+Modify I211 cross-port test setting 
+	M platform_eth_util.c
+
+mikech2 commit on 2019/02/12
+rename katar_*.h files
+	M Makefile
+	M comm.c
+	M dash_reg_test.c
+	M diag.c
+	M diag_boot_flash_test.c
+	M diag_fpga_i2c_lib.c
+	R katar_aikido.h
+	R katar_fpga.h
+	R katar_platform_cookie.h
+	R katar_platform_eth.h
+	R katar_platform_ext_lpbk.h
+	R katar_platform_i2c.h
+	R katar_platform_sfp_cookie.h
+	R katar_poe.h
+	R katar_tam_act2_api_drv_support.h
+	R katar_tam_aikido_upgrade.h
+	M linux_main.c
+	A platform_aikido.h
+	M platform_aikido_fpga.c
+	M platform_cookie.c
+	A platform_cookie_api.h
+	M platform_cpu.c
+	A platform_eth.h
+	M platform_eth_util.c
+	M platform_ext_lpbk.c
+	A platform_ext_lpbk.h
+	M platform_fan.c
+	M platform_fpga.c
+	A platform_fpga.h
+	M platform_i2c.c
+	M platform_i2c_api.c
+	A platform_i2c_api.h
+	M platform_intr_test.c
+	M platform_led.c
+	M platform_margin_utils.c
+	M platform_phy_tests.c
+	M platform_poe.c
+	A platform_poe.h
+	M platform_prom.c
+	M platform_sfp_cookie.c
+	A platform_sfp_cookie.h
+	M platform_stub.c
+	M tam_act2_api_drv_support.c
+	M tam_act2_api_drv_support.h
+	M tam_aikido_upgrade.c
+	A tam_aikido_upgrade.h
+
+peteteng commit on 2019/02/12
+Update PCAMAP-v8
+        M platform_cookie_overlord.c
+
+mikech2 commit on 2019/02/12
+Add program Aikido FPGA DEV keys function
+	M diag.c
+	M tam_aikido_upgrade.c
+
+peteteng commit on 2019/02/11
+V0.0.5 Release
+        M version
+
+benlu commit on 2019/02/01
+Add AQR412c firmware version in "System Information" utility
+        M platform_eth_util.c
+
+mikech2 commit on 2019/01/30
+Add cpu core test and change mb test order
+        M mb_tests.c
+
+mikech2 commit on 2019/01/29
+remove POE test for katar P2 build
+	M diag.c
+	M katar_poe.h
+	M platform_i2c.c
+	M platform_intr_test.c
+	M platform_led.c
+
+peteteng commit on 2019/01/29
+Update PCAMAP-v6
+        M platform_cookie_overlord.c
+
+mikech2 commit on 2019/01/29
+rename katar_*.c files
+	M Makefile
+	A comm.c
+	A dash_fpga.c
+	A dash_reg_test.c
+	M diag_fpga_i2c_lib.c
+	R katar_comm.c
+	R katar_dash_fpga.c
+	R katar_dash_reg_test.c
+	R katar_fpga.c
+	R katar_i2c_api.c
+	R katar_phy_tests.c
+	R katar_platform_aikido_fpga.c
+	R katar_platform_cookie.c
+	R katar_platform_cookie_overlord.c
+	R katar_platform_cpu.c
+	R katar_platform_eth_util.c
+	R katar_platform_ext_lpk.c
+	R katar_platform_fan.c
+	R katar_platform_i2c.c
+	R katar_platform_intr_test.c
+	R katar_platform_led.c
+	R katar_platform_margin_utils.c
+	R katar_platform_prom.c
+	R katar_platform_rtc.c
+	R katar_platform_sfp_cookie.c
+	R katar_platform_stub.c
+	R katar_platform_temp_sensor.c
+	R katar_poe.c
+	R katar_tam_act2_api_drv_support.c
+	R katar_tam_aikido_upgrade.c
+	A platform_aikido_fpga.c
+	A platform_cookie.c
+	A platform_cookie_overlord.c
+	A platform_cpu.c
+	A platform_eth_util.c
+	A platform_ext_lpbk.c
+	A platform_fan.c
+	A platform_fpga.c
+	A platform_i2c.c
+	A platform_i2c_api.c
+	A platform_intr_test.c
+	A platform_led.c
+	A platform_margin_utils.c
+	A platform_phy_tests.c
+	A platform_poe.c
+	A platform_prom.c
+	A platform_rtc.c
+	A platform_sfp_cookie.c
+	M platform_stub.c
+	M platform_temp_sensor.c
+	A tam_act2_api_drv_support.c
+	A tam_aikido_upgrade.c
+
+peteteng commit on 2019/01/22
+V0.0.4 Release
+        M version
+
+mikech2 commit on 2019/01/21
+Add check kernel IRQ in mb_test
+	M katar_platform_intr_test.c
+Modify temp. sensor name
+	M katar_platform_temp_sensor.c
+
+mikech2 commit on 2019/01/18
+Add fan_intr_mask in interrupt mask control
+	M katar_fpga.c
+Set mask off before interrupt test
+	M katar_platform_intr_test.c
+	M linux_main.c
+
+mikech2 commit on 2019/01/17
+Modify according to Kwok's review comments
+	M diag.c
+	M katar_fpga.c
+	M katar_platform_eth_util.c
+	M katar_platform_fan.c
+
+peteteng commit on 2019/01/09
+Add is_tam_aikido_on()
+        M katar_tam_act2_api_drv_support.c
+        M tam_act2_api_drv_support.h
+
+mikech2 commit on 2019/01/08
+chnage cross-port lpbk test order and add debug message
+	M katar_platform_eth_util.c
+	M katar_platform_ext_lpk.c
+
+peteteng commit on 2019/01/04
+Add SUDI_2099_2029
+        M Makefile
+
+peteteng commit on 2018/12/28
+Support Aikido FW upgrade thru UserLogic FPGA I2C
+        M katar_platform_cookie.c
+        M katar_tam_aikido_upgrade.c
+
+peteteng commit on 2018/12/27
+Clean cookie warning log
+        M katar_platform_i2c.c
+
+mikech2 commit on 2018/12/27
+Fix cross-port test issue
+	M katar_platform_eth_util.c
+	M katar_platform_ext_lpk.c
+Modify prpass usage
+	M katar_platform_fan.c
+	M katar_platform_i2c.c
+	M katar_platform_intr_test.c
+	M katar_platform_rtc.c
+	M mb_tests.c
+
+peteteng commit on 2018/12/27
+Update Aikido LPC scratchpad reg. addr.
+        M katar_aikido.h
+        M katar_platform_aikido_fpga.c
+
+peteteng commit on 2018/12/27
+Support Aikido thru UserLogic FPGA I2C
+        M diag.c
+        M diag_fpga_i2c_lib.c
+        M katar_i2c_api.c
+        M katar_platform_cookie.c
+        M katar_tam_act2_api_drv_support.c
+
+mikech2 commit on 2018/12/25
+Add read back option for Usrlogic FPGA write function
+	M katar_fpga.c
+
+peteteng commit on 2018/12/21
+Add ACT2 programming thru LPC
+        M diag_fpga_i2c_lib.c
+        M katar_platform_cookie.c
+        M katar_tam_act2_api_drv_support.c
+        A tam_act2_api_drv_support.h
+
+peteteng commit on 2018/12/20
+Add FPGA I2C read/write/scan/reset util
+        M Makefile
+        M diag.c
+        M diag_fpga.h
+        A diag_fpga_i2c_lib.c
+        A diag_fpga_i2c_lib.h
+        A diag_i2c_addr.h
+        M katar_fpga.c
+        M katar_i2c_api.c
+        M katar_platform_cookie.c
+        M katar_platform_i2c.c
+        M katar_tam_act2_api_drv_support.c
+        M linux_main.c
+
+peteteng commit on 2018/12/14
+Add cookie util through LPC mailbox
+        M katar_platform_cookie.c
+
+mikech2 commit on 2018/12/14
+Fix Akido FPGA SMBus read issue
+	M katar_platform_cookie.c
+	M katar_platform_i2c.c
+	M katar_tam_act2_api_drv_support.c
+	M katar_tam_aikido_upgrade.c
+
+peteteng commit on 2018/12/13
+Fix cookie util in Aikido FW-v10015
+        M katar_platform_cookie.c
+        M katar_tam_act2_api_drv_support.c
+
+mikech2 commit on 2018/12/12
+Update FPGA utility according to SPEC2.2(FW ver:2018121214)
+	M diag.c
+	M katar_fpga.c
+	M katar_fpga.h
+	M katar_platform_intr_test.c
+	M katar_platform_led.c
+	M katar_poe.c
+	M linux_main.c
+Fix typo
+	M katar_platform_temp_sensor.c
+
+peteteng commit on 2018/12/12
+Add Aikido FW upgrade through LPC
+        M katar_platform_aikido_fpga.c
+        M katar_platform_stub.c
+        M katar_tam_act2_api_drv_support.c
+        M katar_tam_aikido_upgrade.c
+        M katar_tam_aikido_upgrade.h
+
+peteteng commit on 2018/12/07
+Modify addr. of Aikido LPC scratchpad test
+        M katar_aikido.h
+        M katar_platform_aikido_fpga.c
+        M linux_main.c
+
+mikech2 commit on 2018/12/06
+Fine-tune Aikido I2C r/w and fix Aikido update FW utility
+	M katar_platform_cookie.c
+	M katar_platform_i2c.c
+	M katar_tam_act2_api_drv_support.c
+	M katar_tam_act2_api_drv_support.h
+	M katar_tam_aikido_upgrade.c
+	M katar_tam_aikido_upgrade.h
+
+benlu commit on 2018/12/04
+Add AQR412/413 PHY internal lpbk test
+        M katar_platform_eth_util.c
+
+mikech2 commit on 2018/12/04
+Add AQC100/107 internal lpbk test
+	M katar_platform_eth_util.c
+
+peteteng commit on 2018/12/01
+Speed up Aikido cookie
+        M katar_platform_cookie.c
+        M katar_platform_cookie_overlord.c
+        M katar_platform_i2c.c
+        M katar_tam_act2_api_drv_support.c
+
+mikech2 commit on 2018/11/30
+Modify Aikido eSPI memory map
+	M katar_tam_aikido_upgrade.c
+	A katar_tam_aikido_upgrade.h
+Fix cross-port lpbk test link down after chnage speede issue
+	M katar_platform_eth_util.c
+
+peteteng commit on 2018/11/29
+Fix Aikido cookie - read one byte
+        M katar_platform_cookie.c
+        M katar_platform_cookie_overlord.c
+        M katar_platform_i2c.c
+        M katar_tam_act2_api_drv_support.c
+
+peteteng commit on 2018/11/28
+V0.0.3 Release
+        M version
+
+benlu commit on 2018/11/28
+Add AQR412c configuration restore after cross port test.
+Add system site link status check and retry if link down.
+Modify the MDC/MDIO diag test message
+        M katar_platform_eth.h
+        M katar_platform_eth_util.c
+        M katar_platform_ext_lpk.c
+        M AQR4xx/src/AQ_API.c
+
+peteteng commit on 2018/11/23
+Fix I2C Util write multiple bytes issue
+        M katar_platform_aikido_fpga.c
+        M katar_platform_i2c.c
+
+mikech2 commit on 2018/11/22
+Add security FPGA version info
+	M diag.c
+	M katar_fpga.c
+	M katar_fpga.h
+Add POE 54V detect
+	M katar_poe.c
+Add AQC107 phy led control
+	M katar_platform_led.c
+
+peteteng commit on 2018/11/22
+Add Aikido register read/write utility
+        M katar_aikido.h
+        M katar_fpga.c
+        M katar_platform_aikido_fpga.c
+        M linux_main.c
+
+mikech2 commit on 2018/11/19
+Add usrlogic FPGA header check
+	M katar_platform_prom.c
+Fix typo
+	M katar_platform_fan.c
+
+peteteng commit on 2018/11/17
+Fix Aikido cookie issue
+        M katar_platform_cookie.c
+        M katar_platform_i2c.c
+        M katar_tam_act2_api_drv_support.c
+
+mikech2 commit on 2018/11/16
+Add delay to avoid send interrupt twice
+	M katar_platform_intr_test.c
+
+mikech2 commit on 2018/11/15
+Add R/W non I/O FPGA registers
+	M katar_fpga.c
+Modify light led all function
+	M katar_platform_led.c
+
+benlu commit on 2018/11/14
+Move the 2.5G PHY register test from utility to mb test
+        M katar_platform_eth_util.c
+        M mb_tests.c
+        M AQR4xx/src/AQ_API.c
+
+peteteng commit on 2018/11/14
+Add Aikido FPGA register test
+        M Makefile
+        M katar_aikido.h
+        A katar_platform_aikido_fpga.c
+        M linux_main.c
+        M mb_tests.c
+
+mikech2 commit on 2018/11/14
+Add I211 phy register control
+	M katar_platform_led.c
+	M linux_main.c
+
+mikech2 commit on 2018/11/14
+Modify UsrLogic FPGA update address
+	M katar_platform_prom.c
+
+mikech2 commit on 2018/11/13
+Fix pcie bus scan issue
+	M katar_platform_led.c
+	M mb_tests.c
+
+mikech2 commit on 2018/11/13
+Add PoE operating mode info
+	M diag.c
+	M katar_poe.c
+
+mikech2 commit on 2018/11/12
+Fix internal loopback link down issue
+	M katar_platform_eth_util.c
+
+benlu commit on 2018/11/09
+Add AQR PHY interrupt auto test
+    M katar_platform_intr_test.c
+    M katar_platform_eth_util.c
+
+mikech2 commit on 2018/11/09
+Fix auto interrupt test reset issue
+    M katar_platform_intr_test.c
+
+mikech2 commit on 2018/11/08
+Add fan low and interrupt test in mb test and remove intr utility 
+	M diag.c
+	M katar_platform_fan.c
+	M katar_platform_intr_test.c
+	M katar_poe.c
+	M mb_tests.c
+
+peteteng commit on 2018/11/08
+Remove names in comment
+        M Makefile
+        M katar_aikido.h
+        M katar_comm.c
+        M katar_dash_fpga.c
+        M katar_i2c_api.c
+        M katar_platform_cookie.c
+        M katar_platform_cpu.c
+        M katar_platform_sfp_cookie.c
+        M katar_tam_act2_api_drv_support.c
+        M mb_tests.h
+
+mikech2 commit on 2018/11/05
+Add interrupt utility
+	M diag.c
+	M katar_platform_intr_test.c
+
+mikech2 commit on 2018/11/01
+Update FPGA poe led control according to SPEC
+    M katar_fpga.c
+
+mikech2 commit on 2018/11/01
+Disable boot timer when enter diag
+	M katar_fpga.c
+	M katar_fpga.h
+	M linux_main.c
+
+mikech2 commit on 2018/11/01
+Change log print from *** to ---
+	M katar_fpga.c
+Add fan spped in system info
+	M diag.c
+Add fan speed test in mb test
+	M mb_tests.c
+	M katar_platform_fan.c
+
+peteteng commit on 2018/10/31
+Fix Cookie type 0xC7 issue
+        M common/src/cookie_4_core.c
+
+peteteng commit on 2018/10/30
+Add EEPROM and Aikido ACT2 verification
+        M katar_platform_cookie.c
+
+mikech2 commit on 2018/10/30
+Change PHY fw name in system info
+	M katar_platform_eth_util.c
+
+peteteng commit on 2018/10/30
+Change cookie util order; remove i2c-1 inspection; add ACT2 programming case Qq
+        M diag.c
+        M katar_platform_cookie.c
+        M linux_main.c
+
+mikech2 commit on 2018/10/29
+Add force fan spped high control and auto check for mb test
+	M katar_platform_fan.c
+
+benlu commit on 2018/10/26
+Modify the port mapping for AQR lpbk test and console log
+Modify ethernet utility wording
+        M katar_platform_ext_lpk.c
+        M katar_platform_eth_util.c
+
+mikech2 commit on 2018/10/26
+Add errorno str when cross-loopback test fail
+	M katar_platform_ext_lpk.c
+
+mikech2 commit on 2018/10/26
+destory intr monitor thread after intr test
+	M katar_platform_intr_test.c
+
+mikech2 commit on 2018/10/26
+close cpld file after mmap
+	M linux_main.c
+
+mikech2 commit on 2018/10/26
+Add support to clear all interupt
+	M katar_fpga.c
+
+mikech2 commit on 2018/10/26
+Fix typo
+	M diag.c
+
+iachang commit on 2018/10/25
+Supported SHA1/SHA2/SWSUDI program.
+        M tam_act2_utils.c
+
+peteteng commit on 2018/10/23
+Update PCAMAP-v.4 and auto detect sku
+        M katar_platform_cookie.c
+        M katar_platform_cookie_overlord.c
+
+mikech2 commit on 2018/10/22
+Move project folder to common/src/katar/x86
+
+benlu commit on 2018/10/22
+Remove debug message
+        M katar_platform_ext_lpk.c
+
+mikech2 commit on 2018/10/22
+Add PHY led control(without AQC100/107)
+	M katar_platform_led.c
+
+peteteng commit on 2018/10/22
+use common code tam_act2_utils.c without smart_cookie.c
+        M common/src/overlord/platform_slot.c 
+        M Makefile
+        M diag.c
+        M katar_comm.c
+        M katar_platform_cookie.c
+        M katar_platform_cookie.h
+        M katar_platform_cookie_overlord.c
+        M katar_platform_cpu.c
+        M katar_platform_stub.c
+        M katar_tam_act2_api_drv_support.c
+        M linux_main.c
+        M mb_tests.c
+        R tam_act2_utils.c
+
+mikech2 commit on 2018/10/22
+Fix RTC test interval count error issue
+	M katar_platform_rtc.c
+
+iachang commit on 2018/10/19
+Update TAM lib. from v3.3.25 to v3.4.4, fixed endian function naming issue
+        M Makefile
+        M katar_aikido.h
+
+benlu commit on 2018/10/19
+Add AQR412c register read/write utility and LED control function
+        M katar_platform_eth_util.c
+        M AQR4xx/src/AQ_API.c
+
+mikech2 commit on 2018/10/18
+Add error count in GE/10G PHY mb test
+	M katar_platform_eth_util.c
+
+mikech2 commit on 2018/10/18
+Add RTC test in mb_tests.c
+	M Makefile
+	M mb_tests.c
+	A katar_platform_rtc.c
+
+peteteng commit on 2018/10/17
+V0.0.2 Release
+        M version
+
+benlu commit on 2018/10/16
+Add AQR412c cross port traffic test, register read/write test and firmware upgrade
+    M katar_phy_tests.c
+    M katar_platform_eth_util.c
+    M katar_platform_ext_lpk.c
+    M mb_tests.c
+    M AQR4xx/include/AQ_User.h
+    M AQR4xx/src/AQ_API.c
+
+mikech2 commit on 2018/10/12
+Add I211 internal lpbk test
+    M katar_platform_eth_util.c
+Note:
+	katar_platform_eth_util.c compile error in sjc-foxconn-01 server
+	please use sjc-ads-4750 to compile
+
+mikech2 commit on 2018/10/12
+Fix ethtool_cmd_speed link error issue
+	M katar_platform_eth_util.c
+
+peteteng commit on 2018/10/11
+Skip bootflash test for now
+        M diag_boot_flash_test.c
+
+mikech2 commit on 2018/10/11
+Update FPGA intr test for SERIRQ
+	M katar_fpga.c
+	M katar_fpga.h
+	M katar_platform_intr_test.c
+
+mikech2 commit on 2018/10/09
+Fix GE & 10G phy mb test issue
+	M katar_platform_eth_util.c
+
+peteteng commit on 2018/10/08
+Fix EEPROM write retry issue
+        M katar_platform_cookie.c 
+
+peteteng commit on 2018/10/08
+Update PCAMAP-v3 default array
+        M diag.c
+        M katar_platform_cookie_overlord.c
+
+mikech2 commit on 2018/10/08
+Modify pcie scan for different AQC100 FW
+	M diag.c
+	M katar_platform_eth.h
+	M katar_platform_eth_util.c
+	M katar_platform_i2c.c
+	M mb_tests.c
+	M mb_tests.h
+
+peteteng commit on 2018/10/04
+Add alter MB CPU cookie on EEPROM Utility
+        M katar_platform_cookie.c
+        M katar_platform_cookie_overlord.c
+        M katar_tam_act2_api_drv_support.c
+
+mikech2 commit on 2018/10/02
+Modify FPGA register according SPEC 1.7.1
+	M diag.c
+	M katar_fpga.c
+	M katar_fpga.h
+	M katar_platform_eth_util.c
+	M katar_platform_intr_test.c
+	M katar_platform_led.c
+	M katar_platform_margin_utils.c
+	M katar_tam_act2_api_drv_support.c
+	M linux_main.c
+	M platform_temp_sensor.h
+
+peteteng commit on 2018/09/28
+Fix SFP SPD issue - connector
+        M katar_platform_sfp_cookie.c
+
+peteteng commit on 2018/09/28
+Fix SFP SPD issue
+        M katar_i2c_api.c
+        M katar_platform_i2c.h
+        M katar_platform_sfp_cookie.c
+
+peteteng commit on 2018/09/25
+Update Katar PCAMAP
+        M Makefile
+        A katar_platform_cookie_overlord.c
+
+mikech2 commit on 2018/09/21
+Add cross-port & internal lpbk test util
+	M diag.c
+	M katar_platform_eth.h
+	M katar_platform_eth_util.c
+	M mb_tests.c
+	M mb_tests.h
+
+peteteng commit on 2018/09/20
+Add load/read 256-byte cookie on EEPROM in cookie utility
+        M diag.c
+        M katar_platform_cookie.c
+        M katar_platform_i2c.c
+
+mikech2 commit on 2018/09/18
+change logic FPGA golden/upgrade addr
+	M katar_platform_prom.c
+
+mikech2 commit on 2018/09/14
+Add mem info to system info
+	M diag.c
+	M katar_banner.sh
+	M katar_fpga.c
+	M linux_main.c
+	M version 
+
+mikech2 commit on 2018/09/12
+Fix userlogic FPGA update & system info version issue
+	M diag.c
+	M katar_banner.sh
+	M katar_fpga.c
+	M katar_fpga.h
+	M katar_platform_prom.c
+	M version
+
+peteteng commit on 2018/09/07
+Add system info utility
+        M Makefile
+        M diag.c
+        M katar_platform_temp_sensor.c
+        M linux_main.c
+        A linux_popen.c
+
+mikech2 commit on 2018/09/07
+Fix api_mb_i2c_write negative value issue
+	M common/src/linux_i2c.c
+
+mikech2 commit on 2018/09/07
+Fix FPGA util issue
+	M diag.c
+	M katar_dash_reg_test.c
+	M katar_fpga.c
+	M katar_fpga.h
+	M katar_platform_intr_test.c
+	M linux_main.c
+
+benlu commit on 2018/09/04
+Add AQC107 internal loopback test
+        M katar_platform_eth_util.c 
+        M katar_platform_ext_lpk.c
+
+mikech2 commit on 2018/09/03
+Fix I2C util , realtek port & get_pcie_cap_struct_ptr return error issue
+	M Makefile
+	M commit_log
+	M katar_i2c_api.c
+	M katar_platform_eth_util.c
+	M katar_platform_i2c.c
+	M katar_platform_temp_sensor.c
+	M katar_poe.c
+	M linux_main.c
+	M mb_tests.c
+	M mb_tests.h
+	D platform_pwr_seq.c
+	D platform_pwr_seq.h
+	M platform_stub.c
+
+benlu commit on 2018/08/28
+Add AQC107 cross port test
+        M katar_phy_tests.c
+        M katar_platform_ext_lpk.c
+
+mikech2 commit on 2018/08/27
+Fix I2C & pcie scan test
+	M katar_platform_i2c.c
+	M linux_main.c
+	M mb_tests.c
+	D platform_i2c.c
+	D platform_idt_fw.c
+	M platform_temp_sensor.h
+
+peteteng commit on 2018/08/03
+Add SFP cookie - SFP select
+	M katar_i2c_api.c
+	M katar_platform_sfp_cookie.c
+
+peteteng commit on 2018/07/24
+Add SFP cookie - read
+        M Makefile
+        M diag.c
+        M katar_aikido.h
+        M katar_fpga.c
+        A katar_i2c_api.c
+        A katar_platform_i2c.h
+        A katar_platform_sfp_cookie.c
+        A katar_platform_sfp_cookie.h
+        M linux_main.c
+
+mikech2 commit on 2018/07/19
+modify logic FPGA upgrade flow
+	M Makefile
+	M diag.c
+	M katar_fpga.c
+	M katar_fpga.h
+	M katar_platform_prom.c
+	D katar_platform_prom.h
+
+benlu commit on 2018/07/17
+Add i2c scan / temp sensor / poe diag test
+        M Makefile
+        A katar_platform_i2c.c
+        A katar_platform_temp_sensor.c
+        A katar_poe.c
+        A katar_poe.h
+
+peteteng commit on 2018/07/12
+Add tam_lib_platform_write/read
+        M Makefile 
+        M katar_aikido.h
+        M katar_platform_cookie.c
+        M katar_tam_act2_api_drv_support.c
+        M katar_tam_act2_api_drv_support.h
+
+benlu commit on 2018/07/10
+Add AQR4XX API and AQR412 internal/external loopback
+        M mb_tests.c
+        M Makefile
+        A AQR4xx/
+        A katar_phy_tests.c
+        A katar_platform_eth.h
+        A katar_platform_ext_lpbk.h
+        A katar_platform_ext_lpk.c
+
+mikech2 commit on 2018/07/10
+Add security FPGA FW update util
+	M Makefile
+	M diag.c
+	M katar_dash_fpga.c
+	A katar_platform_prom.c
+	A katar_platform_prom.h
+	A katar_tam_aikido_upgrade.c
+
+mikech2 commit on 2018/07/10
+Add wait_iface_link_stats to check link status
+	M katar_platform_eth_util.c
+
+mikech2 commit on 2018/07/05
+fix false positive for GE phy lpbk test
+    M katar_platform_eth_util.c
+
+mikech2 commit on 2018/07/04
+Add GE phy mb test function
+	M katar_platform_eth_util.c
+	M mb_tests.c
+
+mikech2 commit on 2018/07/02
+Add Ethernet utility Menu
+	M Makefile
+	M diag.c
+	A katar_platform_eth_util.c
+
+peteteng commit on 2018/07/02
+Update katar tam lib
+        M Makefile 
+        M katar_aikido.h
+        A katar_platform_stub.c
+
+peteteng commit on 2018/07/02
+Update reset and unreset functions
+        M katar_aikido.h
+        M katar_tam_act2_api_drv_support.c
+
+mikech2 commit on 2018/06/29
+Add 'make cleanall' command
+	M Makefile
+
+mikech2 commit on 2018/06/29
+Remove compile warning and unused files
+	M Makefile
+	M diag.c
+	M diag_boot_flash_test.c
+	D diag_boot_flash_test.h
+	M katar_aikido.h
+	M katar_dash_reg_test.c
+	M mb_tests.c
+	D platform_pem_eeprom_modify.c
+	D platform_pem_fan.c
+	D platform_pem_fan.h
+	D platform_pem_monitor_read.c
+	D platform_pem_utils.c
+	M tam_act2_utils.c
+
+mikech2 commit on 2018/06/29
+Add spi boot control function
+	M katar_fpga.c
+	M katar_fpga.h
+
+peteteng commit on 2018/06/29
+Add ACT2 utility Menu
+	M Makefile
+	M diag.c
+	M katar_aikido.h
+	M katar_platform_cookie.c
+	M katar_platform_cookie.h
+	A tam_act2_utils.c
+
+mikech2 commit on 2018/06/28
+Add interrupt mask control menu
+	M Makefile
+	M diag.c
+	M katar_fpga.c
+	M katar_fpga.h
+	M katar_platform_intr_test.c
+	D platform_vtg_mntr.c
+	D platform_vtg_mntr.h
+
+mikech2 commit on 2018/06/27
+remove unused test in mb_test
+	M Makefile
+	M mb_tests.c
+
+mikech2 commit on 2018/06/27
+Add reset/unreset device menu
+	M diag.c
+	M katar_fpga.c
+	M katar_fpga.h
+
+peteteng commit on 2018/06/26
+Add Aikido Cookie menu
+        M Makefile
+        M diag.c
+        A katar_aikido.h
+        A katar_comm.c
+        A katar_dash_fpga.c
+        A katar_platform_cookie.c
+        A katar_platform_cookie.h
+        A katar_platform_cpu.c
+        A katar_tam_act2_api_drv_support.c
+        A katar_tam_act2_api_drv_support.h
+
+mikech2 commit on 2018/06/25
+Add interupt test menu
+	M Makefile
+	M diag.c
+	M katar_fpga.c
+	M katar_fpga.h
+	M linux_main.c
+	D platform_idprom_utils.c
+	A katar_banner.sh
+	A katar_platform_intr_test.c
+
+mikech2 commit on 2018/06/21
+remove unused menu, add scratchpad reg test
+	M Makefile
+	M diag.c
+	M katar_fpga.c
+	M katar_fpga.h
+	M mb_tests.c
+	A commit_log
+	A katar_dash_reg_test.c
+
+mikech2 commit on 2018/06/20
+Add fan/led/margin control menu 
+	M Makefile
+	A katar_fpga.c
+	A katar_fpga.h
+	A katar_platform_fan.c
+	A katar_platform_led.c
+	A katar_platform_margin_utils.c
+	D platform_fan.c
+	D platform_led.c
+	D platform_led.h
+	D platform_margin_utils.c
+
+/*
+ *------------------------------------------------------------------
+ * $Log: commit_log,v $
+ * Revision 1.4  2021/04/15 02:21:43  peteteng
+ * V1.0.1 Release
+ *
+ * Revision 1.3  2021/04/15 01:55:08  peteteng
+ * Upgrade to TAM Lib-v3.4.24 based on PRRQ#5091945
+ *
+ * Revision 1.2  2019/06/14 05:24:48  mikech2
+ * Collapse katar-branch00 to Main Trunk
+ *
+ * Revision 1.1.2.138  2019/06/14 03:12:11  mikech2
+ * Update tam_act2_utils.c base on PRRQ#4758652
+ *
+ * Revision 1.1.2.137  2019/06/13 06:56:58  mikech2
+ * Merge tam_act2_utils.c revision 1.15 from main trunk
+ *
+ * Revision 1.1.2.136  2019/06/13 06:47:32  benlu
+ * Add AQR412c FW ID and VER number in system information display
+ *
+ * Revision 1.1.2.135  2019/06/12 01:00:02  mikech2
+ * Fix TSN compile warning
+ *
+ * Revision 1.1.2.134  2019/06/12 00:34:55  mikech2
+ * Modify fan speed upper bound to 6300
+ *
+ * Revision 1.1.2.133  2019/06/11 07:44:23  mikech2
+ * Remove fan upper bound according to vendor recommendation
+ *
+ * Revision 1.1.2.132  2019/06/10 11:58:28  benlu
+ * Modify platform_ext_lpbk.c base on PRRQ#4685780 Comment#6
+ *
+ * Revision 1.1.2.131  2019/06/10 03:47:18  mikech2
+ * Remove platform_fru.h base on PRRQ#4685780 Comment#6
+ *
+ * Revision 1.1.2.130  2019/06/10 02:26:44  mikech2
+ * Remove skip test function base on PRRQ#4685780 Comment#4
+ *
+ * Revision 1.1.2.129  2019/06/10 01:34:00  mikech2
+ * Remove diag_i2c_addr.h base on PRRQ#4685780 Comment#3
+ *
+ * Revision 1.1.2.128  2019/06/10 00:24:13  mikech2
+ * Modify diag_boot_flash_test.c base on PRRQ#4685780 Comment#1
+ *
+ * Revision 1.1.2.127  2019/06/06 02:44:25  mikech2
+ * clean out the unnecessary definitions and TSN string
+ *
+ * Revision 1.1.2.126  2019/06/05 07:56:49  mikech2
+ * Add upper bound for fan high speed test
+ *
+ * Revision 1.1.2.125  2019/06/03 08:52:30  mikech2
+ * V0.0.11 Release
+ *
+ * Revision 1.1.2.124  2019/05/31 06:40:48  benlu
+ * V0.0.10 release
+ *
+ * Revision 1.1.2.123  2019/05/31 04:06:46  benlu
+ * Add workaround for AQR412c CRC and 1st packet error
+ *
+ * Revision 1.1.2.122  2019/05/29 05:59:17  mikech2
+ * Code cleanup
+ *
+ * Revision 1.1.2.121  2019/05/28 02:11:46  mikech2
+ * V0.0.9 Release
+ *
+ * Revision 1.1.2.120  2019/05/27 12:18:29  benlu
+ * Add delay to wait KR link-up for RDT test
+ *
+ * Revision 1.1.2.119  2019/05/24 13:45:51  benlu
+ * Add 2.5G cross-port test for RDT in MB diag
+ *
+ * Revision 1.1.2.118  2019/05/24 08:50:50  benlu
+ * Add AQR412c 1st packet workaround for RDT test
+ *
+ * Revision 1.1.2.117  2019/05/15 10:09:27  mikech2
+ * Fix typo & missing error for set speed fail
+ *
+ * Revision 1.1.2.116  2019/05/10 07:01:30  peteteng
+ * V0.0.8 Release
+ *
+ * Revision 1.1.2.115  2019/05/08 02:37:02  peteteng
+ * Update PCAMAP-v15
+ *
+ * Revision 1.1.2.114  2019/05/06 05:47:24  peteteng
+ * Update PCAMAP-v14
+ *
+ * Revision 1.1.2.113  2019/05/02 03:26:23  peteteng
+ * Update PCAMAP-v13
+ *
+ * Revision 1.1.2.112  2019/05/02 03:00:50  mikech2
+ * Update linux_i2c base on PRRQ#4685761 Comment#4
+ *
+ * Revision 1.1.2.111  2019/04/30 06:06:58  mikech2
+ * Code cleanup
+ *
+ * Revision 1.1.2.110  2019/04/26 02:55:17  mikech2
+ * Remove 1G speed test for SFP+ module
+ *
+ * Revision 1.1.2.109  2019/04/26 01:17:33  mikech2
+ * clean up Makefile
+ *
+ * Revision 1.1.2.108  2019/04/25 00:32:24  mikech2
+ * Disable force fan high when enter diag
+ *
+ * Revision 1.1.2.107  2019/04/24 01:29:00  peteteng
+ * Fix compiler warning
+ *
+ * Revision 1.1.2.106  2019/04/23 07:10:20  peteteng
+ * Add bootflash switch test
+ *
+ * Revision 1.1.2.105  2019/04/22 06:58:08  mikech2
+ * Fix -5 degree mb test fail issue
+ *
+ * Revision 1.1.2.104  2019/04/22 02:52:48  mikech2
+ * Update linux_i2c base on PRRQ#4685761 Comment#4
+ *
+ * Revision 1.1.2.103  2019/04/16 08:33:16  peteteng
+ * Fix compiler warning
+ *
+ * Revision 1.1.2.102  2019/04/16 03:23:58  mikech2
+ * Code cleanup
+ *
+ * Revision 1.1.2.101  2019/04/12 01:35:54  peteteng
+ * Code cleanup
+ *
+ * Revision 1.1.2.100  2019/04/11 03:29:21  peteteng
+ * Based on code review PRRQ#CSCvo89304-2; Remove common/src/overlord/katar folder
+ *
+ * Revision 1.1.2.99  2019/04/03 03:47:18  peteteng
+ * V0.0.7 Release
+ *
+ * Revision 1.1.2.98  2019/04/01 02:23:04  peteteng
+ * Update PCAMAP-v11
+ *
+ * Revision 1.1.2.97  2019/03/28 03:44:30  peteteng
+ * V0.0.6 Release
+ *
+ * Revision 1.1.2.96  2019/03/27 03:21:03  peteteng
+ * Fix bootflash test issue
+ *
+ * Revision 1.1.2.95  2019/03/26 06:28:11  mikech2
+ * Add SFP/SFP+ module check in AQC100 cross-port test
+ *
+ * Revision 1.1.2.94  2019/03/25 08:07:22  mikech2
+ * Add 1G speed test for AQC100
+ *
+ * Revision 1.1.2.93  2019/03/21 07:00:40  benlu
+ * Modify the default value of select menu
+ *
+ * Revision 1.1.2.92  2019/03/14 08:36:58  peteteng
+ * Code cleanup
+ *
+ * Revision 1.1.2.91  2019/03/14 03:58:51  peteteng
+ * Code cleanup
+ *
+ * Revision 1.1.2.90  2019/03/13 06:46:50  mikech2
+ * Clean up codes
+ *
+ * Revision 1.1.2.89  2019/03/13 03:34:15  peteteng
+ * Code cleanup
+ *
+ * Revision 1.1.2.88  2019/03/11 03:17:32  mikech2
+ * Modify temperature sensor alert test threshold
+ *
+ * Revision 1.1.2.87  2019/03/08 07:44:37  mikech2
+ * Add SFP sku check for SFP utility
+ *
+ * Revision 1.1.2.86  2019/03/08 07:19:19  mikech2
+ * Clean up codes
+ *
+ * Revision 1.1.2.85  2019/03/07 02:51:08  mikech2
+ * Move reset button/SFP present test to utility
+ *
+ * Revision 1.1.2.84  2019/03/06 01:56:23  mikech2
+ * Add dump SFP eeprom in SFP intr test
+ *
+ * Revision 1.1.2.83  2019/03/05 07:29:36  mikech2
+ * Clean up codes
+ *
+ * Revision 1.1.2.82  2019/03/05 03:33:35  mikech2
+ * Use Aquantia tool dump SFP eeprom
+ *
+ * Revision 1.1.2.81  2019/03/04 07:39:16  mikech2
+ * Add temperature sensor alert test in Interrupt auto test
+ *
+ * Revision 1.1.2.80  2019/03/04 06:21:25  mikech2
+ * Remove unnecessary files
+ *
+ * Revision 1.1.2.79  2019/03/04 02:29:53  peteteng
+ * Move file from overlord to katar folder
+ *
+ * Revision 1.1.2.78  2019/03/04 00:45:13  mikech2
+ * Clean up codes and remove unnecessary files
+ *
+ * Revision 1.1.2.77  2019/02/26 03:51:38  mikech2
+ * Add internal loopback support for mb test
+ *
+ * Revision 1.1.2.76  2019/02/26 01:51:09  mikech2
+ * Fix AQC led control issue
+ *
+ * Revision 1.1.2.75  2019/02/25 08:46:44  mikech2
+ * Modify temperature sensor show register
+ *
+ * Revision 1.1.2.74  2019/02/20 02:54:48  mikech2
+ * Add SFP present test in SPF intr test
+ *
+ * Revision 1.1.2.73  2019/02/19 02:23:00  mikech2
+ * Modify I211 cross-port test setting
+ *
+ * Revision 1.1.2.72  2019/02/12 08:06:28  mikech2
+ * rename katar_*.h files
+ *
+ * Revision 1.1.2.71  2019/02/12 06:31:50  peteteng
+ * Update PCAMAP-v8
+ *
+ * Revision 1.1.2.70  2019/02/12 01:32:24  mikech2
+ * Add program Aikido FPGA DEV keys function
+ *
+ * Revision 1.1.2.69  2019/02/11 02:11:25  peteteng
+ * V0.0.5 Release
+ *
+ * Revision 1.1.2.68  2019/02/01 08:25:26  benlu
+ * add 412c firmware version
+ *
+ * Revision 1.1.2.67  2019/01/31 03:53:52  mikech2
+ * Add cpu core test and change mb test order
+ *
+ * Revision 1.1.2.66  2019/01/29 08:02:05  mikech2
+ * remove POE test for katar P2 build
+ *
+ * Revision 1.1.2.65  2019/01/29 03:44:10  peteteng
+ * Update PCAMAP-v6
+ *
+ * Revision 1.1.2.64  2019/01/29 01:54:19  mikech2
+ * rename katar_* files
+ *
+ * Revision 1.1.2.63  2019/01/22 02:01:26  peteteng
+ * V0.0.4 Release
+ *
+ * Revision 1.1.2.62  2019/01/21 07:28:57  mikech2
+ * Modify temp. sensor name
+ *
+ * Revision 1.1.2.61  2019/01/18 03:42:28  mikech2
+ * Set mask off before interrupt test
+ *
+ * Revision 1.1.2.60  2019/01/17 07:14:19  mikech2
+ * Modify according to Kwok's review comments
+ *
+ * Revision 1.1.2.59  2019/01/09 03:25:22  peteteng
+ * Add is_tam_aikido_on()
+ *
+ * Revision 1.1.2.58  2019/01/08 05:50:10  mikech2
+ * chnage cross-port lpbk test order and add debug message
+ *
+ * Revision 1.1.2.57  2019/01/04 06:07:16  peteteng
+ * Add SUDI_2099_2029
+ *
+ * Revision 1.1.2.56  2018/12/28 09:46:27  peteteng
+ * Support Aikido FW upgrade thru UserLogic FPGA I2C
+ *
+ * Revision 1.1.2.55  2018/12/27 09:01:28  peteteng
+ * Clean cookie warning log
+ *
+ * Revision 1.1.2.54  2018/12/27 03:48:26  mikech2
+ * Fix cross-port test issue
+ *
+ * Revision 1.1.2.53  2018/12/27 02:26:10  peteteng
+ * Update Aikido LPC scratchpad reg. addr.
+ *
+ * Revision 1.1.2.52  2018/12/27 00:42:24  peteteng
+ * Support Aikido thru UserLogic FPGA I2C
+ *
+ * Revision 1.1.2.51  2018/12/25 02:06:11  mikech2
+ * Add read back option for Usrlogic FPGA write function
+ *
+ * Revision 1.1.2.50  2018/12/21 07:28:45  peteteng
+ * Add ACT2 programming thru LPC
+ *
+ * Revision 1.1.2.49  2018/12/20 09:10:56  peteteng
+ * Add FPGA I2C read/write/scan/reset util
+ *
+ * Revision 1.1.2.48  2018/12/14 02:40:46  peteteng
+ * Add cookie util through LPC mailbox
+ *
+ * Revision 1.1.2.47  2018/12/14 02:06:03  mikech2
+ * Fix Akido FPGA SMBus read issue
+ *
+ * Revision 1.1.2.46  2018/12/13 15:41:06  peteteng
+ * Fix cookie util in Aikido FW-v10015
+ *
+ * Revision 1.1.2.45  2018/12/12 09:06:15  mikech2
+ * Update FPGA utility according to SPEC2.2(FW ver:2018121214)
+ *
+ * Revision 1.1.2.44  2018/12/12 02:03:39  peteteng
+ * Add Aikido FW upgrade through LPC
+ *
+ * Revision 1.1.2.43  2018/12/07 14:41:42  peteteng
+ * Modify addr. of Aikido LPC scratchpad test
+ *
+ * Revision 1.1.2.42  2018/12/06 08:32:25  mikech2
+ * Fine-tune Aikido I2C r/w and fix Aikido update FW utility
+ *
+ * Revision 1.1.2.41  2018/12/04 12:46:41  benlu
+ * Add AQR412/413 PHY internal lpbk test
+ *
+ * Revision 1.1.2.40  2018/12/04 08:39:09  mikech2
+ * Add AQC100/107 internal lpbk test
+ *
+ * Revision 1.1.2.39  2018/12/01 10:39:00  peteteng
+ * Speed up Aikido cookie
+ *
+ * Revision 1.1.2.38  2018/11/30 06:19:19  mikech2
+ * Modify Aikido eSPI memory map
+ *
+ * Revision 1.1.2.37  2018/11/29 03:19:58  peteteng
+ * Fix Aikido cookie - read one byte
+ *
+ * Revision 1.1.2.36  2018/11/28 14:47:24  peteteng
+ * V0.0.3 Release
+ *
+ * Revision 1.1.2.35  2018/11/28 01:35:42  benlu
+ * AQR412c config restore after corss test, link down retry, modify message
+ *
+ * Revision 1.1.2.34  2018/11/23 03:45:33  peteteng
+ * Fix I2C Util write multiple bytes issue
+ *
+ * Revision 1.1.2.33  2018/11/22 06:55:07  mikech2
+ * Add security FPGA version info
+ *
+ * Revision 1.1.2.32  2018/11/22 03:25:20  mikech2
+ * Add AQC107 phy led control
+ *
+ * Revision 1.1.2.31  2018/11/22 02:50:49  peteteng
+ * Add Aikido register read/write utility
+ *
+ * Revision 1.1.2.30  2018/11/19 08:47:32  mikech2
+ * Add usrlogic FPGA header check
+ *
+ * Revision 1.1.2.29  2018/11/17 11:09:49  peteteng
+ * Fix Aikido cookie issue
+ *
+ * Revision 1.1.2.28  2018/11/16 07:55:47  mikech2
+ * Add delay to avoid send interrupt twice
+ *
+ * Revision 1.1.2.27  2018/11/15 07:19:04  mikech2
+ * Modify light led all function
+ *
+ * Revision 1.1.2.26  2018/11/14 09:03:17  benlu
+ * commit log
+ *
+ * Revision 1.1.2.25  2018/11/14 08:14:58  peteteng
+ * Add Aikido FPGA register test
+ *
+ * Revision 1.1.2.24  2018/11/14 06:10:52  mikech2
+ * Add I211 phy register control
+ *
+ * Revision 1.1.2.23  2018/11/14 00:51:35  mikech2
+ * Modify UsrLogic FPGA update address
+ *
+ * Revision 1.1.2.22  2018/11/13 07:50:11  mikech2
+ * Fix pcie bus scan issue
+ *
+ * Revision 1.1.2.21  2018/11/13 02:53:07  mikech2
+ * Add PoE operating mode info
+ *
+ * Revision 1.1.2.20  2018/11/12 06:20:44  mikech2
+ * Fix internal loopback link down issue
+ *
+ * Revision 1.1.2.19  2018/11/09 15:09:24  benlu
+ * add AQR PHY interrupt auto test
+ *
+ * Revision 1.1.2.18  2018/11/09 07:12:04  mikech2
+ * Fix auto interrupt test reset issue
+ *
+ * Revision 1.1.2.17  2018/11/08 06:00:15  mikech2
+ * Add fan low and interrupt test in mb test and remove intr utility
+ *
+ * Revision 1.1.2.16  2018/11/08 02:21:52  peteteng
+ * Remove names in comment
+ *
+ * Revision 1.1.2.15  2018/11/05 07:37:59  mikech2
+ * Add interrupt utility
+ *
+ * Revision 1.1.2.14  2018/11/05 01:54:50  iachang
+ * Supported SHA1/SHA2/SWSUDI program.
+ *
+ * Revision 1.1.2.13  2018/11/01 09:19:42  mikech2
+ * Update FPGA poe led control according to SPEC
+ *
+ * Revision 1.1.2.12  2018/11/01 08:55:02  mikech2
+ * Disable boot timer when enter diag
+ *
+ * Revision 1.1.2.11  2018/11/01 07:24:23  mikech2
+ * Change log print from *** to ---
+ *
+ * Revision 1.1.2.10  2018/10/31 03:55:25  peteteng
+ * Fix Cookie type 0xC7 issue
+ *
+ * Revision 1.1.2.9  2018/10/30 08:24:20  peteteng
+ * Add EEPROM and Aikido ACT2 verification
+ *
+ * Revision 1.1.2.8  2018/10/30 07:19:43  mikech2
+ * Change PHY fw name in system info
+ *
+ * Revision 1.1.2.7  2018/10/30 06:32:01  peteteng
+ * Change cookie util order; remove i2c-1 inspection; add ACT2 programming case Qq
+ *
+ * Revision 1.1.2.6  2018/10/29 08:27:53  mikech2
+ * Add force fan spped high control and auto check for mb test
+ *
+ * Revision 1.1.2.5  2018/10/26 09:48:15  benlu
+ * Commit the change log
+ *
+ * Revision 1.1.2.4  2018/10/26 02:56:03  mikech2
+ * update comment & rollback mb_tests.c
+ *
+ * Revision 1.1.2.3  2018/10/26 02:39:34  mikech2
+ * Fix typo
+ *
+ * Revision 1.1.2.2  2018/10/23 08:15:09  peteteng
+ * Update PCAMAP-v.4 and auto detect sku
+ *
+ * Revision 1.1.2.1  2018/10/22 08:02:19  mikech2
+ * Move project folder to common/src/katar/x86
+ *
+ * Revision 1.1.2.58  2018/10/22 06:29:44  benlu
+ * Remove debug message
+ *
+ * Revision 1.1.2.57  2018/10/22 03:32:46  mikech2
+ * Add PHY led control(without AQC100/107)
+ *
+ * Revision 1.1.2.56  2018/10/22 03:05:42  peteteng
+ * use common code tam_act2_utils.c without smart_cookie.c
+ *
+ * Revision 1.1.2.55  2018/10/22 01:36:11  mikech2
+ * Fix RTC test interval count error issue
+ *
+ * Revision 1.1.2.54  2018/10/19 09:34:25  iachang
+ * Update TAM lib. from v3.3.25 to v3.4.4, fixed endian function naming issue
+ *
+ * Revision 1.1.2.53  2018/10/19 06:04:37  benlu
+ * AQR412c reg rd/wr utility and led control function
+ *
+ * Revision 1.1.2.52  2018/10/18 06:38:49  mikech2
+ * Add error count in GE/10G PHY mb test
+ *
+ * Revision 1.1.2.51  2018/10/18 02:32:25  mikech2
+ * Add RTC test in mb_tests.c
+ *
+ * Revision 1.1.2.50  2018/10/17 08:25:15  peteteng
+ * V0.0.2 Release
+ *
+ * Revision 1.1.2.49  2018/10/16 08:59:46  benlu
+ * Add AQR412c register test, register test and firmware upgrade
+ *
+ * Revision 1.1.2.48  2018/10/12 07:47:18  mikech2
+ * Add I211 internal lpbk test
+ *
+ * Revision 1.1.2.47  2018/10/12 00:59:22  mikech2
+ * Fix ethtool_cmd_speed link error issue
+ *
+ * Revision 1.1.2.46  2018/10/11 09:09:49  peteteng
+ * Skip bootflash test for now
+ *
+ * Revision 1.1.2.45  2018/10/11 06:49:04  mikech2
+ * Update FPGA intr test for SERIRQ
+ *
+ * Revision 1.1.2.44  2018/10/09 03:51:04  mikech2
+ * Fix GE & 10G phy mb test issue
+ *
+ * Revision 1.1.2.43  2018/10/08 09:09:48  peteteng
+ * Fix EEPROM write retry issue
+ *
+ * Revision 1.1.2.42  2018/10/08 08:06:56  peteteng
+ * Update PCAMAP-v3 default array
+ *
+ * Revision 1.1.2.41  2018/10/08 03:36:17  mikech2
+ * Modify pcie scan for different AQC100 FW
+ *
+ * Revision 1.1.2.40  2018/10/04 09:41:15  peteteng
+ * Add alter MB CPU cookie on EEPROM Utility
+ *
+ * Revision 1.1.2.39  2018/10/02 02:32:15  mikech2
+ * Modify FPGA register according SPEC 1.7.1
+ *
+ * Revision 1.1.2.38  2018/09/28 06:54:25  peteteng
+ * Fix SFP SPD issue - connector
+ *
+ * Revision 1.1.2.37  2018/09/28 03:10:06  peteteng
+ * Fix SFP SPD issue
+ *
+ * Revision 1.1.2.36  2018/09/25 06:36:20  peteteng
+ * Update Katar PCAMAP
+ *
+ * Revision 1.1.2.35  2018/09/25 06:31:08  peteteng
+ * Update Katar PCAMAP
+ *
+ * Revision 1.1.2.34  2018/09/21 08:52:12  mikech2
+ * Add cross-port & internal lpbk test util
+ *
+ * Revision 1.1.2.33  2018/09/20 06:45:46  peteteng
+ * Add load/read 256-byte cookie on EEPROM in cookie utility
+ *
+ * Revision 1.1.2.32  2018/09/18 00:42:44  mikech2
+ * change logic FPGA golden/upgrade addr
+ *
+ * Revision 1.1.2.31  2018/09/14 06:11:53  mikech2
+ * Add mem info to system info
+ *
+ * Revision 1.1.2.30  2018/09/12 08:32:48  mikech2
+ * Fix userlogic FPGA update & system info version issue
+ *
+ * Revision 1.1.2.29  2018/09/07 03:16:42  peteteng
+ * Add system info utility
+ *
+ * Revision 1.1.2.28  2018/09/07 02:16:52  mikech2
+ * Fix FPGA util issue
+ *
+ * Revision 1.1.2.27  2018/09/04 13:34:52  benlu
+ * add aqc107 internal loopback test
+ *
+ * Revision 1.1.2.26  2018/09/04 06:09:08  mikech2
+ * Fix I2C util , realtek port & get_pcie_cap_struct_ptr return error issue
+ *
+ * Revision 1.1.2.25  2018/08/28 14:04:37  benlu
+ * Add AQC107 cross test
+ *
+ * Revision 1.1.2.24  2018/08/27 08:28:47  mikech2
+ * Fix I2C & pcie scan test
+ *
+ * Revision 1.1.2.23  2018/08/03 01:35:32  peteteng
+ * Add SFP cookie - SFP select
+ *
+ * Revision 1.1.2.22  2018/07/24 09:58:43  peteteng
+ * Add SFP cookie - read
+ *
+ * Revision 1.1.2.21  2018/07/19 06:32:04  mikech2
+ * modify logic FPGA upgrade flow
+ *
+ * Revision 1.1.2.20  2018/07/17 11:41:00  benlu
+ * For i2c scan / Temperature / PoE diag test
+ *
+ * Revision 1.1.2.19  2018/07/12 08:05:12  peteteng
+ * add tam_lib_platform_write/read
+ *
+ * Revision 1.1.2.18  2018/07/12 02:54:14  benlu
+ * Add PHY internal/exteranl loopback and AQR4xx API
+ *
+ * Revision 1.1.2.17  2018/07/10 07:50:30  mikech2
+ * Add security FPGA FW update util
+ *
+ * Revision 1.1.2.16  2018/07/10 00:47:05  mikech2
+ * Add wait_iface_link_stats to check link status
+ *
+ * Revision 1.1.2.15  2018/07/05 02:25:59  mikech2
+ * fix false positive for GE phy lpbk test
+ *
+ * Revision 1.1.2.14  2018/07/04 03:28:47  mikech2
+ * Add GE phy mb test function
+ *
+ * Revision 1.1.2.13  2018/07/02 09:12:50  mikech2
+ * Add Ethernet utility Menu
+ *
+ * Revision 1.1.2.12  2018/07/02 08:23:50  peteteng
+ * Update katar tam lib
+ *
+ * Revision 1.1.2.11  2018/07/02 02:43:01  peteteng
+ * update reset and unreset functions
+ *
+ * Revision 1.1.2.10  2018/06/29 07:48:27  mikech2
+ * Add make cleanall command
+ *
+ * Revision 1.1.2.9  2018/06/29 07:17:31  mikech2
+ * Remove compile warning and unused files
+ *
+ * Revision 1.1.2.8  2018/06/29 06:48:11  mikech2
+ * Add spi boot control function
+ *
+ * Revision 1.1.2.7  2018/06/29 03:43:50  peteteng
+ * Add ACT2 utility Menu
+ *
+ * Revision 1.1.2.6  2018/06/28 03:32:56  mikech2
+ * Add interrupt mask control menu
+ *
+ * Revision 1.1.2.5  2018/06/27 07:45:16  mikech2
+ * remove unused test in mb_test
+ *
+ * Revision 1.1.2.4  2018/06/27 01:26:29  mikech2
+ * Add reset/unreset device menu
+ *
+ * Revision 1.1.2.3  2018/06/26 06:37:21  peteteng
+ * Add Aikido Cookie menu
+ *
+ * Revision 1.1.2.2  2018/06/25 08:24:53  mikech2
+ * Add interupt test menu
+ *
+ * Revision 1.1.2.1  2018/06/21 08:24:09  mikech2
+ * remove unused menu, add scratchpad reg test
+ *
+ *
+ *
+ *------------------------------------------------------------------
+ * $Endlog$
+ */

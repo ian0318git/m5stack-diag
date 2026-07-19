@@ -1,0 +1,17 @@
+#!/bin/sh
+# $Id: version,v 1.12 2021/06/02 02:56:20 alpeng Exp $
+# $Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/common/src/betelgeuse/version,v $
+#------------------------------------------------------------------
+# Version control file for espn-turbo
+#
+# Copyright (c) 2019 by cisco Systems, Inc.
+# All rights reserved.
+#
+#------------------------------------------------------------------
+#
+# $Endlog$
+#
+
+MAJOR_VERSION=1
+MINOR_VERSION=0
+RELEASE=8

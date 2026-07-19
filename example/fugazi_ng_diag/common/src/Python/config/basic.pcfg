@@ -1,0 +1,24 @@
+#$Id: basic.pcfg,v 1.2 2014/06/03 10:53:27 erwu2 Exp $
+#$Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/common/src/Python/config/basic.pcfg,v $
+#------------------------------------------------------------------------------
+#Description: common basic utilities for extension purpose
+#
+#Feb 2014 - erwu2
+#
+#Copyright (c) 2014 by Cisco Systems, Inc.
+#
+#All rights reserved.
+#
+#------------------------------------------------------------------------------
+
+#**********History**********
+#$Log: basic.pcfg,v $
+#Revision 1.2  2014/06/03 10:53:27  erwu2
+#python menu collapsed to main trunk
+#
+#Revision 1.1.2.1  2014/02/26 08:43:07  erwu2
+#1. support basic util submenu. 2. reduce args in parse function
+#
+#
+#
+#$Endlog$

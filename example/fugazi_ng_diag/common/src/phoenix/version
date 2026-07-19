@@ -1,0 +1,13 @@
+#!/bin/sh
+#------------------------------------------------------------------
+# Version control file for espn-turbo
+#
+# Copyright (c) 2019 by cisco Systems, Inc.
+# All rights reserved.
+#
+#------------------------------------------------------------------
+#release date: 2021-02-02
+
+MAJOR_VERSION=1
+MINOR_VERSION=0
+RELEASE=1

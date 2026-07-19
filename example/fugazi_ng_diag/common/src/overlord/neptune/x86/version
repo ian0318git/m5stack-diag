@@ -1,0 +1,109 @@
+#!/bin/sh
+# $Id: version,v 1.10 2020/04/06 06:05:39 letsai Exp $
+# $Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/common/src/overlord/neptune/x86/version,v $
+#------------------------------------------------------------------
+# Version control file for xformers
+#
+# Copyright (c) 2016-2019 by cisco Systems, Inc.
+# All rights reserved.
+#
+#------------------------------------------------------------------
+# $Log: version,v $
+# Revision 1.10  2020/04/06 06:05:39  letsai
+# Bump version to 4.6.1
+#
+# Revision 1.9  2020/03/18 07:56:20  letsai
+# Bump version to 4.6.0
+#
+# Revision 1.8  2019/08/19 12:55:35  mingding
+# CSCvk64124-39: bump version for release with supporting SM-Nightwatch
+#
+# Revision 1.7  2019/08/06 06:56:15  alpeng
+# merge curie, switzer and nightwatch to trunk
+#
+# Revision 1.6  2019/03/19 07:24:15  alpeng
+# remove kernel version check; bump to versino 4.4
+#
+# Revision 1.5  2019/01/25 06:47:01  alpeng
+# bump to version 4.3.1
+#
+# Revision 1.4  2018/08/25 01:01:01  ptong
+# Turn on 2099 SUDI support. Bump diag version to 4.3.0
+#
+# Revision 1.3  2018/07/19 23:32:59  ptong
+# Correct a neptune branch->main merge mistake: bring Makefile and version file up to match neptune-branch0-tagV4_2_1-052218 which change back to use 2029-SUDI TAM lib from 2099-SUDI TAM lib
+#
+# Revision 1.2  2018/05/18 09:25:01  alpeng
+#  Neptune merge to trunk with tag <neptune-branch-0518>
+#
+# Revision 1.1.2.21  2018/05/11 03:47:43  alpeng
+# bump to version 4.2.0 for pre-RDT build release
+#
+# Revision 1.1.2.20  2018/03/01 02:56:55  meho
+# Release V4.1.0 for P2.
+#
+# Revision 1.1.2.19  2018/02/08 06:50:55  meho
+# Release V4.0.0 for P2
+#
+# Revision 1.1.2.18  2017/11/29 05:44:25  leschen
+# Bump version up from V3.2.0 to V3.3.0 for supporting Nep-P1D and VG450.
+#
+# Revision 1.1.2.17  2017/10/13 19:44:48  ptong
+# Release V3.2.0 for P1C. Removed NGVM diag for VG450 and Neptune. Minor change in is_vg450()
+#
+# Revision 1.1.2.16  2017/09/11 05:50:53  leschen
+# V3.1.0 supports Neptune P1C special build with PLX switch with ROMMON.
+#
+# Revision 1.1.2.15  2017/08/14 19:00:21  ptong
+# V3.0.0 supports Neptune P1C with ROMMON
+#
+# Revision 1.1.2.14  2017/06/20 02:35:02  alpeng
+# Bump up to version 2.0.0
+#
+# Revision 1.1.2.13  2017/05/17 07:53:16  meho
+# Bump up to version 1.3.0
+#
+# Revision 1.1.2.12  2017/04/18 08:36:35  leschen
+# Bump up to version 1.2.0
+#
+# Revision 1.1.2.11  2017/04/05 08:27:54  leschen
+# Sync with <ng_diag-tag-032917>
+#
+# Revision 1.1.2.10  2017/03/27 07:19:52  alpeng
+# bump version 1.5
+#
+# Revision 1.1.2.9  2017/03/24 22:25:23  ptong
+# Merge new ACT2 code from main trunk that allow chassis SN tobe used in SUDI/WDC. Increase version to V1.1.4
+#
+# Revision 1.1.2.8  2017/03/21 10:02:14  alpeng
+# bump to version 1.1.3
+#
+# Revision 1.1.2.7  2017/03/03 18:54:46  ptong
+# Change to the final Neptune board ID. Release V1.1.2 diag.
+#
+# Revision 1.1.2.6  2017/02/28 23:32:49  ptong
+# Fix program_x86_mac to setup management and 10G port MAC addresses
+#
+# Revision 1.1.2.5  2017/02/17 22:37:31  ptong
+# Released V1.1.0 for P1B to work with the latest FPGA changes
+#
+# Revision 1.1.2.4  2017/01/04 19:20:44  ptong
+#  Set nepx86_diag and nepcvm_diag to V1.0.0 for P1B build release
+#
+# Revision 1.1.2.3  2016/11/11 01:56:50  ptong
+# Bump nepx86_diag and nepcvm_diag to V0.0.2
+#
+# Revision 1.1.2.2  2016/10/31 23:37:01  ptong
+# nepx86_diag and nepcvs_diag version start at 0.0.1
+#
+# Revision 1.1.2.1  2016/05/06 00:32:04  jskow
+# Add emmc and eusb tests, update banner to say Neptune, modify Makefiles and move files to boot nepx86_diag on Overlord
+#
+#
+#
+# $Endlog$
+#
+
+MAJOR_VERSION=4
+MINOR_VERSION=6
+RELEASE=1

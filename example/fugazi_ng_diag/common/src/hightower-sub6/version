@@ -1,0 +1,42 @@
+#$Id: version,v 1.2 2021/06/02 02:56:24 alpeng Exp $
+#$Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/common/src/hightower-sub6/version,v $
+#!/bin/sh
+#------------------------------------------------------------------
+# Version control file for Hightower
+#
+# Copyright (c) 2019-2020 by cisco Systems, Inc.
+# All rights reserved.
+#
+#------------------------------------------------------------------
+
+MAJOR_VERSION=1
+MINOR_VERSION=0
+RELEASE=3
+
+#********************************************************************
+# $Log: version,v $
+# Revision 1.2  2021/06/02 02:56:24  alpeng
+# merge sears into trunk
+#
+# Revision 1.1.4.6  2021/01/29 18:53:22  tshanmug
+# Empire diag version bump up to V1.0.2
+#
+# Revision 1.1.4.5  2020/11/26 03:38:00  alpeng
+# support temperature interrupt test for all version
+#
+# Revision 1.1.4.4  2020/10/14 23:51:14  tshanmug
+# Empire bumb up version V1.0.0
+#
+# Revision 1.1.4.3  2020/09/17 01:38:21  alpeng
+# bump to 0.1.4
+#
+# Revision 1.1.4.2  2020/08/27 08:14:10  alpeng
+# fix compiler error
+#
+# Revision 1.1.4.1  2020/08/27 07:16:46  alpeng
+# apply cvs header
+# 
+# 
+# $Endversion$
+# 
+

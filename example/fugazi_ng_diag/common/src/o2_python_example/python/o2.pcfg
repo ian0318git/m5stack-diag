@@ -1,0 +1,315 @@
+#$Id: o2.pcfg,v 1.2 2014/06/03 10:53:32 erwu2 Exp $
+#$Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/common/src/o2_python_example/python/o2.pcfg,v $
+#------------------------------------------------------------------------------
+#Description: o2 python menu structure building
+#
+#Oct 2013 - erwu2
+#
+#Copyright (c) 2013-2014 by Cisco Systems, Inc.
+#
+#All rights reserved.
+#
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+#  Notes that use "#" number sign to make comments in pcfg
+#------------------------------------------------------------------------------
+
+###############################################################################
+#  Image and Product type selections
+###############################################################################
+# @image mode : one_big_image (contains all the tests)
+#               individual_image (each test has its own executable)
+# e.g.
+#   @img_mode : one_big_image
+###############################################################################
+@img_mode : one_big_image
+
+###############################################################################
+# @product type : routing (pass all flags as argument of CLI)
+#                 2k/3k (no pass flag)
+#                 4k
+#                 6k
+# e.g.
+#    @prod_type : routing
+###############################################################################
+@prod_type : routing
+
+#===================================title=====================================#
+#                    menu_keyname : menu_title                                #
+#            e.g.                                                             #
+#            1.$main_menu         : Python Diag Main Menu                     #
+#            2.$motherboard tests : Motherboard Subtest Menu                  #
+#=============================================================================#
+# main menu MUST use '$main_menu'
+
+$main_menu : Python Diag Main Menu
+
+#===================================body======================================#
+#          mitem_letter : mitem_name : mitem_submenu : mitem_flag             #
+#                       : mitem_function                                      #
+#                                                                             #
+#            e.g.     g : motherboard tests : $Motherboard_tests : DOALL      #
+#                       : 0                                                   #
+#=============================================================================#
+# for item i~n in main menu below, executable will use first arg as slot number
+# e.g. o2_sm_test below will use first arg "2" as its slot number
+# m : test SM Slot 2                  : $test SM Slot 2     : DOALL
+#   : o2_sm_test 2
+#
+# mitem_submenu MUST be the same as in diag_flag.pcfg, (i.e. $alter_diag_flags)
+# mitem_submenu MUST be the same as in basic.pcfg (i.e. $basic_utilities)
+
+a : Alter diag flags                : $alter_diag_flags   : 0
+  : 0
+b : basic utilities                 : 0                   : 0
+  : o2x86_lnx basic_util
+c : do all diags in this menu       : 0                   : 0
+  : do_all
+d : do group of diags in this menu  : 0                   : 0
+  : do_grp
+e : i/o Interface test              : $i/o_interface_test : DOALL
+  : o2x86_lnx test IO
+f : ACT-2 utilities and programming : 0                   : 0
+  : o2x86_lnx auth MB
+g : motherboard test                : $Motherboard_tests  : DOALL
+  : o2x86_lnx test MB
+h : test Data plane                 : $test_data_plane    : DOALL
+  : o2x86_lnx test DATA_PLN
+i : test WIC Slot 1                 : 0                   : DOALL
+  : o2x86_lnx test WIC 1
+j : test WIC Slot 2                 : 0                   : DOALL
+  : o2x86_lnx test WIC 2
+k : test WIC Slot 3                 : 0                   : DOALL
+  : o2x86_lnx test WIC 3
+l : test SM Slot 1(individual image): $test SM Slot 1(individual image) : DOALL
+  : o2_sm_test 1
+m : test SM Slot 2                  : $test SM Slot 2     : DOALL
+  : o2x86_lnx test SM 2
+n : test VM                         : 0                   : DOALL
+  : o2x86_lnx test VM 1
+
+$i/o_interface_test : I/O Interface Subtest Menu
+a : Alter diag flags               : $alter_diag_flags : 0
+  : 0
+b : basic utilities                : 0                 : 0
+  : 0
+c : do all diags in this menu      : 0                 : 0
+  : do_all
+d : do group of diags in this menu : 0                 : 0
+  : do_grp
+e : SM interface test              : 0                 : DOALL
+  : 0
+f : WIC interface test             : 0                 : DOALL
+  : 0
+g : VM interface test              : 0                 : DOALL
+  : 0
+
+$Motherboard_tests : Motherboard Subtest Menu
+a : Alter diag flags               : $alter_diag_flags : 0
+  : 0
+b : basic utilities                : 0                 : 0
+  : 0
+c : do all diags in this menu      : 0                 : 0
+  : do_all
+d : do group of diags in this menu : 0                 : 0
+  : do_grp
+e : Main memory test with cache on : $Main_memory_test : DOALL
+  : 0
+f : USB 0 (/dev/usb0) test         : 0                 : DOALL
+  : o2_usb_test 0
+g : USB 1 (/dev/usb1) test         : 0                 : DOALL
+  : o2_usb_test 1
+h : Compact flash (/dev/cf) test   : 0                 : DOALL
+  : o2_cf_test
+i : Diag Flag Display test         : 0                 : DOALL
+  : o2_diag_flag_disp_test
+j : DASH FPGA register test        : 0                 : DOALL
+  : o2_dash_fpga_reg_test
+k : GESW test                      : $GESW_Test        : DOALL
+  : 0
+l : Cavecreek SGMII same port lpbk at GESW test : 0    : DOALL
+  : 0
+m : Cavecreek SGMII 2-port lpbk at GESW test    : 0    : DOALL
+  : 0
+n : AUX loopback test              : 0                 : DOALL
+  : 0
+o : PCIe Switch 10-bit PRBS Master Internal lpbk test  : 0 : DOALL
+  : 0
+p : PLL test                       : $PLL_test         : DOALL
+  : 0
+
+$test_data_plane : Data Plane Octeon Subtest Menu
+a : Alter diag flags               : $alter_diag_flags : 0
+  : 0
+b : basic utilities                : 0                 : 0
+  : 0
+c : do all diags in this menu      : 0                 : 0
+  : do_all
+d : do group of diags in this menu : 0                 : 0
+  : do_grp
+e : Run DP main test from CP via nc command   : 0      : DOALL
+  : 0
+f : Switch to DP console to show DP test menu : 0      : DOALL
+  : 0
+g : Boot Octeon Linux and diag from CP        : 0      : DOALL
+  : 0
+h : Boot Octeon uboot                         : 0      : DOALL
+  : 0
+i : Check Octeon DDR                          : 0      : DOALL
+  : 0
+j : Hello message to DP test                  : 0      : DOALL
+  : 0
+k : DP UART(/dev/ttyDASH7) loopback test      : 0      : DOALL
+  : 0
+
+$Main_memory_test : MeMtester Menu
+a : Alter diag flags               : $alter_diag_flags : 0
+  : 0
+b : basic utilities                : 0                 : 0
+  : 0
+c : do all diags in this menu      : 0                 : 0
+  : do_all
+d : do group of diags in this menu : 0                 : 0
+  : do_grp
+e : March C                        : 0                 : DOALL
+  : 0
+f : Random Value                   : 0                 : DOALL
+  : 0
+g : Compare XOR                    : 0                 : DOALL
+  : 0
+h : Compare SUB                    : 0                 : DOALL
+  : 0
+i : Compare MUL                    : 0                 : DOALL
+  : 0
+j : Compare DIV                    : 0                 : DOALL
+  : 0
+k : Compare OR                     : 0                 : DOALL
+  : 0
+l : Compare AND                    : 0                 : DOALL
+  : 0
+m : Sequential Increment           : 0                 : DOALL
+  : 0
+n : Solid Bits                     : 0                 : DOALL
+  : 0
+o : Block Sequential               : 0                 : DOALL
+  : 0
+p : Checkerboard                   : 0                 : DOALL
+  : 0
+q : Bit Spread                     : 0                 : DOALL
+  : 0
+r : Bit Flip                       : 0                 : DOALL
+  : 0
+s : Walking Ones                   : 0                 : DOALL
+  : 0
+t : Walking Zeroes                 : 0                 : DOALL
+  : 0
+u : Stuck Address                  : 0                 : DOALL
+  : 0
+
+$GESW_Test : BCM GE switch Subtest Menu
+a : Alter diag flags               : $alter_diag_flags : 0
+  : 0
+b : basic utilities                : 0                 : 0
+  : 0
+c : do all diags in this menu      : 0                 : 0
+  : do_all
+d : do group of diags in this menu : 0                 : 0
+  : do_grp
+e : Register reset default test            : 0         : DOALL
+  : 0
+f : Register read-write test               : 0         : DOALL
+  : 0
+g : PCI Compliance test                    : 0         : DOALL
+  : 0
+h : PCI S-Channel Bufferr test             : 0         : DOALL
+  : 0
+i : CPU Benchmarks test                    : 0         : DOALL
+  : 0
+j : CPU port loopback test                 : 0         : DOALL
+  : 0
+k : GE and XAUI internal PHY loopback test : 0         : DOALL
+  : 0
+l : GE port snake test                     : 0         : DOALL
+  : 0
+m : Invoke BCM shell                       : 0         : DOALL
+  : 0
+n : Init BCM util                          : 0         : DOALL
+  : 0
+o : GESW port loopback util                : 0         : DOALL
+  : 0
+p : GESW port TX util                      : 0         : DOALL
+  : 0
+q : GESW Show counter util                 : 0         : DOALL
+  : 0
+r : Host SGMII port send pkt util          : 0         : DOALL
+  : 0
+s : Host SGMII declare MAC address         : 0         : DOALL
+  : 0
+
+$PLL_test : PLL test SubMenu
+a : Alter diag flags               : $alter_diag_flags : 0
+  : 0
+b : basic utilities                : 0                 : 0
+  : 0
+c : do all diags in this menu      : 0                 : 0
+  : do_all
+d : do group of diags in this menu : 0                 : 0
+  : do_grp
+e : PLL Utilitie                   : $PLL_Utilities    : 0
+  : 0
+f : Ovld PLL test warp             : 0                 : DOALL
+  : 0
+
+$PLL_Utilities : PLL Utilities
+a : Alter diag flags               : $alter_diag_flags : 0
+  : 0
+b : basic utilities                : 0                 : 0
+  : 0
+c : do all diags in this menu      : 0                 : 0
+  : do_all
+d : do group of diags in this menu : 0                 : 0
+  : do_grp
+e : Overlord FPGA Alter Utility    : 0                 : 0
+  : 0
+#**********History**********
+#$Log: o2.pcfg,v $
+#Revision 1.2  2014/06/03 10:53:32  erwu2
+#python menu collapsed to main trunk
+#
+#Revision 1.1.2.12  2014/04/10 06:24:06  erwu2
+#classify o2 and lebowski executable to obj folder
+#
+#Revision 1.1.2.11  2014/03/26 03:32:35  erwu2
+#support image mode and product type
+#
+#Revision 1.1.2.10  2014/03/07 10:29:38  erwu2
+#add common submenu comments
+#
+#Revision 1.1.2.9  2014/02/26 08:43:07  erwu2
+#1. support basic util submenu. 2. reduce args in parse function
+#
+#Revision 1.1.2.8  2014/02/13 11:17:48  erwu2
+#improve variable naming
+#
+#Revision 1.1.2.7  2014/02/10 11:29:07  erwu2
+#add more comments to files
+#
+#Revision 1.1.2.5  2014/01/23 09:13:23  erwu2
+#show slot num to executable
+#
+#Revision 1.1.2.4  2014/01/20 05:53:36  erwu2
+#improve executable building
+#
+#Revision 1.1.2.3  2014/01/16 11:00:09  erwu2
+#update python files
+#
+#Revision 1.1.2.2  2013/12/19 10:25:19  erwu2
+#improve tftp dnld process
+#
+#Revision 1.1.2.1  2013/12/09 06:20:31  erwu2
+#python menu for o2 example
+#
+#
+#
+#$Endlog$

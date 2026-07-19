@@ -1,0 +1,28 @@
+#!/bin/sh
+# $Id: version,v 1.3 2017/07/18 08:48:41 iachang Exp $
+# $Source: /auto/diag/ngd-linux-rep/cvs/ng_diag/common/src/prince/version,v $
+#------------------------------------------------------------------
+# Version control file for Prince
+#
+# Copyright (c) 2012-2017 by cisco Systems, Inc.
+# All rights reserved.
+#
+#------------------------------------------------------------------
+# $Log: version,v $
+# Revision 1.3  2017/07/18 08:48:41  iachang
+# Prince FPGA Enhanced Feature, Support HP1, HP2, and LP.
+#
+# Revision 1.2  2014/08/04 06:13:11  xiaoyizh
+# Bump up version.
+#
+# Revision 1.1  2013/04/19 07:17:53  xiaoyizh
+#
+# Initial check in for Prince NIM.
+#
+#
+# $Endlog$
+#
+
+MAJOR_VERSION=1
+MINOR_VERSION=2
+RELEASE=0
