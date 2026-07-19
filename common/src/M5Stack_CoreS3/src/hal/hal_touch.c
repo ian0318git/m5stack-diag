@@ -10,6 +10,7 @@
 
 #include "hal_touch.h"
 #include "hal_i2c_helpers.h"
+#include "hal_power.h"
 #include "touch_FT6336.h"
 #include "diag_config.h"
 #include "driver/gpio.h"
@@ -23,8 +24,9 @@ static i2c_master_dev_handle_t s_i2c_dev = NULL;
 static bool s_initialised = false;
 
 /*
- * CoreS3 touch power is supplied by AXP2101 LDOIO0.
- * The PMU must be configured before the FT6336 will respond on I2C.
+ * CoreS3 touch power (FT6336 VCC) is supplied by AXP2101 LDOIO0.
+ * The PMU must be initialised and configured before the FT6336
+ * will respond on the I2C bus.
  */
 
 /* AXP2101 register to control LDOIO0 (GPIO0) */
@@ -34,21 +36,27 @@ static bool s_initialised = false;
 
 static diag_result_t touch_power_on(void)
 {
-    /* Add AXP2101 I2C device temporarily to enable touch power */
+    /* Initialise the AXP2101 PMU so its LDO outputs work */
+    if (hal_power_init() != DIAG_PASSED) {
+        ESP_LOGE(TAG, "AXP2101 init failed — touch power may be off");
+        return DIAG_FAILED;
+    }
+
+    /* Now write the LDOIO0 register to enable 3.3V touch power */
     i2c_master_dev_handle_t pmu_dev = NULL;
     if (hal_i2c_add_device(CONFIG_I2C_ADDR_POWER, 400000, &pmu_dev)
         != DIAG_PASSED) {
         return DIAG_FAILED;
     }
 
-    /* Set GPIO0/LDOIO0 to 3.3V output */
     uint8_t cmd[2] = { AXP2101_REG_GPIO0_LDO, AXP2101_GPIO0_3V3 };
     esp_err_t err = i2c_master_transmit(pmu_dev, cmd, 2, -1);
     if (err != ESP_OK) {
-        ESP_LOGW(TAG, "AXP2101 touch power reg write failed: %d", err);
+        ESP_LOGW(TAG, "AXP2101 touch LDO reg write failed: %d", err);
+        return DIAG_FAILED;
     }
 
-    /* No need to remove — the device handle is just a reference */
+    ESP_LOGI(TAG, "AXP2101 LDOIO0 enabled for touch (3.3V)");
     return DIAG_PASSED;
 }
 
@@ -56,22 +64,25 @@ diag_result_t hal_touch_init(void)
 {
     if (s_initialised) return DIAG_PASSED;
 
-    /* Ensure AXP2101 provides power to the touch controller */
-    touch_power_on();
-    esp_rom_delay_us(20000);   /* 20 ms power stabilisation */
+    /* Step 1: Enable touch power via AXP2101 */
+    if (touch_power_on() != DIAG_PASSED) {
+        ESP_LOGE(TAG, "Touch power-on failed");
+        return DIAG_FAILED;
+    }
+    esp_rom_delay_us(50000);   /* 50 ms for LDO to stabilise */
 
-    /* Reset the chip */
+    /* Step 2: Hardware reset the FT6336 */
     gpio_set_direction(CONFIG_TOUCH_RST_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(CONFIG_TOUCH_RST_PIN, 0);
-    esp_rom_delay_us(10000);
+    esp_rom_delay_us(10000);   /* hold reset ≥ 10 ms */
     gpio_set_level(CONFIG_TOUCH_RST_PIN, 1);
-    esp_rom_delay_us(50000);   /* 50 ms after reset before I2C */
+    esp_rom_delay_us(100000);  /* 100 ms for chip startup after reset */
 
-    /* INT as input */
+    /* Step 3: Configure INT pin */
     gpio_set_direction(CONFIG_TOUCH_INT_PIN, GPIO_MODE_INPUT);
     gpio_set_pull_mode(CONFIG_TOUCH_INT_PIN, GPIO_PULLUP_ONLY);
 
-    /* Add I2C device */
+    /* Step 4: Add I2C device and init the chip driver */
     if (hal_i2c_add_device(CONFIG_I2C_ADDR_TOUCH, 400000, &s_i2c_dev)
         != DIAG_PASSED) {
         return DIAG_FAILED;
