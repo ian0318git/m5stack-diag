@@ -19,9 +19,9 @@ static const char *TAG = "BMI270";
 static i2c_master_dev_handle_t s_dev = NULL;
 static bool s_init = false;
 
-/* Scale constants for ±2g / ±2000dps ranges */
-#define ACCEL_MG_PER_LSB   0.061f   /* 2g / 32768 * 1000 */
-#define GYRO_MDPS_PER_LSB  61.0f    /* 2000 / 32768 * 1000 */
+/* Scale constants: accel ±2g (12-bit), gyro ±2000dps (16-bit) */
+#define ACCEL_MG_PER_LSB   0.4883f  /* 2g / 4096 * 1000               */
+#define GYRO_MDPS_PER_LSB  61.0f    /* 2000 / 32768 * 1000            */
 
 /*===========================================================================*/
 /* I2C helpers                                                               */
@@ -153,16 +153,26 @@ int imu_BMI270_read(imu_BMI270_data_t *data)
     }
 
     uint8_t buf[12];
-    if (read_regs(BMI270_REG_ACCEL_X_LSB, buf, 12) != 0) return -1;
+    if (read_regs(BMI270_REG_ACC_X_LSB, buf, 12) != 0) return -1;
 
-    int16_t ax = (int16_t)(buf[0] | (buf[1] << 8));
-    int16_t ay = (int16_t)(buf[2] | (buf[3] << 8));
-    int16_t az = (int16_t)(buf[4] | (buf[5] << 8));
+    /* Accel: 12-bit left-aligned in 16-bit, LSB first. Shift right by 4. */
+    uint16_t ax_r = (uint16_t)(buf[0] | (buf[1] << 8)) >> 4;
+    uint16_t ay_r = (uint16_t)(buf[2] | (buf[3] << 8)) >> 4;
+    uint16_t az_r = (uint16_t)(buf[4] | (buf[5] << 8)) >> 4;
 
-    data->accel.x = (int16_t)(ax * ACCEL_MG_PER_LSB);
-    data->accel.y = (int16_t)(ay * ACCEL_MG_PER_LSB);
-    data->accel.z = (int16_t)(az * ACCEL_MG_PER_LSB);
+    /* Sign-extend 12-bit to 16-bit */
+    int16_t ax_s = (int16_t)(ax_r & 0x0FFF);
+    if (ax_s & 0x0800) ax_s |= 0xF000;
+    int16_t ay_s = (int16_t)(ay_r & 0x0FFF);
+    if (ay_s & 0x0800) ay_s |= 0xF000;
+    int16_t az_s = (int16_t)(az_r & 0x0FFF);
+    if (az_s & 0x0800) az_s |= 0xF000;
 
+    data->accel.x = (int16_t)(ax_s * ACCEL_MG_PER_LSB);
+    data->accel.y = (int16_t)(ay_s * ACCEL_MG_PER_LSB);
+    data->accel.z = (int16_t)(az_s * ACCEL_MG_PER_LSB);
+
+    /* Gyro: 16-bit two's complement, LSB first */
     int16_t gx = (int16_t)(buf[6]  | (buf[7]  << 8));
     int16_t gy = (int16_t)(buf[8]  | (buf[9]  << 8));
     int16_t gz = (int16_t)(buf[10] | (buf[11] << 8));

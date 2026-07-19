@@ -21,9 +21,20 @@ extern "C" {
 /*===========================================================================*/
 
 #define BMI270_REG_CHIP_ID      0x00
-#define BMI270_REG_ACCEL_X_LSB  0x03
-#define BMI270_REG_GYRO_X_LSB   0x09
-#define BMI270_REG_STATUS       0x21
+#define BMI270_REG_ERR_REG      0x02
+#define BMI270_REG_STATUS       0x03
+#define BMI270_REG_ACC_X_LSB    0x04  /* 12-bit accel, LSB first */
+#define BMI270_REG_ACC_X_MSB    0x05
+#define BMI270_REG_ACC_Y_LSB    0x06
+#define BMI270_REG_ACC_Y_MSB    0x07
+#define BMI270_REG_ACC_Z_LSB    0x08
+#define BMI270_REG_ACC_Z_MSB    0x09
+#define BMI270_REG_GYR_X_LSB    0x0A  /* 16-bit gyro, LSB first */
+#define BMI270_REG_GYR_X_MSB    0x0B
+#define BMI270_REG_GYR_Y_LSB    0x0C
+#define BMI270_REG_GYR_Y_MSB    0x0D
+#define BMI270_REG_GYR_Z_LSB    0x0E
+#define BMI270_REG_GYR_Z_MSB    0x0F
 #define BMI270_REG_CMD          0x7C
 #define BMI270_REG_PWR_CONF     0x7D
 #define BMI270_REG_PWR_CTRL     0x7E
