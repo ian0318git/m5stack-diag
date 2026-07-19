@@ -110,10 +110,10 @@ static diag_result_t test_i2c_scan(void *context)
         "FT6336 (Touch)",
     };
     const char *expected_hints[] = {
-        NULL,
-        NULL,
-        NULL,
-        "Touch may be at alt address 0x3A, or powered by a different AXP2101 rail",
+        "RTC powered by AXP2101 RTC_VDD — check PMU power status",
+        "IMU powered by AXP2101 SYS_3V3 rail",
+        "PMU is the root power device — check board power input",
+        "FT6336U requires AXP2101 LDOIO0 (reg 0x90) + AW9523B P0_0 RST release. Run Touch test to power on, or probe is expected NACK",
     };
 
     int missing = 0;
@@ -130,12 +130,21 @@ static diag_result_t test_i2c_scan(void *context)
         }
     }
 
-    /* Also check the alternative touch address and report if found there */
-    if (i2c_master_probe(bus, CONFIG_I2C_ADDR_RTC, 50) == ESP_OK &&
-        i2c_master_probe(bus, 0x3A, 50) == ESP_OK) {
-        diag_menu_printf("  ** NOTE: Touch found at 0x3A instead of 0x38\r\n");
-        diag_err_add(&s_err_ctx,
-                     "FT6336 (Touch): found at 0x3A, not expected 0x38");
+    /* Report optional devices absent (not a failure) */
+    {
+        const uint8_t opt[] = { 0x36, 0x21, 0x23 };
+        const char *on[] = { "AW88298 (Speaker)", "GC0308 (Camera)", "LTR-553 (Prox)" };
+        for (size_t i = 0; i < sizeof(opt); i++) {
+            if (i2c_master_probe(bus, opt[i], 50) != ESP_OK) {
+                diag_menu_printf("  -- 0x%02X %s — optional, skip\r\n", opt[i], on[i]);
+            }
+        }
+    }
+
+    /* Check alt touch address 0x3A */
+    if (i2c_master_probe(bus, 0x3A, 50) == ESP_OK) {
+        diag_menu_printf("  ** NOTE: Touch found at 0x3A (not 0x38)\r\n");
+        diag_err_add(&s_err_ctx, "FT6336: found at 0x3A, not expected 0x38");
     }
 
     if (missing > 0) {
