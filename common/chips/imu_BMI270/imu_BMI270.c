@@ -109,20 +109,17 @@ int imu_BMI270_init(i2c_master_dev_handle_t dev)
                  chip_id, BMI270_CHIP_ID_VAL);
     }
 
-    /* Soft-reset & wait for boot (10ms for full power-up) */
+    /* Soft-reset then enable sensors */
     write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
     esp_rom_delay_us(10000);
 
-    /* Load firmware config blob BEFORE enabling sensors */
-    if (load_config() != 0) {
-        ESP_LOGW(TAG, "Config load failed — sensor may not output data");
-    }
-
-    /* Enable power and sensors */
     write_reg(BMI270_REG_PWR_CONF, 0x00);
     esp_rom_delay_us(1000);
     write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN);
-    esp_rom_delay_us(10000);
+    esp_rom_delay_us(50000);
+
+    /* Try loading config blob (advisory — basic data works without it) */
+    load_config();
 
     s_init = true;
     ESP_LOGI(TAG, "BMI270 initialised (chip_id=0x%02X)", chip_id);
