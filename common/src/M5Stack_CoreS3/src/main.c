@@ -74,9 +74,12 @@ static diag_result_t test_i2c_scan(void *context)
             /* Known devices get named labels */
             const char *name = NULL;
             switch (addr) {
-                case CONFIG_I2C_ADDR_TOUCH: name = "FT6336 (Touch)"; break;
-                case CONFIG_I2C_ADDR_RTC:   name = "BM8563 (RTC)";  break;
-                case CONFIG_I2C_ADDR_IMU:   name = "BMI270 (IMU)";  break;
+                case CONFIG_I2C_ADDR_TOUCH: name = "FT6336 (Touch)";  break;
+                case 0x3A:                  name = "FT6336 alt (Touch)"; break;
+                case 0x40:                  name = "AW88298/Audio?";  break;
+                case CONFIG_I2C_ADDR_RTC:   name = "BM8563 (RTC)";    break;
+                case 0x58:                  name = "Audio/Mic?";      break;
+                case CONFIG_I2C_ADDR_IMU:   name = "BMI270 (IMU)";    break;
                 case CONFIG_I2C_ADDR_POWER: name = "AXP2101 (Power)"; break;
             }
             if (name) {
@@ -103,6 +106,12 @@ static diag_result_t test_i2c_scan(void *context)
         "AXP2101 (Power)",
         "FT6336 (Touch)",
     };
+    const char *expected_hints[] = {
+        NULL,
+        NULL,
+        NULL,
+        "Touch may be at alt address 0x3A, or powered by a different AXP2101 rail",
+    };
 
     int missing = 0;
     for (size_t i = 0; i < sizeof(expected); i++) {
@@ -111,8 +120,19 @@ static diag_result_t test_i2c_scan(void *context)
                              expected[i], expected_names[i]);
             diag_err_add(&s_err_ctx, "I2C@0x%02X %s: device not found on bus",
                          expected[i], expected_names[i]);
+            if (expected_hints[i]) {
+                diag_err_set_debug(&s_err_ctx, expected_hints[i], NULL);
+            }
             missing++;
         }
+    }
+
+    /* Also check the alternative touch address and report if found there */
+    if (i2c_master_probe(bus, CONFIG_I2C_ADDR_RTC, 50) == ESP_OK &&
+        i2c_master_probe(bus, 0x3A, 50) == ESP_OK) {
+        diag_menu_printf("  ** NOTE: Touch found at 0x3A instead of 0x38\r\n");
+        diag_err_add(&s_err_ctx,
+                     "FT6336 (Touch): found at 0x3A, not expected 0x38");
     }
 
     if (missing > 0) {
