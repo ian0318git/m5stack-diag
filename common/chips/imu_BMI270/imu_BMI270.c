@@ -58,26 +58,30 @@ static int load_config(void)
     write_reg(0x5B, (uint8_t)(addr & 0xFF));
     write_reg(0x5C, (uint8_t)((addr >> 8) & 0xFF));
 
+    /* Write config in 32-byte chunks */
     for (size_t i = 0; i < sizeof(bmi270_config_file); i += 32) {
         size_t chunk = sizeof(bmi270_config_file) - i;
         if (chunk > 32) chunk = 32;
         uint8_t buf[33];
         buf[0] = 0x5E;
         memcpy(&buf[1], &bmi270_config_file[i], chunk);
-        i2c_master_transmit(s_dev, buf, 1 + chunk, -1);
+        if (i2c_master_transmit(s_dev, buf, 1 + chunk, -1) != ESP_OK) {
+            ESP_LOGE(TAG, "Config write failed at offset %u", (unsigned)i);
+            return -1;
+        }
     }
 
-    write_reg(0x59, 1);
-    vTaskDelay(pdMS_TO_TICKS(BMI270_INIT_WAIT_MS));
+    write_reg(0x59, 1);   /* Trigger config loading */
 
+    /* Poll INIT_CTRL every 5ms, up to 300ms */
     uint8_t ctrl = 0xFF;
-    for (int r = 0; r < 50 && ctrl != 0; r++) {
+    for (int r = 0; r < 60 && ctrl != 0; r++) {
+        vTaskDelay(pdMS_TO_TICKS(5));
         read_reg(0x59, &ctrl);
-        esp_rom_delay_us(1000);
     }
 
     if (ctrl != 0) {
-        ESP_LOGW(TAG, "Config init timeout (0x%02X)", ctrl);
+        ESP_LOGW(TAG, "Config init timeout (INIT_CTRL=0x%02X)", ctrl);
         return -1;
     }
 
@@ -105,20 +109,20 @@ int imu_BMI270_init(i2c_master_dev_handle_t dev)
                  chip_id, BMI270_CHIP_ID_VAL);
     }
 
-    /* Soft-reset & wait for boot */
+    /* Soft-reset & wait for boot (10ms for full power-up) */
     write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
-    esp_rom_delay_us(2000);
+    esp_rom_delay_us(10000);
 
-    /* Disable power save and enable sensors */
+    /* Load firmware config blob BEFORE enabling sensors */
+    if (load_config() != 0) {
+        ESP_LOGW(TAG, "Config load failed — sensor may not output data");
+    }
+
+    /* Enable power and sensors */
     write_reg(BMI270_REG_PWR_CONF, 0x00);
     esp_rom_delay_us(1000);
     write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN);
     esp_rom_delay_us(10000);
-
-    /* Load firmware config blob (required for sensor data output) */
-    if (load_config() != 0) {
-        ESP_LOGW(TAG, "Config load failed — sensor may not output data");
-    }
 
     s_init = true;
     ESP_LOGI(TAG, "BMI270 initialised (chip_id=0x%02X)", chip_id);
