@@ -97,40 +97,63 @@ static diag_result_t test_i2c_scan(void *context)
     diag_menu_printf("\r\n  %d device(s) found on I2C bus\r\n", found);
 
     /* Cross-check: warn if any expected device is missing */
-    const uint8_t expected[] = {
-        CONFIG_I2C_ADDR_RTC,
-        CONFIG_I2C_ADDR_IMU,
-        CONFIG_I2C_ADDR_POWER,
-        CONFIG_I2C_ADDR_TOUCH,
-    };
-    const char *expected_names[] = {
-        "BM8563 (RTC)",
-        "BMI270 (IMU)",
-        "AXP2101 (Power)",
-        "FT6336 (Touch)",
-    };
-    const char *expected_hints[] = {
-        "RTC powered by AXP2101 RTC_VDD — check PMU power status",
-        "IMU powered by AXP2101 SYS_3V3 rail",
-        "PMU is the root power device — check board power input",
-        "FT6336U requires AXP2101 LDOIO0 (reg 0x90) + AW9523B P0_0 RST release. Run Touch test to power on, or probe is expected NACK",
-    };
-
-    int missing = 0;
-    for (size_t i = 0; i < sizeof(expected); i++) {
-        if (i2c_master_probe(bus, expected[i], 50) != ESP_OK) {
-            diag_menu_printf("  ** MISSING: 0x%02X %s\r\n",
-                             expected[i], expected_names[i]);
-            diag_err_add(&s_err_ctx, "I2C@0x%02X %s: device not found on bus",
-                         expected[i], expected_names[i]);
-            if (expected_hints[i]) {
-                diag_err_set_debug(&s_err_ctx, expected_hints[i], NULL);
+    /*
+     * Cross-check: mandatory P0 devices must be present.
+     * Per DFS §Test Coverage Matrix: {AXP2101, AW9523B} are P0.
+     */
+    {
+        const uint8_t mandatory[] = { CONFIG_I2C_ADDR_POWER, CONFIG_I2C_ADDR_GPIO_EXP };
+        const char *m_names[] = { "AXP2101 (PMU)", "AW9523B (GPIO Exp)" };
+        const char *m_hints[] = {
+            "PMU is root power — check USB/battery input",
+            "GPIO expander controls all peripheral RST lines",
+        };
+        int m_missing = 0;
+        for (size_t i = 0; i < sizeof(mandatory); i++) {
+            if (i2c_master_probe(bus, mandatory[i], 50) != ESP_OK) {
+                diag_menu_printf("  ** MISSING: 0x%02X %s — P0 mandatory\r\n",
+                                 mandatory[i], m_names[i]);
+                diag_err_add(&s_err_ctx, "I2C@0x%02X %s: P0 mandatory device missing",
+                             mandatory[i], m_names[i]);
+                diag_err_set_debug(&s_err_ctx, m_hints[i], NULL);
+                m_missing++;
             }
-            missing++;
+        }
+        if (m_missing > 0) {
+            return DIAG_FAILED;
         }
     }
 
-    /* Report optional devices absent (not a failure) */
+    /* Advisory P1 devices — warn but do not fail the scan */
+    {
+        const uint8_t advisory[] = {
+            CONFIG_I2C_ADDR_RTC,
+            CONFIG_I2C_ADDR_IMU,
+            CONFIG_I2C_ADDR_TOUCH,
+        };
+        const char *a_names[] = {
+            "BM8563 (RTC)",
+            "BMI270 (IMU)",
+            "FT6336U (Touch)",
+        };
+        const char *a_hints[] = {
+            "RTC powered by AXP2101 RTC_VDD",
+            "IMU powered by AXP2101 SYS_3V3",
+            "FT6336U needs AXP2101 LDOIO0 + AW9523B P0_0 — run Touch test to power on",
+        };
+        for (size_t i = 0; i < sizeof(advisory); i++) {
+            if (i2c_master_probe(bus, advisory[i], 50) != ESP_OK) {
+                diag_menu_printf("  -- 0x%02X %s — no ACK\r\n",
+                                 advisory[i], a_names[i]);
+                diag_menu_printf("     > %s\r\n", a_hints[i]);
+                diag_err_add(&s_err_ctx, "I2C@0x%02X %s: no ACK (advisory)",
+                             advisory[i], a_names[i]);
+                diag_err_set_debug(&s_err_ctx, a_hints[i], NULL);
+            }
+        }
+    }
+
+    /* Optional devices — absent is expected if flex cable not fitted */
     {
         const uint8_t opt[] = { 0x36, 0x21, 0x23 };
         const char *on[] = { "AW88298 (Speaker)", "GC0308 (Camera)", "LTR-553 (Prox)" };
@@ -147,13 +170,7 @@ static diag_result_t test_i2c_scan(void *context)
         diag_err_add(&s_err_ctx, "FT6336: found at 0x3A, not expected 0x38");
     }
 
-    if (missing > 0) {
-        diag_err_set_debug(&s_err_ctx,
-                           "Check power supply to the missing device",
-                           "Verify pull-up resistors and I2C connections");
-        return DIAG_FAILED;
-    }
-
+    diag_menu_printf("\r\n  All P0 mandatory devices present.\r\n");
     return DIAG_PASSED;
 }
 
