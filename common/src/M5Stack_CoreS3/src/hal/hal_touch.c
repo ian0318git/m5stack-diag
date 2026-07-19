@@ -82,14 +82,45 @@ diag_result_t hal_touch_init(void)
     gpio_set_direction(CONFIG_TOUCH_INT_PIN, GPIO_MODE_INPUT);
     gpio_set_pull_mode(CONFIG_TOUCH_INT_PIN, GPIO_PULLUP_ONLY);
 
-    /* Step 4: Add I2C device and init the chip driver */
-    if (hal_i2c_add_device(CONFIG_I2C_ADDR_TOUCH, 400000, &s_i2c_dev)
+    /* Step 4: Probe touch controller at known possible addresses */
+    const uint16_t touch_addrs[] = {
+        CONFIG_I2C_ADDR_TOUCH,  /* 0x38 — FT6336 default       */
+        0x3A,                    /* 0x3A — FT6336 alt (ADDR=H)  */
+        0x40,                    /* 0x40 — observed on some bds */
+    };
+    const char *addr_labels[] = { "0x38 (default)", "0x3A (alt)", "0x40" };
+
+    int found_addr = -1;
+    extern i2c_master_bus_handle_t hal_i2c_bus_get(void);
+    i2c_master_bus_handle_t bus = hal_i2c_bus_get();
+
+    if (bus) {
+        for (int i = 0; i < 3; i++) {
+            if (i2c_master_probe(bus, touch_addrs[i], 50) == ESP_OK) {
+                found_addr = touch_addrs[i];
+                ESP_LOGI(TAG, "Touch controller found at %s",
+                         addr_labels[i]);
+                break;
+            }
+        }
+    }
+
+    if (found_addr < 0) {
+        ESP_LOGE(TAG, "No touch controller found at 0x38, 0x3A, or 0x40");
+        return DIAG_FAILED;
+    }
+
+    /* Step 5: Add I2C device at the found address */
+    if (hal_i2c_add_device((uint16_t)found_addr, 400000, &s_i2c_dev)
         != DIAG_PASSED) {
         return DIAG_FAILED;
     }
 
+    /* Step 6: Init the chip driver */
     if (touch_FT6336_init(s_i2c_dev) != 0) {
-        ESP_LOGE(TAG, "FT6336 init failed after power-on");
+        ESP_LOGE(TAG, "FT6336 init failed at %s",
+                 (found_addr == 0x38) ? "0x38" :
+                 (found_addr == 0x3A) ? "0x3A" : "0x40");
         return DIAG_FAILED;
     }
 
