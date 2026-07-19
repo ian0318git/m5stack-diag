@@ -52,7 +52,7 @@ static diag_result_t test_i2c_scan(void *context)
     (void)context;
 
     diag_err_set_component(&s_err_ctx, "I2C", "MB/I2C");
-    diag_menu_printf("Scanning I2C bus for devices...\r\n");
+    diag_menu_printf("Scanning full I2C address range 0x01-0x7F...\r\n");
 
     extern i2c_master_bus_handle_t hal_i2c_bus_get(void);
     i2c_master_bus_handle_t bus = hal_i2c_bus_get();
@@ -65,44 +65,60 @@ static diag_result_t test_i2c_scan(void *context)
     }
 
     int found = 0;
-    const uint8_t known_addrs[] = {
-        CONFIG_I2C_ADDR_TOUCH,
-        CONFIG_I2C_ADDR_RTC,
-        CONFIG_I2C_ADDR_IMU,
-        CONFIG_I2C_ADDR_POWER,
-    };
-    const char *known_names[] = {
-        "FT6336 (Touch)",
-        "BM8563 (RTC)",
-        "BMI270 (IMU)",
-        "AXP2101 (Power)",
-    };
+    diag_menu_printf("\r\n  Found devices:\r\n");
 
-    for (size_t i = 0; i < sizeof(known_addrs); i++) {
-        esp_err_t err = i2c_master_probe(bus, known_addrs[i], 100);
+    /* Full scan: probe every 7-bit address from 0x01 to 0x7F */
+    for (uint16_t addr = 1; addr < 0x80; addr++) {
+        esp_err_t err = i2c_master_probe(bus, addr, 50);
         if (err == ESP_OK) {
-            diag_menu_printf("  [ OK ] 0x%02X (%s)\r\n",
-                             known_addrs[i], known_names[i]);
+            /* Known devices get named labels */
+            const char *name = NULL;
+            switch (addr) {
+                case CONFIG_I2C_ADDR_TOUCH: name = "FT6336 (Touch)"; break;
+                case CONFIG_I2C_ADDR_RTC:   name = "BM8563 (RTC)";  break;
+                case CONFIG_I2C_ADDR_IMU:   name = "BMI270 (IMU)";  break;
+                case CONFIG_I2C_ADDR_POWER: name = "AXP2101 (Power)"; break;
+            }
+            if (name) {
+                diag_menu_printf("    [ OK ] 0x%02X — %s\r\n", addr, name);
+            } else {
+                diag_menu_printf("    [ OK ] 0x%02X — UNKNOWN\r\n", addr);
+            }
             found++;
-        } else if (err == ESP_ERR_NOT_FOUND) {
-            diag_menu_printf("  [ -- ] 0x%02X (%s) — no ACK\r\n",
-                             known_addrs[i], known_names[i]);
-            diag_err_add(&s_err_ctx, "I2C@0x%02X %s: no ACK",
-                         known_addrs[i], known_names[i]);
-        } else {
-            diag_menu_printf("  [FAIL] 0x%02X (%s) — probe error (%d)\r\n",
-                             known_addrs[i], known_names[i], err);
-            diag_err_add(&s_err_ctx, "I2C@0x%02X %s: probe error %d",
-                         known_addrs[i], known_names[i], err);
         }
     }
 
-    diag_menu_printf("I2C scan complete: %d device(s) found\r\n", found);
+    diag_menu_printf("\r\n  %d device(s) found on I2C bus\r\n", found);
 
-    if (found == 0) {
+    /* Cross-check: warn if any expected device is missing */
+    const uint8_t expected[] = {
+        CONFIG_I2C_ADDR_RTC,
+        CONFIG_I2C_ADDR_IMU,
+        CONFIG_I2C_ADDR_POWER,
+        CONFIG_I2C_ADDR_TOUCH,
+    };
+    const char *expected_names[] = {
+        "BM8563 (RTC)",
+        "BMI270 (IMU)",
+        "AXP2101 (Power)",
+        "FT6336 (Touch)",
+    };
+
+    int missing = 0;
+    for (size_t i = 0; i < sizeof(expected); i++) {
+        if (i2c_master_probe(bus, expected[i], 50) != ESP_OK) {
+            diag_menu_printf("  ** MISSING: 0x%02X %s\r\n",
+                             expected[i], expected_names[i]);
+            diag_err_add(&s_err_ctx, "I2C@0x%02X %s: device not found on bus",
+                         expected[i], expected_names[i]);
+            missing++;
+        }
+    }
+
+    if (missing > 0) {
         diag_err_set_debug(&s_err_ctx,
-                           "Check that the CoreS3 is powered correctly",
-                           "Inspect I2C bus for shorts");
+                           "Check power supply to the missing device",
+                           "Verify pull-up resistors and I2C connections");
         return DIAG_FAILED;
     }
 
