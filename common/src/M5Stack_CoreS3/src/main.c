@@ -79,35 +79,22 @@ static diag_result_t test_i2c_scan(void *context)
     };
 
     for (size_t i = 0; i < sizeof(known_addrs); i++) {
-        i2c_device_config_t dev_cfg = {
-            .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-            .device_address  = known_addrs[i],
-            .scl_speed_hz    = CONFIG_I2C_CLOCK_HZ,
-        };
-
-        i2c_master_dev_handle_t dev;
-        esp_err_t err = i2c_master_bus_add_device(bus, &dev_cfg, &dev);
-        if (err != ESP_OK) {
-            diag_menu_printf("  [FAIL] 0x%02X (%s) — bus error\r\n",
-                             known_addrs[i], known_names[i]);
-            diag_err_add(&s_err_ctx, "0x%02X %s: bus error",
-                         known_addrs[i], known_names[i]);
-            continue;
-        }
-
-        err = i2c_master_transmit(dev, NULL, 0, 100);
+        esp_err_t err = i2c_master_probe(bus, known_addrs[i], 100);
         if (err == ESP_OK) {
             diag_menu_printf("  [ OK ] 0x%02X (%s)\r\n",
                              known_addrs[i], known_names[i]);
             found++;
-        } else {
+        } else if (err == ESP_ERR_NOT_FOUND) {
             diag_menu_printf("  [ -- ] 0x%02X (%s) — no ACK\r\n",
                              known_addrs[i], known_names[i]);
-            diag_err_add(&s_err_ctx, "0x%02X %s: no ACK",
+            diag_err_add(&s_err_ctx, "I2C@0x%02X %s: no ACK",
                          known_addrs[i], known_names[i]);
+        } else {
+            diag_menu_printf("  [FAIL] 0x%02X (%s) — probe error (%d)\r\n",
+                             known_addrs[i], known_names[i], err);
+            diag_err_add(&s_err_ctx, "I2C@0x%02X %s: probe error %d",
+                         known_addrs[i], known_names[i], err);
         }
-
-        i2c_master_bus_rm_device(dev);
     }
 
     diag_menu_printf("I2C scan complete: %d device(s) found\r\n", found);
