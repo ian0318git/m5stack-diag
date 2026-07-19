@@ -54,14 +54,15 @@ static int load_config(void)
     static bool loaded = false;
     if (loaded) return 0;
 
-    uint16_t addr = BMI270_CONFIG_START_ADDR;
-    write_reg(0x5B, (uint8_t)(addr & 0xFF));
-    write_reg(0x5C, (uint8_t)((addr >> 8) & 0xFF));
-
-    /* Write config in 32-byte chunks */
+    /* Write config in 32-byte chunks, updating INIT_ADDR per chunk */
     for (size_t i = 0; i < sizeof(bmi270_config_file); i += 32) {
         size_t chunk = sizeof(bmi270_config_file) - i;
         if (chunk > 32) chunk = 32;
+
+        uint16_t addr = BMI270_CONFIG_START_ADDR + i;
+        write_reg(0x5B, (uint8_t)(addr & 0xFF));
+        write_reg(0x5C, (uint8_t)((addr >> 8) & 0xFF));
+
         uint8_t buf[33];
         buf[0] = 0x5E;
         memcpy(&buf[1], &bmi270_config_file[i], chunk);
