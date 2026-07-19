@@ -3,6 +3,11 @@
  *
  * Common chip driver.
  *
+ * NOTE: Avoid full-register writes (0x12/0x13 = 0x00) that affect ALL
+ * pins at once. On the CoreS3, undocumented AW9523B pins may control
+ * USB_OTG_EN or other power-direction signals.  Always use per-pin
+ * read-modify-write.
+ *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
  */
@@ -40,7 +45,7 @@ int aw9523b_init(i2c_master_dev_handle_t dev)
     if (!dev) return -1;
     s_dev = dev;
 
-    /* Verify chip ID */
+    /* Only verify chip ID — no register writes that could affect unknown pins */
     uint8_t id = 0;
     if (read_reg(AW9523B_REG_CHIP_ID, &id) != 0) {
         ESP_LOGE(TAG, "AW9523B not responding");
@@ -50,11 +55,6 @@ int aw9523b_init(i2c_master_dev_handle_t dev)
         ESP_LOGW(TAG, "Unexpected chip ID: 0x%02X (expected 0x%02X)",
                  id, AW9523B_CHIP_ID_VAL);
     }
-
-    /* Set all pins to GPIO mode (not LED PWM) by clearing reg 0x12/0x13 */
-    /* AW9523B: reg 0x12 controls P0 LED mode, 0x13 controls P1 LED mode */
-    write_reg(0x12, 0x00);
-    write_reg(0x13, 0x00);
 
     s_init = true;
     ESP_LOGI(TAG, "AW9523B initialised (chip_id=0x%02X)", id);
@@ -135,6 +135,24 @@ int aw9523b_port_read(int port, uint8_t *value)
 
     uint8_t reg = (port == 0) ? AW9523B_REG_INPUT0 : AW9523B_REG_INPUT1;
     return read_reg(reg, value);
+}
+
+int aw9523b_pin_set_gpio_mode(uint8_t pin)
+{
+    if (!s_dev || pin > 15) return -1;
+
+    int port = (pin < 8) ? 0 : 1;
+    /* AW9523B regs: 0x12 = Port 0 LED mode, 0x13 = Port 1 LED mode.
+     * Bit = 1 means LED/PWM mode, 0 means GPIO mode. */
+    uint8_t reg = (port == 0) ? 0x12 : 0x13;
+    uint8_t bit = (uint8_t)(1 << (pin & 7));
+    uint8_t val = 0;
+
+    if (read_reg(reg, &val) != 0) return -1;
+
+    val &= ~bit;   /* Clear the LED mode bit → GPIO mode */
+
+    return write_reg(reg, val);
 }
 
 uint8_t aw9523b_chip_id(void)

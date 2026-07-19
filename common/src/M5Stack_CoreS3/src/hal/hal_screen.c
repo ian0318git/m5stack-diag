@@ -57,7 +57,8 @@ static diag_result_t gpio_exp_init(void)
         return DIAG_FAILED;
     }
 
-    /* LCD_RST (P1_1) as output, held in reset */
+    /* LCD_RST (P1_1): GPIO mode, output, held in reset */
+    aw9523b_pin_set_gpio_mode(AW9523B_PIN_LCD_RST);
     aw9523b_pin_set_direction(AW9523B_PIN_LCD_RST, 1);
     aw9523b_pin_write(AW9523B_PIN_LCD_RST, 0);
 

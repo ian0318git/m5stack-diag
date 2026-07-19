@@ -80,11 +80,19 @@ static diag_result_t gpio_exp_init(void)
         return DIAG_FAILED;
     }
 
-    /* Set TOUCH_RST (P0_0) as output, initially held in reset (low) */
+    /*
+     * Per-pin init using read-modify-write only for the specific pins
+     * we need.  Never write full registers (0x12/0x13 = 0x00) — that
+     * affects ALL pins and may toggle undcoumented USB_OTG_EN signals.
+     */
+
+    /* P0_0 = TOUCH_RST: GPIO mode, output, held low (assert reset) */
+    aw9523b_pin_set_gpio_mode(AW9523B_PIN_TOUCH_RST);
     aw9523b_pin_set_direction(AW9523B_PIN_TOUCH_RST, 1);
     aw9523b_pin_write(AW9523B_PIN_TOUCH_RST, 0);
 
-    /* Set TOUCH_INT (P1_2) as input */
+    /* P1_2 = TOUCH_INT: GPIO mode, input */
+    aw9523b_pin_set_gpio_mode(AW9523B_PIN_TOUCH_INT);
     aw9523b_pin_set_direction(AW9523B_PIN_TOUCH_INT, 0);
 
     ESP_LOGI(TAG, "AW9523B touch pins configured");

@@ -67,6 +67,12 @@ int  aw9523b_pin_read(uint8_t pin, int *level);
 int  aw9523b_port_write(int port, uint8_t value);
 int  aw9523b_port_read(int port, uint8_t *value);
 
+/**
+ * @brief Disable LED (PWM) mode for a single pin, switching it to GPIO.
+ *        Uses read-modify-write to avoid affecting other pins.
+ */
+int  aw9523b_pin_set_gpio_mode(uint8_t pin);
+
 /*===========================================================================*/
 /* Chip Info                                                                 */
 /*===========================================================================*/
