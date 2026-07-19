@@ -2,6 +2,8 @@ idf_component_register(
     SRCS
         "src/main.c"
         "src/diag_menu.c"
+        "src/diag_menu_core.c"
+        "src/diag_error.c"
         "src/diag_runner.c"
         "src/hal/hal_i2c_helpers.c"
         "src/hal/hal_screen.c"

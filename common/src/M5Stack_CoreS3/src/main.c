@@ -1,14 +1,9 @@
 /*
  * main.c - M5Stack CoreS3 Diagnostic System Entry Point
  *
- * ESP-IDF app_main: initialises all subsystems, builds the test suite,
+ * ESP-IDF app_main: initialises all subsystems, builds the test suite
+ * (both the flat runner suite and the fugazi-style hierarchical menu),
  * registers extended menu commands, and enters the UART menu loop.
- *
- * Clean Architecture layers:
- *   - Domain:          diag_core.h (types, entities)
- *   - Interface Adapter: diag_menu.h/c (console presenter/controller)
- *                       diag_runner.h/c (test orchestration)
- *   - Frameworks/Drivers: src/hal/ (concrete HAL implementations)
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -25,8 +20,14 @@
 #include "diag_core.h"
 #include "diag_config.h"
 #include "diag_menu.h"
+#include "diag_menu_core.h"
 #include "diag_runner.h"
+#include "diag_error.h"
 #include "driver/i2c_master.h"
+
+/*===========================================================================*/
+/* HAL includes                                                              */
+/*===========================================================================*/
 
 #include "hal_screen.h"
 #include "hal_touch.h"
@@ -37,35 +38,38 @@
 static const char *TAG = "m5s3_diag";
 
 /*===========================================================================*/
+/* Global error context (shared by all test functions)                       */
+/*===========================================================================*/
+
+static diag_err_ctx_t s_err_ctx;
+
+/*===========================================================================*/
 /* Test function implementations                                             */
 /*===========================================================================*/
 
-/**
- * @brief I2C bus scan — probe all 127 possible addresses and report
- *        which peripherals respond.
- */
 static diag_result_t test_i2c_scan(void *context)
 {
     (void)context;
+
+    diag_err_set_component(&s_err_ctx, "I2C", "MB/I2C");
     diag_menu_printf("Scanning I2C bus for devices...\r\n");
 
-    /* We re-use the I2C bus handle from the HAL layer.
-     * For the scan, we temporarily add a dummy device at each address
-     * and see if ACK is received.
-     */
     extern i2c_master_bus_handle_t hal_i2c_bus_get(void);
     i2c_master_bus_handle_t bus = hal_i2c_bus_get();
     if (!bus) {
-        diag_menu_printf("  FAIL: I2C bus not available\r\n");
+        diag_err_add(&s_err_ctx, "I2C bus not available");
+        diag_err_set_debug(&s_err_ctx,
+                           "Check power supply to the I2C bus",
+                           "Check SDA/SCL pull-up resistors");
         return DIAG_FAILED;
     }
 
     int found = 0;
     const uint8_t known_addrs[] = {
-        CONFIG_I2C_ADDR_TOUCH,   /* 0x38 — FT6336 touch         */
-        CONFIG_I2C_ADDR_RTC,     /* 0x51 — BM8563 RTC           */
-        CONFIG_I2C_ADDR_IMU,     /* 0x69 — BMI270 IMU           */
-        CONFIG_I2C_ADDR_POWER,   /* 0x34 — AXP2101 PMU          */
+        CONFIG_I2C_ADDR_TOUCH,
+        CONFIG_I2C_ADDR_RTC,
+        CONFIG_I2C_ADDR_IMU,
+        CONFIG_I2C_ADDR_POWER,
     };
     const char *known_names[] = {
         "FT6336 (Touch)",
@@ -86,10 +90,11 @@ static diag_result_t test_i2c_scan(void *context)
         if (err != ESP_OK) {
             diag_menu_printf("  [FAIL] 0x%02X (%s) — bus error\r\n",
                              known_addrs[i], known_names[i]);
+            diag_err_add(&s_err_ctx, "0x%02X %s: bus error",
+                         known_addrs[i], known_names[i]);
             continue;
         }
 
-        /* Send a zero-length write to test ACK */
         err = i2c_master_transmit(dev, NULL, 0, 100);
         if (err == ESP_OK) {
             diag_menu_printf("  [ OK ] 0x%02X (%s)\r\n",
@@ -98,6 +103,8 @@ static diag_result_t test_i2c_scan(void *context)
         } else {
             diag_menu_printf("  [ -- ] 0x%02X (%s) — no ACK\r\n",
                              known_addrs[i], known_names[i]);
+            diag_err_add(&s_err_ctx, "0x%02X %s: no ACK",
+                         known_addrs[i], known_names[i]);
         }
 
         i2c_master_bus_rm_device(dev);
@@ -105,35 +112,39 @@ static diag_result_t test_i2c_scan(void *context)
 
     diag_menu_printf("I2C scan complete: %d device(s) found\r\n", found);
 
-    /* Check that at least the PMU (always present) responded */
-    return (found > 0) ? DIAG_PASSED : DIAG_FAILED;
+    if (found == 0) {
+        diag_err_set_debug(&s_err_ctx,
+                           "Check that the CoreS3 is powered correctly",
+                           "Inspect I2C bus for shorts");
+        return DIAG_FAILED;
+    }
+
+    return DIAG_PASSED;
 }
 
-/**
- * @brief Screen test — fill screen with colours, draw lines, show text.
- */
 static diag_result_t test_screen(void *context)
 {
     (void)context;
 
-    diag_result_t r = hal_screen_init();
-    if (r != DIAG_PASSED) return r;
+    diag_err_set_component(&s_err_ctx, "SCREEN", "MB/LCD");
 
-    /* Colour bars */
+    diag_result_t r = hal_screen_init();
+    if (r != DIAG_PASSED) {
+        diag_err_add(&s_err_ctx, "GC9A01 screen init failed");
+        diag_err_set_debug(&s_err_ctx,
+                           "Check SPI bus connections (MOSI=GPIO14, SCLK=GPIO21)",
+                           "Check LCD reset sequence");
+        return r;
+    }
+
     int w = hal_screen_width();
     int h = hal_screen_height();
-    int strip_h = h / 5;
 
-    hal_screen_fill(HAL_SCREEN_COLOR_RED);
-    vTaskDelay(pdMS_TO_TICKS(400));
-    hal_screen_fill(HAL_SCREEN_COLOR_GREEN);
-    vTaskDelay(pdMS_TO_TICKS(400));
-    hal_screen_fill(HAL_SCREEN_COLOR_BLUE);
-    vTaskDelay(pdMS_TO_TICKS(400));
-    hal_screen_fill(HAL_SCREEN_COLOR_BLACK);
-    vTaskDelay(pdMS_TO_TICKS(200));
+    hal_screen_fill(HAL_SCREEN_COLOR_RED);    vTaskDelay(pdMS_TO_TICKS(300));
+    hal_screen_fill(HAL_SCREEN_COLOR_GREEN);  vTaskDelay(pdMS_TO_TICKS(300));
+    hal_screen_fill(HAL_SCREEN_COLOR_BLUE);   vTaskDelay(pdMS_TO_TICKS(300));
+    hal_screen_fill(HAL_SCREEN_COLOR_BLACK);  vTaskDelay(pdMS_TO_TICKS(200));
 
-    /* Draw text */
     hal_screen_set_font(2);
     const char *lines[] = { "CoreS3", "Diagnostic", "System", NULL };
     int y = 60;
@@ -145,7 +156,6 @@ static diag_result_t test_screen(void *context)
         y += hal_screen_font_height() + 4;
     }
 
-    /* Draw crosshairs */
     hal_screen_draw_line(w / 2, 0, w / 2, h - 1, HAL_SCREEN_COLOR_WHITE);
     hal_screen_draw_line(0, h / 2, w - 1, h / 2, HAL_SCREEN_COLOR_WHITE);
 
@@ -154,21 +164,25 @@ static diag_result_t test_screen(void *context)
     return DIAG_PASSED;
 }
 
-/**
- * @brief Touch test — read touch controller and report status.
- */
 static diag_result_t test_touch(void *context)
 {
     (void)context;
 
+    diag_err_set_component(&s_err_ctx, "TOUCH", "MB/TOUCH");
+
     diag_result_t r = hal_touch_init();
-    if (r != DIAG_PASSED) return r;
+    if (r != DIAG_PASSED) {
+        diag_err_add(&s_err_ctx, "FT6336 touch init failed");
+        diag_err_set_debug(&s_err_ctx,
+                           "Check I2C address 0x38",
+                           "Check INT (GPIO3) and RST (GPIO1) pins");
+        return r;
+    }
 
     uint8_t fw = hal_touch_firmware_version();
-    int max_pts = hal_touch_max_points();
-    diag_menu_printf("Touch: FT6336 fw=0x%02X max_points=%d\r\n", fw, max_pts);
+    diag_menu_printf("Touch: FT6336 fw=0x%02X max_points=%d\r\n",
+                     fw, hal_touch_max_points());
 
-    /* Read touch state once */
     hal_touch_data_t data;
     r = hal_touch_read(&data);
     if (r == DIAG_PASSED) {
@@ -178,21 +192,28 @@ static diag_result_t test_touch(void *context)
                              i, data.points[i].x, data.points[i].y,
                              data.points[i].event, data.points[i].id);
         }
+    } else {
+        diag_err_add(&s_err_ctx, "Failed to read touch data");
     }
 
     hal_touch_deinit();
     return (fw > 0) ? DIAG_PASSED : DIAG_FAILED;
 }
 
-/**
- * @brief RTC test — read current time from BM8563.
- */
 static diag_result_t test_rtc(void *context)
 {
     (void)context;
 
+    diag_err_set_component(&s_err_ctx, "RTC", "MB/RTC");
+
     diag_result_t r = hal_rtc_init();
-    if (r != DIAG_PASSED) return r;
+    if (r != DIAG_PASSED) {
+        diag_err_add(&s_err_ctx, "BM8563 RTC init failed");
+        diag_err_set_debug(&s_err_ctx,
+                           "Check I2C address 0x51",
+                           "Check battery backup voltage");
+        return r;
+    }
 
     hal_rtc_time_t t;
     r = hal_rtc_get_time(&t);
@@ -200,21 +221,28 @@ static diag_result_t test_rtc(void *context)
         char buf[24];
         hal_rtc_format(&t, buf, sizeof(buf));
         diag_menu_printf("RTC time: %s\r\n", buf);
+    } else {
+        diag_err_add(&s_err_ctx, "Failed to read RTC time");
     }
 
     hal_rtc_deinit();
     return r;
 }
 
-/**
- * @brief IMU test — read BMI270 accelerometer and gyroscope.
- */
 static diag_result_t test_imu(void *context)
 {
     (void)context;
 
+    diag_err_set_component(&s_err_ctx, "IMU", "MB/IMU");
+
     diag_result_t r = hal_imu_init();
-    if (r != DIAG_PASSED) return r;
+    if (r != DIAG_PASSED) {
+        diag_err_add(&s_err_ctx, "BMI270 IMU init failed");
+        diag_err_set_debug(&s_err_ctx,
+                           "Check I2C address 0x69",
+                           "Verify BMI270 power supply");
+        return r;
+    }
 
     hal_imu_data_t data;
     r = hal_imu_read(&data);
@@ -224,21 +252,28 @@ static diag_result_t test_imu(void *context)
                          data.accel.x, data.accel.y, data.accel.z);
         diag_menu_printf("  Gyro  (mdps): x=%+6ld  y=%+6ld  z=%+6ld\r\n",
                          (long)data.gyro.x, (long)data.gyro.y, (long)data.gyro.z);
+    } else {
+        diag_err_add(&s_err_ctx, "Failed to read IMU data");
     }
 
     hal_imu_deinit();
     return r;
 }
 
-/**
- * @brief Power test — read AXP2101 PMU status.
- */
 static diag_result_t test_power(void *context)
 {
     (void)context;
 
+    diag_err_set_component(&s_err_ctx, "POWER", "MB/PMU");
+
     diag_result_t r = hal_power_init();
-    if (r != DIAG_PASSED) return r;
+    if (r != DIAG_PASSED) {
+        diag_err_add(&s_err_ctx, "AXP2101 PMU init failed");
+        diag_err_set_debug(&s_err_ctx,
+                           "Check I2C address 0x34",
+                           "Check battery connection");
+        return r;
+    }
 
     hal_power_data_t pwr;
     r = hal_power_read(&pwr);
@@ -255,6 +290,8 @@ static diag_result_t test_power(void *context)
                          (pwr.flags & HAL_POWER_FLAG_BAT_CHARGING) ? "charging" :
                          (pwr.flags & HAL_POWER_FLAG_BAT_FULL) ? "full" : "idle");
         diag_menu_printf("  Temp:    %u C\r\n", pwr.temperature_celsius);
+    } else {
+        diag_err_add(&s_err_ctx, "Failed to read PMU data");
     }
 
     hal_power_deinit();
@@ -262,101 +299,50 @@ static diag_result_t test_power(void *context)
 }
 
 /*===========================================================================*/
-/* Extended menu commands                                                    */
+/* Fugazi-style test function wrappers (int param signature)                 */
 /*===========================================================================*/
 
-/** Command: full system status — runs all quick checks and summarises. */
-static diag_result_t cmd_status(diag_runner_t *runner, int argc, char *argv[])
-{
-    (void)argc;
-    (void)argv;
+/*
+ * These wrappers allow the existing test functions to be called from the
+ * fugazi-style menu which uses the (int param) function signature.
+ */
 
-    diag_menu_printf("\r\n========== System Status ==========\r\n");
-
-    /* Chip info */
-    diag_menu_printf("ESP32-S3\r\n");
-    diag_menu_printf("Flash size: TODO\r\n");
-    diag_menu_printf("PSRAM:      TODO\r\n");
-
-    /* Power (always available) */
-    if (hal_power_init() == DIAG_PASSED) {
-        hal_power_data_t pwr;
-        if (hal_power_read(&pwr) == DIAG_PASSED) {
-            diag_menu_printf("Battery: %u mV (%u%%)\r\n",
-                             pwr.battery_millivolts, pwr.battery_percent);
-            diag_menu_printf("USB: %s\r\n",
-                             (pwr.flags & HAL_POWER_FLAG_USB) ?
-                             "connected" : "disconnected");
-        }
-        hal_power_deinit();
-    }
-
-    /* RTC */
-    if (hal_rtc_init() == DIAG_PASSED) {
-        hal_rtc_time_t t;
-        if (hal_rtc_get_time(&t) == DIAG_PASSED) {
-            char buf[24];
-            hal_rtc_format(&t, buf, sizeof(buf));
-            diag_menu_printf("RTC: %s\r\n", buf);
-        }
-        hal_rtc_deinit();
-    }
-
-    /* IMU */
-    if (hal_imu_init() == DIAG_PASSED) {
-        diag_menu_printf("IMU: online\r\n");
-        hal_imu_deinit();
-    } else {
-        diag_menu_printf("IMU: offline\r\n");
-    }
-
-    diag_menu_printf("====================================\r\n");
-    return DIAG_PASSED;
-}
-
-/** Command: screen-on — turn display on. */
-static diag_result_t cmd_screen_on(diag_runner_t *runner, int argc, char *argv[])
-{
-    (void)runner; (void)argc; (void)argv;
-    hal_screen_init();
-    hal_screen_fill(HAL_SCREEN_COLOR_BLACK);
-    diag_menu_printf("Screen ON\r\n");
-    return DIAG_PASSED;
-}
-
-/** Command: screen-off — turn display off. */
-static diag_result_t cmd_screen_off(diag_runner_t *runner, int argc, char *argv[])
-{
-    (void)runner; (void)argc; (void)argv;
-    hal_screen_deinit();
-    diag_menu_printf("Screen OFF\r\n");
-    return DIAG_PASSED;
-}
-
-/** Command: reboot — software reset. */
-static diag_result_t cmd_reboot(diag_runner_t *runner, int argc, char *argv[])
-{
-    (void)runner; (void)argc; (void)argv;
-    diag_menu_printf("Rebooting...\r\n");
-    esp_restart();
-    return DIAG_PASSED; /* never reached */
-}
-
-/** Command: shutdown — power off via PMU. */
-static diag_result_t cmd_shutdown(diag_runner_t *runner, int argc, char *argv[])
-{
-    (void)runner; (void)argc; (void)argv;
-    diag_menu_printf("Powering off...\r\n");
-    vTaskDelay(pdMS_TO_TICKS(100));
-
-    if (hal_power_init() == DIAG_PASSED) {
-        hal_power_shutdown();  /* noreturn */
-    }
-    return DIAG_ERROR;
-}
+static diag_result_t fugazi_test_i2c_scan(int param)  { (void)param; return test_i2c_scan(NULL); }
+static diag_result_t fugazi_test_screen(int param)    { (void)param; return test_screen(NULL); }
+static diag_result_t fugazi_test_touch(int param)     { (void)param; return test_touch(NULL); }
+static diag_result_t fugazi_test_rtc(int param)       { (void)param; return test_rtc(NULL); }
+static diag_result_t fugazi_test_imu(int param)       { (void)param; return test_imu(NULL); }
+static diag_result_t fugazi_test_power(int param)     { (void)param; return test_power(NULL); }
 
 /*===========================================================================*/
-/* Test suite definition                                                     */
+/* Fugazi-style submenu definition                                           */
+/*===========================================================================*/
+
+/*
+ * Main fugazi-style menu — all tests in one interactive menu.
+ *
+ * In the future, sub-groups can be split into separate submenu_xtable_t
+ * arrays (I2C tests, peripheral tests, etc.) and nested via MF_SUBMENU.
+ */
+
+#define F_I2C    (MF_CONTINUOUS | MF_DOALL | MF_SHOW_ERRCOUNT)
+#define F_PERIPH (MF_CONTINUOUS | MF_DOALL | MF_SHOW_ERRCOUNT)
+
+static const diag_menu_xtable_t s_main_menu[] = {
+    { "I2C Bus Scan",             fugazi_test_i2c_scan, 0, F_I2C,   NULL, 0 },
+    { "Display (GC9A01)",         fugazi_test_screen,   0, F_PERIPH, NULL, 0 },
+    { "Touch (FT6336)",           fugazi_test_touch,    0, F_PERIPH, NULL, 0 },
+    { "RTC (BM8563)",             fugazi_test_rtc,      0, F_PERIPH, NULL, 0 },
+    { "IMU (BMI270)",             fugazi_test_imu,      0, F_PERIPH, NULL, 0 },
+    { "Power (AXP2101)",          fugazi_test_power,    0, F_PERIPH, NULL, 0 },
+};
+#define MAIN_MENU_COUNT (sizeof(s_main_menu) / sizeof(s_main_menu[0]))
+
+/* Fugazi menu runtime instance */
+static diag_menu_t s_fugazi_menu;
+
+/*===========================================================================*/
+/* Flat test suite (for the original CLI runner)                             */
 /*===========================================================================*/
 
 static const diag_test_t s_tests[] = {
@@ -381,19 +367,98 @@ static const diag_test_suite_t s_suite = {
 };
 
 /*===========================================================================*/
+/* Extended CLI commands                                                     */
+/*===========================================================================*/
+
+static diag_result_t cmd_status(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)argc; (void)argv; (void)runner;
+
+    diag_menu_printf("\r\n========== System Status ==========\r\n");
+    diag_menu_printf("ESP32-S3\r\n");
+
+    if (hal_power_init() == DIAG_PASSED) {
+        hal_power_data_t pwr;
+        if (hal_power_read(&pwr) == DIAG_PASSED) {
+            diag_menu_printf("Battery: %u mV (%u%%)\r\n",
+                             pwr.battery_millivolts, pwr.battery_percent);
+            diag_menu_printf("USB: %s\r\n",
+                             (pwr.flags & HAL_POWER_FLAG_USB) ?
+                             "connected" : "disconnected");
+        }
+        hal_power_deinit();
+    }
+
+    if (hal_rtc_init() == DIAG_PASSED) {
+        hal_rtc_time_t t;
+        if (hal_rtc_get_time(&t) == DIAG_PASSED) {
+            char buf[24];
+            hal_rtc_format(&t, buf, sizeof(buf));
+            diag_menu_printf("RTC: %s\r\n", buf);
+        }
+        hal_rtc_deinit();
+    }
+
+    if (hal_imu_init() == DIAG_PASSED) {
+        diag_menu_printf("IMU: online\r\n");
+        hal_imu_deinit();
+    } else {
+        diag_menu_printf("IMU: offline\r\n");
+    }
+
+    diag_menu_printf("====================================\r\n");
+    return DIAG_PASSED;
+}
+
+static diag_result_t cmd_screen_on(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)runner; (void)argc; (void)argv;
+    hal_screen_init();
+    hal_screen_fill(HAL_SCREEN_COLOR_BLACK);
+    diag_menu_printf("Screen ON\r\n");
+    return DIAG_PASSED;
+}
+
+static diag_result_t cmd_screen_off(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)runner; (void)argc; (void)argv;
+    hal_screen_deinit();
+    diag_menu_printf("Screen OFF\r\n");
+    return DIAG_PASSED;
+}
+
+static diag_result_t cmd_reboot(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)runner; (void)argc; (void)argv;
+    diag_menu_printf("Rebooting...\r\n");
+    esp_restart();
+    return DIAG_PASSED;
+}
+
+static diag_result_t cmd_shutdown(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)runner; (void)argc; (void)argv;
+    diag_menu_printf("Powering off...\r\n");
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    if (hal_power_init() == DIAG_PASSED) {
+        hal_power_shutdown();
+    }
+    return DIAG_ERROR;
+}
+
+/*===========================================================================*/
 /* Entry point                                                               */
 /*===========================================================================*/
 
 void app_main(void)
 {
-    /* Initialise NVS (needed by some ESP-IDF components) */
+    /* Initialise NVS */
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
         err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         esp_err_t ret = nvs_flash_erase();
-        if (ret == ESP_OK) {
-            ret = nvs_flash_init();
-        }
+        if (ret == ESP_OK) ret = nvs_flash_init();
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "NVS init failed (%d)", ret);
         }
@@ -403,11 +468,21 @@ void app_main(void)
 
     /* Initialise UART console */
     if (diag_menu_init() != DIAG_PASSED) {
-        ESP_LOGE(TAG, "Failed to initialise UART console");
+        ESP_LOGE(TAG, "Failed to initialise console");
         return;
     }
 
-    /* Register extended commands */
+    /* Initialise error context */
+    diag_err_init(&s_err_ctx);
+
+    /* Build the fugazi-style interactive menu */
+    if (diag_menu_build(&s_fugazi_menu, s_main_menu, MAIN_MENU_COUNT,
+                        "CoreS3 Diagnostics") == DIAG_PASSED) {
+        /* Register with the CLI so 'menu' and 'errors' commands work */
+        diag_menu_set_fugazi(&s_fugazi_menu, &s_err_ctx);
+    }
+
+    /* Register extended CLI commands */
     static const diag_menu_cmd_t ext_cmds[] = {
         { "status",     "Show system status",          cmd_status     },
         { "screen-on",  "Turn display on",             cmd_screen_on  },
@@ -419,18 +494,18 @@ void app_main(void)
         diag_menu_register_cmd(&ext_cmds[i]);
     }
 
-    /* Create the test runner */
+    /* Create the flat test runner */
     diag_runner_t *runner = diag_runner_create(&s_suite);
     if (!runner) {
         ESP_LOGE(TAG, "Failed to create test runner");
         return;
     }
 
-    /* Enter the main menu loop */
+    /* Enter the main CLI loop */
     diag_menu_printf("System ready.  Type 'help' for commands.\r\n");
     diag_menu_loop(runner);
 
-    /* Clean-up on exit (rarely reached) */
     diag_runner_destroy(runner);
+    diag_menu_destroy(&s_fugazi_menu);
     ESP_LOGI(TAG, "Diagnostic system terminated");
 }

@@ -13,10 +13,13 @@
 
 #include "diag_menu.h"
 #include "diag_config.h"
+#include "diag_menu_core.h"
+#include "diag_error.h"
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include "freertos/FreeRTOS.h"
 
 /*===========================================================================*/
@@ -87,6 +90,16 @@ static void console_flush_rx(void)
 
 static diag_menu_cmd_t s_commands[MENU_MAX_CMDS];
 static int             s_num_commands = 0;
+
+/* Fugazi-style menu engine + error context (set by main) */
+static diag_menu_t    *s_fugazi_menu = NULL;
+static diag_err_ctx_t *s_err_ctx     = NULL;
+
+void diag_menu_set_fugazi(diag_menu_t *menu, diag_err_ctx_t *err_ctx)
+{
+    s_fugazi_menu = menu;
+    s_err_ctx     = err_ctx;
+}
 
 diag_result_t diag_menu_register_cmd(const diag_menu_cmd_t *cmd)
 {
@@ -368,13 +381,140 @@ static diag_result_t cmd_help_verbose(diag_runner_t *runner,
     diag_menu_printf("  info            List all tests and their status\r\n");
     diag_menu_printf("  run <name|#>    Run a single test by name or index\r\n");
     diag_menu_printf("  run-all         Execute every test in sequence\r\n");
+    diag_menu_printf("  menu            Interactive fugazi-style number menu\r\n");
+    diag_menu_printf("  errors          Show error report\r\n");
     diag_menu_printf("  reset           Clear all stored results\r\n");
     diag_menu_printf("  exit            Exit the menu (returns to monitor)\r\n");
     diag_menu_printf("\r\n");
     diag_menu_printf("Navigation:\r\n");
     diag_menu_printf("  Commands are case-sensitive.\r\n");
+    diag_menu_printf("  In 'menu' mode, type a number + Enter to run a test.\r\n");
     diag_menu_printf("\r\n");
 
+    return DIAG_PASSED;
+}
+
+/*===========================================================================*/
+/* Fugazi-style interactive menu handler                                     */
+/*===========================================================================*/
+
+static diag_result_t cmd_menu(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)argv;
+    (void)argc;
+    (void)runner;
+
+    if (!s_fugazi_menu) {
+        diag_menu_printf("No fugazi-style menu registered.\r\n");
+        return DIAG_ERROR;
+    }
+
+    diag_menu_t *m = s_fugazi_menu;
+    char line[32];
+
+    while (1) {
+        /* ---- Title ---- */
+        diag_menu_printf("\r\n========== %s ==========\r\n", m->title);
+        diag_menu_printf("  Errors: %u  |  Run: %u\r\n",
+                         (unsigned)m->total_error_count,
+                         (unsigned)m->total_run_count);
+
+        /* ---- List items ---- */
+        for (int i = 0; i < m->count; i++) {
+            const diag_mitem_t *item = &m->items[i];
+            const char *status = diag_menu_item_result_str(item);
+            char marker = ' ';
+
+            if (item->flags & MF_SKIPPED)      marker = 's';
+            else if (item->flags & MF_SUBMENU) marker = '>';
+            else if (item->flags & MF_DOALL)   marker = '*';
+
+            diag_menu_printf("  %c[%2d] %-32s %s\r\n",
+                             marker, i, item->name, status);
+
+            if (item->error_count > 0) {
+                diag_menu_printf("       errors: %u\r\n",
+                                 (unsigned)item->error_count);
+            }
+        }
+
+        /* ---- Prompt ---- */
+        diag_menu_printf("\r\n  [a]ll  [r]eset  [e]rrors  [q]uit\r\n");
+        diag_menu_printf("  Select test #: ");
+        console_flush_rx();
+
+        /* Read one line */
+        int len = read_line(line, sizeof(line));
+        if (len <= 0) continue;
+
+        /* Parse command */
+        if (strcmp(line, "q") == 0 || strcmp(line, "quit") == 0) break;
+
+        if (strcmp(line, "a") == 0 || strcmp(line, "all") == 0) {
+            diag_menu_printf("Running all tests...\r\n");
+            int failures = diag_menu_run_all(m);
+            diag_menu_printf("Done: %d failures.\r\n", failures);
+            continue;
+        }
+
+        if (strcmp(line, "r") == 0 || strcmp(line, "reset") == 0) {
+            diag_menu_reset(m);
+            diag_err_clear(s_err_ctx);
+            diag_menu_printf("Results and errors cleared.\r\n");
+            continue;
+        }
+
+        if (strcmp(line, "e") == 0 || strcmp(line, "errors") == 0) {
+            diag_err_report(s_err_ctx, diag_menu_printf);
+            continue;
+        }
+
+        /* Try numeric index */
+        char *end = NULL;
+        long idx = strtol(line, &end, 10);
+        if (end && *end == '\0' && idx >= 0 && idx < m->count) {
+            const diag_mitem_t *item = &m->items[idx];
+            diag_menu_printf("Running [%ld] %s...\r\n", idx, item->name);
+
+            /* Clear error context, then set component from item name */
+            if (s_err_ctx) {
+                diag_err_clear(s_err_ctx);
+                diag_err_set_component(s_err_ctx, item->name, "Menu");
+            }
+
+            diag_result_t result = diag_menu_run_item(m, (int)idx);
+
+            const char *res_str = diag_result_str(result);
+            diag_menu_printf("Result: %s", res_str);
+            if (result != DIAG_PASSED && result != DIAG_SKIPPED) {
+                diag_menu_printf("  (errors: %u)", (unsigned)item->error_count);
+            }
+            diag_menu_printf("\r\n");
+            continue;
+        }
+
+        diag_menu_printf("Invalid selection.\r\n");
+    }
+
+    return DIAG_PASSED;
+}
+
+/*===========================================================================*/
+/* Error report command handler                                              */
+/*===========================================================================*/
+
+static diag_result_t cmd_errors(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)argv;
+    (void)argc;
+    (void)runner;
+
+    if (!s_err_ctx) {
+        diag_menu_printf("No error context registered.\r\n");
+        return DIAG_ERROR;
+    }
+
+    diag_err_report(s_err_ctx, diag_menu_printf);
     return DIAG_PASSED;
 }
 
@@ -387,6 +527,8 @@ static const diag_menu_cmd_t s_builtin_cmds[] = {
     { "info",    "List all tests and status",     cmd_info         },
     { "run",     "Run <name|#> once",             cmd_run          },
     { "run-all", "Execute all tests sequentially", cmd_run_all      },
+    { "menu",    "Interactive fugazi-style menu",  cmd_menu         },
+    { "errors",  "Show error report",             cmd_errors       },
     { "reset",   "Clear stored results",          cmd_reset        },
 };
 

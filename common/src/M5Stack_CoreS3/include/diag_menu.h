@@ -12,6 +12,8 @@
 #pragma once
 
 #include "diag_runner.h"
+#include "diag_menu_core.h"
+#include "diag_error.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,6 +82,12 @@ void diag_menu_print_result(const char *test_name, diag_result_t result);
  * @return DIAG_PASSED on success, DIAG_FAILED if table full.
  */
 diag_result_t diag_menu_register_cmd(const diag_menu_cmd_t *cmd);
+
+/**
+ * @brief Register the fugazi-style menu + error context for the 'menu'
+ *        and 'errors' commands.
+ */
+void diag_menu_set_fugazi(diag_menu_t *menu, diag_err_ctx_t *err_ctx);
 
 #ifdef __cplusplus
 }
