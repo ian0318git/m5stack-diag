@@ -109,7 +109,7 @@ int imu_BMI270_init(i2c_master_dev_handle_t dev)
                  chip_id, BMI270_CHIP_ID_VAL);
     }
 
-    /* Soft-reset then enable sensors */
+    /* Soft-reset, enable sensors at default ODR (ROM defaults) */
     write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
     esp_rom_delay_us(10000);
 
@@ -118,8 +118,8 @@ int imu_BMI270_init(i2c_master_dev_handle_t dev)
     write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN);
     esp_rom_delay_us(50000);
 
-    /* Try loading config blob (advisory — basic data works without it) */
-    load_config();
+    /* NOTE: Config blob not loaded (INT_STAT=0x02). ROM defaults used.
+     * Basic accel/gyro should work; BMM150 and advanced features won't. */
 
     s_init = true;
     ESP_LOGI(TAG, "BMI270 initialised (chip_id=0x%02X)", chip_id);
