@@ -52,6 +52,10 @@ extern "C" {
 #define BMI270_STATUS_ACC_DRDY  (1 << 0)
 #define BMI270_STATUS_GYR_DRDY  (1 << 1)
 
+/* Internal status (0x21) — config load completion */
+#define BMI270_REG_INT_STATUS   0x21
+#define BMI270_INT_STAT_DONE    (1 << 0)
+
 /* Config load sequence */
 #define BMI270_CONFIG_START_ADDR  0x8000
 #define BMI270_INIT_WAIT_MS       150

@@ -73,21 +73,20 @@ static int load_config(void)
 
     write_reg(0x59, 1);   /* Trigger config loading */
 
-    /* Poll INIT_CTRL every 5ms, up to 300ms */
-    uint8_t ctrl = 0xFF;
-    for (int r = 0; r < 60 && ctrl != 0; r++) {
+    /* Poll INTERNAL_STATUS (0x21) bit 0 for completion, up to 300ms */
+    uint8_t status = 0;
+    for (int r = 0; r < 60; r++) {
         vTaskDelay(pdMS_TO_TICKS(5));
-        read_reg(0x59, &ctrl);
+        read_reg(BMI270_REG_INT_STATUS, &status);
+        if (status & BMI270_INT_STAT_DONE) {
+            loaded = true;
+            ESP_LOGI(TAG, "Config loaded (%u B)", (unsigned)sizeof(bmi270_config_file));
+            return 0;
+        }
     }
 
-    if (ctrl != 0) {
-        ESP_LOGW(TAG, "Config init timeout (INIT_CTRL=0x%02X)", ctrl);
-        return -1;
-    }
-
-    loaded = true;
-    ESP_LOGI(TAG, "Config loaded (%u B)", (unsigned)sizeof(bmi270_config_file));
-    return 0;
+    ESP_LOGW(TAG, "Config timeout (INT_STAT=0x%02X)", status);
+    return -1;
 }
 
 /*===========================================================================*/
