@@ -64,11 +64,11 @@ int imu_BMI270_init(i2c_master_dev_handle_t dev)
     write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
     esp_rom_delay_us(2000);
 
-    /* Enable accel + gyro */
+    /* Enable accel + gyro, wait for stabilisation */
     write_reg(BMI270_REG_PWR_CONF, 0x00);
     esp_rom_delay_us(1000);
     write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN);
-    esp_rom_delay_us(10000);
+    esp_rom_delay_us(50000);   /* 50 ms — gyro needs ~30 ms to stabilise */
 
     s_init = true;
     ESP_LOGI(TAG, "BMI270 initialised (chip_id=0x%02X)", chip_id);
@@ -87,6 +87,16 @@ int imu_BMI270_read(imu_BMI270_data_t *data)
 {
     if (!data || !s_dev) return -1;
     memset(data, 0, sizeof(*data));
+
+    /* Check STATUS register — wait for data ready (up to 5 ms) */
+    for (int retry = 0; retry < 50; retry++) {
+        uint8_t status = 0;
+        if (read_reg(BMI270_REG_STATUS, &status) == 0 &&
+            (status & (BMI270_STATUS_ACC_DRDY | BMI270_STATUS_GYR_DRDY))) {
+            break;
+        }
+        esp_rom_delay_us(100);
+    }
 
     uint8_t buf[12];
     if (read_regs(BMI270_REG_ACCEL_X_LSB, buf, 12) != 0) return -1;

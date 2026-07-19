@@ -386,6 +386,13 @@ static diag_result_t cmd_help_verbose(diag_runner_t *runner,
     diag_menu_printf("  reset           Clear all stored results\r\n");
     diag_menu_printf("  exit            Exit the menu (returns to monitor)\r\n");
     diag_menu_printf("\r\n");
+    diag_menu_printf("Extended commands:\r\n");
+    diag_menu_printf("  status          Show system status\r\n");
+    diag_menu_printf("  rtc-set YYYY MM DD HH MM SS   Set RTC time\r\n");
+    diag_menu_printf("  screen-on|off    Turn display on/off\r\n");
+    diag_menu_printf("  reboot          Software reset\r\n");
+    diag_menu_printf("  shutdown        Power off\r\n");
+    diag_menu_printf("\r\n");
     diag_menu_printf("Navigation:\r\n");
     diag_menu_printf("  Commands are case-sensitive.\r\n");
     diag_menu_printf("  In 'menu' mode, type a number + Enter to run a test.\r\n");

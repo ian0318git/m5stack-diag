@@ -280,6 +280,18 @@ static diag_result_t test_rtc(void *context)
         char buf[24];
         hal_rtc_format(&t, buf, sizeof(buf));
         diag_menu_printf("RTC time: %s\r\n", buf);
+
+        /* Check if time is valid after VL flag clear */
+        if (t.year < 2024 || t.month < 1 || t.month > 12 || t.day < 1 || t.day > 31) {
+            diag_menu_printf("  ** RTC time invalid — VL flag was cleared, time lost\r\n");
+            diag_err_add(&s_err_ctx,
+                         "I2C@0x51 BM8563: time invalid after VL clear (y=%u m=%u d=%u)",
+                         t.year, t.month, t.day);
+            diag_err_set_debug(&s_err_ctx,
+                               "Set RTC time with 'rtc-set YYYY-MM-DD HH:MM:SS' command",
+                               "Check RTC battery (AXP2101 RTC_VDD rail)");
+            r = DIAG_FAILED;
+        }
     } else {
         diag_err_add(&s_err_ctx,
                      "I2C@0x51 BM8563: read time failed");
@@ -313,6 +325,18 @@ static diag_result_t test_imu(void *context)
                          data.accel.x, data.accel.y, data.accel.z);
         diag_menu_printf("  Gyro  (mdps): x=%+6ld  y=%+6ld  z=%+6ld\r\n",
                          (long)data.gyro.x, (long)data.gyro.y, (long)data.gyro.z);
+
+        /* If all data is zero, BMI270 config firmware may not be loaded */
+        if (data.accel.x == 0 && data.accel.y == 0 && data.accel.z == 0 &&
+            data.gyro.x == 0 && data.gyro.y == 0 && data.gyro.z == 0) {
+            diag_menu_printf("  ** All zero — BMI270 config firmware may be missing\r\n");
+            diag_err_add(&s_err_ctx,
+                         "I2C@0x69 BMI270: accel/gyro all zero (config firmware)");
+            diag_err_set_debug(&s_err_ctx,
+                               "BMI270 needs ~2KB config blob via INIT_DATA registers",
+                               "Add blob loader in imu_BMI270_init() for sensor output");
+            r = DIAG_FAILED;
+        }
     } else {
         diag_err_add(&s_err_ctx,
                      "I2C@0x69 BMI270: read sensor data failed");
@@ -474,6 +498,41 @@ static diag_result_t cmd_status(diag_runner_t *runner, int argc, char *argv[])
     return DIAG_PASSED;
 }
 
+static diag_result_t cmd_rtc_set(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)runner;
+    if (argc < 7) {
+        diag_menu_printf("Usage: rtc-set YYYY MM DD HH MM SS\r\n");
+        return DIAG_FAILED;
+    }
+
+    int y = atoi(argv[1]), mo = atoi(argv[2]), d = atoi(argv[3]);
+    int h = atoi(argv[4]), mi = atoi(argv[5]), s = atoi(argv[6]);
+
+    if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59 || s > 59) {
+        diag_menu_printf("Invalid date/time values\r\n");
+        return DIAG_FAILED;
+    }
+
+    if (hal_rtc_init() != DIAG_PASSED) {
+        diag_menu_printf("RTC init failed\r\n");
+        return DIAG_FAILED;
+    }
+
+    hal_rtc_time_t t = { .year = y, .month = mo, .day = d,
+                         .hour = h, .minute = mi, .second = s, .weekday = 0 };
+    diag_result_t r = hal_rtc_set_time(&t);
+    hal_rtc_deinit();
+
+    if (r == DIAG_PASSED) {
+        diag_menu_printf("RTC set to %04d-%02d-%02d %02d:%02d:%02d\r\n",
+                         y, mo, d, h, mi, s);
+    } else {
+        diag_menu_printf("RTC set failed\r\n");
+    }
+    return r;
+}
+
 static diag_result_t cmd_screen_on(diag_runner_t *runner, int argc, char *argv[])
 {
     (void)runner; (void)argc; (void)argv;
@@ -549,6 +608,7 @@ void app_main(void)
     /* Register extended CLI commands */
     static const diag_menu_cmd_t ext_cmds[] = {
         { "status",     "Show system status",          cmd_status     },
+        { "rtc-set",    "Set RTC: rtc-set YYYY MM DD HH MM SS", cmd_rtc_set },
         { "screen-on",  "Turn display on",             cmd_screen_on  },
         { "screen-off", "Turn display off",             cmd_screen_off },
         { "reboot",     "Software reset the system",    cmd_reboot     },

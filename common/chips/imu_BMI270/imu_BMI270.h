@@ -23,6 +23,7 @@ extern "C" {
 #define BMI270_REG_CHIP_ID      0x00
 #define BMI270_REG_ACCEL_X_LSB  0x03
 #define BMI270_REG_GYRO_X_LSB   0x09
+#define BMI270_REG_STATUS       0x21
 #define BMI270_REG_CMD          0x7C
 #define BMI270_REG_PWR_CONF     0x7D
 #define BMI270_REG_PWR_CTRL     0x7E
@@ -35,6 +36,10 @@ extern "C" {
 #define BMI270_CMD_SOFTRESET    0xB6
 #define BMI270_ACC_EN           (1 << 0)
 #define BMI270_GYR_EN           (1 << 1)
+
+/* STATUS register bits */
+#define BMI270_STATUS_ACC_DRDY  (1 << 0)
+#define BMI270_STATUS_GYR_DRDY  (1 << 1)
 
 /*===========================================================================*/
 /* Types                                                                     */
