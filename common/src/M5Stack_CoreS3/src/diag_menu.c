@@ -430,7 +430,7 @@ static diag_result_t cmd_menu(diag_runner_t *runner, int argc, char *argv[])
             else if (item->flags & MF_DOALL)   marker = '*';
 
             diag_menu_printf("  %c[%2d] %-32s %s\r\n",
-                             marker, i, item->name, status);
+                             marker, i + 1, item->name, status);
 
             if (item->error_count > 0) {
                 diag_menu_printf("       errors: %u\r\n",
@@ -469,11 +469,11 @@ static diag_result_t cmd_menu(diag_runner_t *runner, int argc, char *argv[])
             continue;
         }
 
-        /* Try numeric index */
+        /* Try numeric index (1-based user input → 0-based array index) */
         char *end = NULL;
         long idx = strtol(line, &end, 10);
-        if (end && *end == '\0' && idx >= 0 && idx < m->count) {
-            const diag_mitem_t *item = &m->items[idx];
+        if (end && *end == '\0' && idx >= 1 && idx <= m->count) {
+            const diag_mitem_t *item = &m->items[idx - 1];
             diag_menu_printf("Running [%ld] %s...\r\n", idx, item->name);
 
             /* Clear error context, then set component from item name */
@@ -482,7 +482,7 @@ static diag_result_t cmd_menu(diag_runner_t *runner, int argc, char *argv[])
                 diag_err_set_component(s_err_ctx, item->name, "Menu");
             }
 
-            diag_result_t result = diag_menu_run_item(m, (int)idx);
+            diag_result_t result = diag_menu_run_item(m, (int)(idx - 1));
 
             const char *res_str = diag_result_str(result);
             diag_menu_printf("Result: %s", res_str);
