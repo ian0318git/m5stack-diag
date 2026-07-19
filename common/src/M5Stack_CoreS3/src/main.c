@@ -263,6 +263,7 @@ static diag_result_t test_rtc(void *context)
     (void)context;
 
     diag_err_set_component(&s_err_ctx, "RTC", "MB/RTC");
+    hal_rtc_time_t t1, t2;
 
     diag_result_t r = hal_rtc_init();
     if (r != DIAG_PASSED) {
@@ -274,27 +275,61 @@ static diag_result_t test_rtc(void *context)
         return r;
     }
 
-    hal_rtc_time_t t;
-    r = hal_rtc_get_time(&t);
-    if (r == DIAG_PASSED) {
-        char buf[24];
-        hal_rtc_format(&t, buf, sizeof(buf));
-        diag_menu_printf("RTC time: %s\r\n", buf);
+    /* Read time #1 */
+    r = hal_rtc_get_time(&t1);
+    if (r != DIAG_PASSED) {
+        diag_err_add(&s_err_ctx, "I2C@0x51 BM8563: first read failed");
+        hal_rtc_deinit();
+        return r;
+    }
+    diag_menu_printf("RTC T1: %04u-%02u-%02u %02u:%02u:%02u\r\n",
+                     t1.year, t1.month, t1.day,
+                     t1.hour, t1.minute, t1.second);
 
-        /* Check if time is valid after VL flag clear */
-        if (t.year < 2024 || t.month < 1 || t.month > 12 || t.day < 1 || t.day > 31) {
-            diag_menu_printf("  ** RTC time invalid — VL flag was cleared, time lost\r\n");
-            diag_err_add(&s_err_ctx,
-                         "I2C@0x51 BM8563: time invalid after VL clear (y=%u m=%u d=%u)",
-                         t.year, t.month, t.day);
-            diag_err_set_debug(&s_err_ctx,
-                               "Set RTC time with 'rtc-set YYYY-MM-DD HH:MM:SS' command",
-                               "Check RTC battery (AXP2101 RTC_VDD rail)");
-            r = DIAG_FAILED;
-        }
-    } else {
+    /*
+     * Verify RTC is ticking: wait 2 seconds, read again.
+     * Pattern from fugazi rtc_tests() in
+     * example/fugazi_ng_diag/common/src/katar/x86/platform_rtc.c
+     */
+    vTaskDelay(pdMS_TO_TICKS(2000));
+
+    r = hal_rtc_get_time(&t2);
+    if (r != DIAG_PASSED) {
+        diag_err_add(&s_err_ctx, "I2C@0x51 BM8563: second read failed");
+        hal_rtc_deinit();
+        return r;
+    }
+    diag_menu_printf("RTC T2: %04u-%02u-%02u %02u:%02u:%02u\r\n",
+                     t2.year, t2.month, t2.day,
+                     t2.hour, t2.minute, t2.second);
+
+    /* Elapsed seconds (handle minute rollover) */
+    int elapsed = (int)t2.second - (int)t1.second;
+    if (elapsed < 0) elapsed += 60;
+
+    bool time_valid = (t1.year >= 2024 && t1.month >= 1 && t1.month <= 12 &&
+                       t1.day >= 1 && t1.day <= 31);
+
+    if (!time_valid) {
+        diag_menu_printf("  ** RTC time invalid — VL flag was cleared\r\n");
         diag_err_add(&s_err_ctx,
-                     "I2C@0x51 BM8563: read time failed");
+                     "I2C@0x51 BM8563: time invalid (y=%u m=%u d=%u)",
+                     t1.year, t1.month, t1.day);
+        diag_err_set_debug(&s_err_ctx,
+                           "Set time: rtc-set 2025 07 19 14 30 00",
+                           "Check RTC_VDD backup rail from AXP2101");
+        r = DIAG_FAILED;
+    } else if (elapsed < 1 || elapsed > 3) {
+        diag_menu_printf("  ** RTC not ticking (elapsed=%d s, expected ~2 s)\r\n",
+                         elapsed);
+        diag_err_add(&s_err_ctx,
+                     "I2C@0x51 BM8563: not ticking (elapsed=%d s)", elapsed);
+        diag_err_set_debug(&s_err_ctx,
+                           "RTC oscillator stopped — check battery/XTAL",
+                           "Re-init control registers and retry");
+        r = DIAG_FAILED;
+    } else {
+        diag_menu_printf("RTC tick: OK (%d s elapsed)\r\n", elapsed);
     }
 
     hal_rtc_deinit();
