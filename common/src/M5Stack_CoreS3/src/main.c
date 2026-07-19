@@ -172,14 +172,19 @@ static diag_result_t test_touch(void *context)
 
     diag_result_t r = hal_touch_init();
     if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx, "FT6336 touch init failed");
+        diag_err_add(&s_err_ctx,
+                     "I2C@0x38 FT6336: init failed (no ACK)");
         diag_err_set_debug(&s_err_ctx,
-                           "Check I2C address 0x38",
-                           "Check INT (GPIO3) and RST (GPIO1) pins");
+                           "Check AXP2101 LDOIO0 touch power (reg 0x90)",
+                           "Check I2C bus 0x38 pull-ups and INT/RST pins");
         return r;
     }
 
     uint8_t fw = hal_touch_firmware_version();
+    if (fw == 0) {
+        diag_err_add(&s_err_ctx,
+                     "I2C@0x38 FT6336: firmware version read returned 0");
+    }
     diag_menu_printf("Touch: FT6336 fw=0x%02X max_points=%d\r\n",
                      fw, hal_touch_max_points());
 
@@ -193,11 +198,12 @@ static diag_result_t test_touch(void *context)
                              data.points[i].event, data.points[i].id);
         }
     } else {
-        diag_err_add(&s_err_ctx, "Failed to read touch data");
+        diag_err_add(&s_err_ctx,
+                     "I2C@0x38 FT6336: read touch data failed");
     }
 
     hal_touch_deinit();
-    return (fw > 0) ? DIAG_PASSED : DIAG_FAILED;
+    return (fw > 0 && r == DIAG_PASSED) ? DIAG_PASSED : DIAG_FAILED;
 }
 
 static diag_result_t test_rtc(void *context)
@@ -208,10 +214,11 @@ static diag_result_t test_rtc(void *context)
 
     diag_result_t r = hal_rtc_init();
     if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx, "BM8563 RTC init failed");
+        diag_err_add(&s_err_ctx,
+                     "I2C@0x51 BM8563: init failed (no ACK)");
         diag_err_set_debug(&s_err_ctx,
-                           "Check I2C address 0x51",
-                           "Check battery backup voltage");
+                           "Check I2C bus 0x51 pull-ups",
+                           "Check RTC battery backup voltage");
         return r;
     }
 
@@ -222,7 +229,8 @@ static diag_result_t test_rtc(void *context)
         hal_rtc_format(&t, buf, sizeof(buf));
         diag_menu_printf("RTC time: %s\r\n", buf);
     } else {
-        diag_err_add(&s_err_ctx, "Failed to read RTC time");
+        diag_err_add(&s_err_ctx,
+                     "I2C@0x51 BM8563: read time failed");
     }
 
     hal_rtc_deinit();
@@ -237,9 +245,10 @@ static diag_result_t test_imu(void *context)
 
     diag_result_t r = hal_imu_init();
     if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx, "BMI270 IMU init failed");
+        diag_err_add(&s_err_ctx,
+                     "I2C@0x69 BMI270: init failed (wrong chip ID or no ACK)");
         diag_err_set_debug(&s_err_ctx,
-                           "Check I2C address 0x69",
+                           "Check I2C bus 0x69 pull-ups",
                            "Verify BMI270 power supply");
         return r;
     }
@@ -253,7 +262,8 @@ static diag_result_t test_imu(void *context)
         diag_menu_printf("  Gyro  (mdps): x=%+6ld  y=%+6ld  z=%+6ld\r\n",
                          (long)data.gyro.x, (long)data.gyro.y, (long)data.gyro.z);
     } else {
-        diag_err_add(&s_err_ctx, "Failed to read IMU data");
+        diag_err_add(&s_err_ctx,
+                     "I2C@0x69 BMI270: read sensor data failed");
     }
 
     hal_imu_deinit();
@@ -268,10 +278,11 @@ static diag_result_t test_power(void *context)
 
     diag_result_t r = hal_power_init();
     if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx, "AXP2101 PMU init failed");
+        diag_err_add(&s_err_ctx,
+                     "I2C@0x34 AXP2101: init failed (no ACK)");
         diag_err_set_debug(&s_err_ctx,
-                           "Check I2C address 0x34",
-                           "Check battery connection");
+                           "Check I2C bus 0x34 pull-ups",
+                           "Check battery connection and PMU power rails");
         return r;
     }
 
@@ -291,7 +302,8 @@ static diag_result_t test_power(void *context)
                          (pwr.flags & HAL_POWER_FLAG_BAT_FULL) ? "full" : "idle");
         diag_menu_printf("  Temp:    %u C\r\n", pwr.temperature_celsius);
     } else {
-        diag_err_add(&s_err_ctx, "Failed to read PMU data");
+        diag_err_add(&s_err_ctx,
+                     "I2C@0x34 AXP2101: read PMU data failed");
     }
 
     hal_power_deinit();
