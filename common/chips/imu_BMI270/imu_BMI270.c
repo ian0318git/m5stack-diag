@@ -54,14 +54,20 @@ static int load_config(void)
     static bool loaded = false;
     if (loaded) return 0;
 
-    /* Write config in 32-byte chunks, updating INIT_ADDR per chunk */
+    /* Step 1: Disable config load (clear INIT_CTRL bit 0) */
+    write_reg(0x59, 0x00);
+
+    /* Write config 32 bytes per chunk.
+     * Address = byte_index / 2 (word offset, not byte offset).
+     * INIT_ADDR_0 = bits [3:0] of word offset.
+     * INIT_ADDR_1 = bits [11:4] of word offset. */
     for (size_t i = 0; i < sizeof(bmi270_config_file); i += 32) {
         size_t chunk = sizeof(bmi270_config_file) - i;
         if (chunk > 32) chunk = 32;
 
-        uint16_t addr = BMI270_CONFIG_START_ADDR + i;
-        write_reg(0x5B, (uint8_t)(addr & 0xFF));
-        write_reg(0x5C, (uint8_t)((addr >> 8) & 0xFF));
+        uint16_t word_addr = (uint16_t)(i / 2);
+        write_reg(0x5B, (uint8_t)(word_addr & 0x0F));
+        write_reg(0x5C, (uint8_t)((word_addr >> 4) & 0xFF));
 
         uint8_t buf[33];
         buf[0] = 0x5E;
@@ -72,15 +78,17 @@ static int load_config(void)
         }
     }
 
-    write_reg(0x59, 1);   /* Trigger config loading */
+    /* Step 2: Enable config load (set INIT_CTRL bit 0) */
+    write_reg(0x59, 0x01);
 
-    /* Poll INTERNAL_STATUS (0x21) bit 0 for completion, up to 300ms */
+    /* Poll INTERNAL_STATUS (0x21) bit 0, up to 300ms */
     uint8_t status = 0;
     for (int r = 0; r < 60; r++) {
         vTaskDelay(pdMS_TO_TICKS(5));
         read_reg(BMI270_REG_INT_STATUS, &status);
         if (status & BMI270_INT_STAT_DONE) {
             loaded = true;
+            vTaskDelay(pdMS_TO_TICKS(50));
             ESP_LOGI(TAG, "Config loaded (%u B)", (unsigned)sizeof(bmi270_config_file));
             return 0;
         }
@@ -109,9 +117,12 @@ int imu_BMI270_init(i2c_master_dev_handle_t dev)
                  chip_id, BMI270_CHIP_ID_VAL);
     }
 
-    /* Soft-reset, enable sensors at default ODR (ROM defaults) */
+    /* Soft-reset */
     write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
     esp_rom_delay_us(10000);
+
+    /* Load firmware config (required for sensor data) */
+    load_config();
 
     write_reg(BMI270_REG_PWR_CONF, 0x00);
     esp_rom_delay_us(1000);
