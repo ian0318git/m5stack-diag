@@ -26,7 +26,10 @@ idf_component_register(
         "${PROJECT_DIR}/common/chips/power_AXP2101"
 
     REQUIRES
-        driver
+        esp_driver_uart
+        esp_driver_gpio
+        esp_driver_spi
+        esp_driver_i2c
         esp_timer
         nvs_flash
         freertos

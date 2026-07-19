@@ -8,7 +8,7 @@
  *   - Domain:          diag_core.h (types, entities)
  *   - Interface Adapter: diag_menu.h/c (console presenter/controller)
  *                       diag_runner.h/c (test orchestration)
- *   - Frameworks/Drivers: src/hal/*.c (concrete HAL implementations)
+ *   - Frameworks/Drivers: src/hal/ (concrete HAL implementations)
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -26,6 +26,7 @@
 #include "diag_config.h"
 #include "diag_menu.h"
 #include "diag_runner.h"
+#include "driver/i2c_master.h"
 
 #include "hal_screen.h"
 #include "hal_touch.h"
