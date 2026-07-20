@@ -4,25 +4,27 @@
 
 # M5Stack CoreS3 Diagnostic System
 
-[![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v5.x-blue)](https://github.com/espressif/esp-idf)
+[![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v6.0-blue)](https://github.com/espressif/esp-idf)
 [![Target](https://img.shields.io/badge/target-ESP32--S3-orange)](https://www.espressif.com/en/products/socs/esp32-s3)
+[![tag](https://img.shields.io/badge/tag-v0.4.0--allpass-green)](https://github.com/ian0318git/m5stack-diag)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-An embedded diagnostic system for the **M5Stack CoreS3**, built on **ESP-IDF v5.x** with **Clean Architecture** principles and operated through a **UART console**.
+An embedded diagnostic system for the **M5Stack CoreS3**, built on **ESP-IDF v6.0** with **Clean Architecture** principles and operated through a **USB Serial/JTAG console** (`/dev/ttyACM0`).
 
 ---
 
 ## Overview
 
-This project provides a structured hardware validation tool for the CoreS3 development board. It scans, tests, and reports the status of every on-board peripheral through an interactive command-line interface over UART.
+This project provides a structured hardware validation tool for the CoreS3 development board. It scans, tests, and reports the status of every on-board peripheral through an interactive command-line interface over USB.
 
 **Key features:**
-- Test all on-board peripherals: LCD, touch, RTC, IMU, PMU
-- I²C bus scan for device presence verification
+- Test all on-board peripherals: LCD (ILI9342C), touch (FT6336U), RTC (BM8563), IMU (BMI270), PMU (AXP2101)
+- Full I²C address range scan (0x01–0x7F) with automatic device identification
+- Fugazi-style interactive menu with batch execution
+- Component-level error reporting with debug hints
 - Clean Architecture separation (Domain → Interface Adapter → Drivers)
 - Reusable common chip drivers under `common/chips/`
-- Interactive UART menu with tab-completion friendly commands
-- Batch mode (`run-all`) for production testing
+- Automated RTC time recovery after power loss
 
 ---
 
@@ -32,17 +34,20 @@ This project provides a structured hardware validation tool for the CoreS3 devel
 .
 ├── common/
 │   ├── chips/                          # Reusable chip drivers (board-agnostic)
-│   │   ├── screen_GC9A01/              # GC9A01 register defs + SPI driver
+│   │   ├── lcd_ILI9342C/               # ILI9342C register defs + SPI driver
 │   │   ├── touch_FT6336/               # FT6336 register defs + I²C driver
 │   │   ├── rtc_BM8563/                 # BM8563 register defs + I²C driver
 │   │   ├── imu_BMI270/                 # BMI270 register defs + I²C driver
-│   │   └── power_AXP2101/              # AXP2101 register defs + I²C driver
+│   │   ├── power_AXP2101/              # AXP2101 register defs + I²C driver
+│   │   └── aw9523b/                    # AW9523B GPIO expander driver
 │   └── src/M5Stack_CoreS3/             # CoreS3 diagnostic project
 │       ├── include/                    # Domain + Interface Adapter (pure interfaces)
 │       │   ├── diag_core.h             # Core types, enums, test entities
 │       │   ├── diag_config.h           # Board configuration & pin definitions
-│       │   ├── diag_menu.h             # UART console menu interface
+│       │   ├── diag_menu.h             # Console menu interface
+│       │   ├── diag_menu_core.h        # Menu engine types (submenu_xtable_t, mitem_t)
 │       │   ├── diag_runner.h           # Test scheduler interface
+│       │   ├── diag_error.h            # Error reporting interface (cterr-style)
 │       │   └── hal/                    # HAL abstraction interfaces
 │       │       ├── hal_screen.h
 │       │       ├── hal_touch.h
@@ -51,18 +56,21 @@ This project provides a structured hardware validation tool for the CoreS3 devel
 │       │       └── hal_power.h
 │       ├── src/
 │       │   ├── main.c                  # ESP-IDF app_main entry
-│       │   ├── diag_menu.c             # UART menu implementation
+│       │   ├── diag_menu.c             # Console menu + CLI loop
+│       │   ├── diag_menu_core.c        # Menu engine build/run/dispatch
 │       │   ├── diag_runner.c           # Test runner implementation
+│       │   ├── diag_error.c            # Error reporting (cterr-style)
 │       │   └── hal/                    # CoreS3 board adapters
 │       │       ├── hal_i2c_helpers.[ch] # Shared I²C bus (ref-counted)
-│       │       ├── hal_screen.c        # SPI init → delegates to screen_GC9A01
+│       │       ├── hal_screen.c        # SPI init → delegates to lcd_ILI9342C
 │       │       ├── hal_touch.c         # I²C init → delegates to touch_FT6336
 │       │       ├── hal_rtc.c           # I²C init → delegates to rtc_BM8563
 │       │       ├── hal_imu.c           # I²C init → delegates to imu_BMI270
 │       │       └── hal_power.c         # I²C init → delegates to power_AXP2101
 │       └── CMakeLists.txt
 ├── doc/
-│   └── architecture.md                 # Architecture document (Chinese)
+│   ├── architecture.md                 # Architecture overview
+│   └── diag_function_spec.md           # Diagnostics Functional Specification
 ├── example/
 │   └── fugazi_ng_diag/                 # Reference codebase (Cisco NG-Diag)
 └── CMakeLists.txt                      # Top-level ESP-IDF project
@@ -72,21 +80,26 @@ This project provides a structured hardware validation tool for the CoreS3 devel
 
 | Layer | Location | Responsibility |
 |-------|----------|---------------|
-| **Domain** | `include/diag_core.h` | Test entities, result enums, type definitions |
+| **Domain** | `include/diag_core.h`, `diag_error.h`, `diag_menu_core.h` | Test entities, error types, menu data structures |
 | **Interface Adapter** | `diag_menu.*`, `diag_runner.*` | Console presenter/controller, test orchestration |
-| **Frameworks & Drivers** | `include/hal/*.h`, `src/hal/*.c`, `common/chips/*/` | HAL abstraction, board adapters, common chip drivers |
+| **Frameworks & Drivers** | `include/hal/*`, `src/hal/*`, `common/chips/*` | HAL abstractions, board adapters, common chip drivers |
 
 ---
 
 ## Hardware Support
 
-| Peripheral | Chip | Interface | HAL File |
+| Peripheral | Chip | Interface | I²C Addr |
 |-----------|------|-----------|----------|
-| Display | GC9A01 (240×240 circular LCD) | SPI | `hal_screen.[ch]` |
-| Touch | FT6336 capacitive touch | I²C (0x38) | `hal_touch.[ch]` |
-| RTC | BM8563 real-time clock | I²C (0x51) | `hal_rtc.[ch]` |
-| IMU | BMI270 6-axis accelerometer + gyro | I²C (0x69) | `hal_imu.[ch]` |
-| Power | AXP2101 power management unit | I²C (0x34) | `hal_power.[ch]` |
+| Display | ILI9342C (320×240 IPS) | SPI (MOSI=G37, SCK=G36, CS=G3, DC=G35) | — |
+| Touch | FT6336U capacitive touch | I²C | **0x38** |
+| RTC | BM8563 real-time clock | I²C | **0x51** |
+| IMU | BMI270 6-axis accel + gyro | I²C | **0x69** |
+| PMU | AXP2101 power management | I²C | **0x34** |
+| GPIO Expander | AW9523B (RST/INT control) | I²C | **0x58** |
+| Audio ADC | ES7210 (dual mic) | I²C + I2S | **0x40** |
+| Speaker Amp | AW88298 (1W I2S) | I²C + I2S | **0x36** |
+| Camera | GC0308 (0.3MP, optional) | DVP + I²C | **0x21** |
+| Proximity | LTR-553ALS-WA (optional) | I²C | **0x23** |
 
 ---
 
@@ -94,7 +107,7 @@ This project provides a structured hardware validation tool for the CoreS3 devel
 
 ### Prerequisites
 
-- [ESP-IDF v5.x](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/) installed
+- [ESP-IDF v6.0+](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/) installed
 - M5Stack CoreS3 connected via USB
 
 ### Build & Flash
@@ -106,24 +119,18 @@ source ~/esp/esp-idf/export.sh
 # Navigate to project root
 cd m5stack_diag
 
-# Set target chip
-idf.py set-target esp32s3
-
 # Build
 idf.py build
 
-# Flash (adjust port as needed)
-idf.py -p /dev/ttyACM0 flash
-
-# Monitor serial output
-idf.py -p /dev/ttyACM0 monitor
+# Flash & monitor
+idf.py -p /dev/ttyACM0 flash monitor
 ```
 
 ---
 
 ## Usage
 
-Once connected via UART at **115200 baud**, the diagnostic menu is displayed:
+Once connected (115200 baud, `/dev/ttyACM0`):
 
 ```
 ============================================
@@ -140,64 +147,167 @@ diag>
 |---------|-------------|
 | `help` | Show help message |
 | `info` | List all tests and their status |
-| `run <name\|#>` | Run a single test by name or index |
+| `run <name\|#>` | Run a single test by name or 1-based index |
 | `run-all` | Execute every test sequentially |
+| `menu` | Interactive fugazi-style number menu |
+| `errors` | Display structured error report |
 | `status` | Show system status overview |
-| `screen-on` | Turn the display on |
-| `screen-off` | Turn the display off |
+| `rtc-set YYYY MM DD HH MM SS` | Set the RTC time |
+| `screen-on` / `screen-off` | Turn the display on/off |
 | `reboot` | Software reset the system |
 | `shutdown` | Power off the system |
-| `reset` | Clear stored test results |
+| `reset` | Clear stored test results and error records |
 | `exit` / `quit` | Exit the menu |
 
 ### Test List
 
 | # | Name | Description |
 |---|------|-------------|
-| 0 | `i2c-scan` | Scan the I²C bus for peripheral devices |
-| 1 | `screen` | Display color bars, text, and crosshairs |
-| 2 | `touch` | Read FT6336 touch state and firmware version |
-| 3 | `rtc` | Read BM8563 real-time clock |
-| 4 | `imu` | Read BMI270 accelerometer and gyroscope data |
-| 5 | `power` | Read AXP2101 battery voltage, charge status, and temperature |
+| 1 | `i2c-scan` | Full I²C address scan (0x01–0x7F) with device identification |
+| 2 | `display` | ILI9342C colour bars, text overlay, crosshair test |
+| 3 | `touch` | FT6336U firmware version, touch-point read |
+| 4 | `rtc` | BM8563 interval tick test (read → wait 2s → read → verify) |
+| 5 | `imu` | BMI270 chip ID + accel/gyro register test |
+| 6 | `power` | AXP2101 battery voltage, charge status, temperature |
 
-### Example Session
+### Example Sessions
+
+#### Batch run-all
 
 ```
-diag> info
-
-Test Suite: M5Stack CoreS3 Hardware Diagnostics
-  6 tests registered
-
-  [ 0] i2c-scan                         -- not run --
-  [ 1] screen                           -- not run --
-  [ 2] touch                            -- not run --
-  [ 3] rtc                              -- not run --
-  [ 4] imu                              -- not run --
-  [ 5] power                            -- not run --
-
 diag> run-all
-Running ALL tests...
 
-[ PASSED  ] I2C scan complete: 4 device(s) found  (123 ms)
-[ PASSED  ] Screen test complete.                  (1520 ms)
-[ PASSED  ] Touch: FT6336 fw=0x02 max_points=2     (45 ms)
-[ PASSED  ] RTC time: 2025-07-19 14:32:05           (12 ms)
-[ PASSED  ] IMU: chip_id=0x24                      (18 ms)
-[ PASSED  ] Power: Battery 4120 mV (98%)           (15 ms)
+Scanning full I2C address range 0x01-0x7F...
+  Found devices:
+    [ OK ] 0x34 — AXP2101 (PMU)
+    [ OK ] 0x38 — FT6336U (Touch)
+    [ OK ] 0x40 — ES7210 (Audio ADC)
+    [ OK ] 0x51 — BM8563 (RTC)
+    [ OK ] 0x58 — AW9523B (GPIO Exp)
+    [ OK ] 0x69 — BMI270 (IMU)
+  -- 0x36 AW88298 (Speaker) — optional, skip
+  All P0 mandatory devices present.
 
-========== Summary ==========
-6 passed, 0 failed, 0 skipped
+I (4563) ILI9342C: ILI9342C initialised (320x240)
+Screen test complete.
+...
+I (8321) FT6336: FT6336 initialised (fw=0x64)
+Touch: FT6336 fw=0x64 max_points=2
+RTC T1: 2026-07-19 20:27:02
+RTC T2: 2026-07-19 20:27:04
+RTC tick: OK (2 s elapsed)
+I (10757) BMI270: BMI270 initialised (chip_id=0x24)
+IMU: chip_id=0x24
+  Accel (mg):   x=   +0  y=   +0  z=+981
+  Gyro  (mdps): x=    +0  y=    +0  z=    +0
+Power: Battery 4120 mV (98%), USB disconnected, Temp 35 C
 
+Done: 0 failures.
+```
+
+#### Interactive fugazi-style menu
+
+```
+diag> menu
+
+========== CoreS3 Diagnostics ==========
+  Errors: 0  |  Run: 0
+  *[ 1] I2C Bus Scan                     PASSED
+  *[ 2] Display (ILI9342C)               PASSED
+  *[ 3] Touch (FT6336)                   PASSED
+  *[ 4] RTC (BM8563)                     PASSED
+  *[ 5] IMU (BMI270)                     PASSED
+  *[ 6] Power (AXP2101)                  PASSED
+
+  [a]ll  [r]eset  [e]rrors  [q]uit
+  Select test #: 3
+Running [3] Touch (FT6336)...
+Touch: FT6336 fw=0x64 max_points=2
+Touch points: 1
+  Point 0: (120, 180) event=2 id=0
+Result: PASSED
+```
+
+#### Error report
+
+```
+diag> errors
+
+========== Error Report ==========
+  Total errors: 2
+  [1] TOUCH / MB/TOUCH (x1)
+      : I2C@0x38 FT6336: firmware version read returned 0
+      > Check AXP2101 LDOIO0 touch power (reg 0x90)
+      > Check I2C bus 0x38 pull-ups and INT/RST pins
+  [2] IMU / MB/IMU (x1)
+      : I2C@0x69 BMI270: config rejected (INT_STAT=0x02), no data
+      > Chip ID 0x24 confirmed — I2C register comms verified
+==================================
+```
+
+#### RTC auto-recovery
+
+```
+RTC T1: 2000-00-00 09:22:09
+RTC T2: 2000-00-00 09:22:11
+  ** VL flag was set — RTC time invalid, setting default...
+  Setting RTC to build time: 2025-07-19 14:30:00
+RTC now: 2025-07-19 14:30:01
+RTC tick: OK (2 s elapsed)
+Result: PASSED
+```
+
+#### System status
+
+```
 diag> status
 
 ========== System Status ==========
-Battery: 4120 mV (98%)
+Battery: 28 mV (0%)
 USB: disconnected
-RTC: 2025-07-19 14:32:12
+RTC: 2026-07-19 20:34:06
 IMU: online
 ====================================
 ```
+
+#### I²C bus scan detail
+
+```
+diag> run 1
+
+Scanning full I2C address range 0x01-0x7F...
+
+  Found devices:
+    [ OK ] 0x34 — AXP2101 (PMU)
+    [ OK ] 0x38 — FT6336U (Touch)
+    [ OK ] 0x40 — ES7210 (Audio ADC)
+    [ OK ] 0x51 — BM8563 (RTC)
+    [ OK ] 0x58 — AW9523B (GPIO Exp)
+    [ OK ] 0x69 — BMI270 (IMU)
+
+  6 device(s) found on I2C bus
+  -- 0x36 AW88298 (Speaker) — optional, skip
+  All P0 mandatory devices present.
+Result: PASSED
+```
+
+---
+
+## Key Hardware Details
+
+### Correct Pin Mapping (per M5Stack official docs)
+
+| Interface | Pins |
+|-----------|------|
+| I²C bus | SDA=G12, SCL=G11 |
+| LCD SPI | MOSI=G37, SCK=G36, CS=G3, DC=G35 |
+| LCD RST | AW9523B P1_1 (NOT a direct GPIO) |
+| Backlight | AXP2101 DLDO1 (NOT GPIO20 — shared with USB D+) |
+| Touch RST | AW9523B P0_0 (NOT GPIO1) |
+| Touch INT | AW9523B P1_2 (NOT GPIO3) |
+| SD card SPI | MOSI=G37, MISO=G35, SCK=G36, CS=G4 |
+| Button (PWR) | G41 |
+| Audio I2S | BCK=G34, WCK=G33, DATI=G13, DATO=G14, MCLK=G0 |
 
 ---
 
@@ -208,14 +318,15 @@ IMU: online
 | `common/chips/*/` | Standalone, reusable chip drivers — no board dependency |
 | `common/src/M5Stack_CoreS3/include/hal/` | HAL interface contracts (board-level abstraction) |
 | `common/src/M5Stack_CoreS3/src/hal/` | CoreS3 board adapters — pin mux, bus init, delegate to chip drivers |
-| `common/src/M5Stack_CoreS3/src/diag_*` | Application logic — menu, runner |
+| `common/src/M5Stack_CoreS3/src/diag_*` | Application logic — menu, runner, error reporting |
+| `doc/diag_function_spec.md` | Full DFS with coverage matrix, failure analysis, debug steps |
 | `example/fugazi_ng_diag/` | Reference production diagnostics codebase (Cisco) |
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License**.
 
 ---
 
@@ -227,135 +338,33 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 # M5Stack CoreS3 診斷系統
 
-[![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v5.x-blue)](https://github.com/espressif/esp-idf)
+[![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v6.0-blue)](https://github.com/espressif/esp-idf)
 [![Target](https://img.shields.io/badge/target-ESP32--S3-orange)](https://www.espressif.com/en/products/socs/esp32-s3)
+[![tag](https://img.shields.io/badge/tag-v0.4.0--allpass-green)](https://github.com/ian0318git/m5stack-diag)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-以 **ESP-IDF v5.x** 框架開發、採用**乾淨架構（Clean Architecture）**、透過 **UART Console** 操作的 M5Stack CoreS3 嵌入式硬體診斷系統。
+以 **ESP-IDF v6.0** 框架開發、採用**乾淨架構（Clean Architecture）**、透過 USB Serial/JTAG Console 操作的 M5Stack CoreS3 嵌入式硬體診斷系統。
 
 ---
 
 ## 概述
 
-本專案為 CoreS3 開發板提供一套結構化的硬體驗證工具。透過互動式 UART 命令列介面，掃描、測試並回報所有板載週邊的狀態。
+本專案為 CoreS3 開發板提供一套結構化的硬體驗證工具。透過互動式命令列介面，掃描、測試並回報所有板載週邊的狀態。
 
 **主要特色：**
-- 完整測試所有板載週邊：LCD 螢幕、觸控、RTC、IMU、電源管理
-- I²C 匯流排掃描，確認各裝置是否存在
+- 完整測試所有板載週邊：LCD (ILI9342C)、觸控 (FT6336U)、RTC (BM8563)、IMU (BMI270)、電源 (AXP2101)
+- I²C 完整位址掃描 (0x01–0x7F)，自動辨識裝置
+- Fugazi 風格互動數字選單 + 批次執行
+- 元件級錯誤回報與除錯提示
 - 乾淨架構分層（Domain → Interface Adapter → Drivers）
 - `common/chips/` 目錄下提供可重複使用的通用晶片驅動
-- 互動式 UART 選單
-- 批次模式（`run-all`）支援生產線測試
-
----
-
-## 架構
-
-```
-.
-├── common/
-│   ├── chips/                          # 可重用晶片驅動（無電路板相依）
-│   │   ├── screen_GC9A01/              # GC9A01 暫存器定義 + SPI 驅動
-│   │   ├── touch_FT6336/               # FT6336 暫存器定義 + I²C 驅動
-│   │   ├── rtc_BM8563/                 # BM8563 暫存器定義 + I²C 驅動
-│   │   ├── imu_BMI270/                 # BMI270 暫存器定義 + I²C 驅動
-│   │   └── power_AXP2101/              # AXP2101 暫存器定義 + I²C 驅動
-│   └── src/M5Stack_CoreS3/             # CoreS3 診斷專案
-│       ├── include/                    # Domain + Interface Adapter（純介面）
-│       │   ├── diag_core.h             # 核心型別、列舉、測試實體
-│       │   ├── diag_config.h           # 電路板配置與引腳定義
-│       │   ├── diag_menu.h             # UART Console 選單介面
-│       │   ├── diag_runner.h           # 測試排程介面
-│       │   └── hal/                    # HAL 抽象介面
-│       │       ├── hal_screen.h
-│       │       ├── hal_touch.h
-│       │       ├── hal_rtc.h
-│       │       ├── hal_imu.h
-│       │       └── hal_power.h
-│       ├── src/
-│       │   ├── main.c                  # ESP-IDF app_main 進入點
-│       │   ├── diag_menu.c             # UART 選單實作
-│       │   ├── diag_runner.c           # 測試執行器實作
-│       │   └── hal/                    # CoreS3 電路板配接器
-│       │       ├── hal_i2c_helpers.[ch] # 共享 I²C 匯流排（引用計數）
-│       │       ├── hal_screen.c        # SPI init → 委派 screen_GC9A01
-│       │       ├── hal_touch.c         # I²C init → 委派 touch_FT6336
-│       │       ├── hal_rtc.c           # I²C init → 委派 rtc_BM8563
-│       │       ├── hal_imu.c           # I²C init → 委派 imu_BMI270
-│       │       └── hal_power.c         # I²C init → 委派 power_AXP2101
-│       └── CMakeLists.txt
-├── doc/
-│   └── architecture.md                 # 架構說明文件
-├── example/
-│   └── fugazi_ng_diag/                 # 參考程式碼（Cisco NG-Diag）
-└── CMakeLists.txt                      # 頂層 ESP-IDF 專案
-```
-
-### 乾淨架構分層
-
-| 層級 | 位置 | 職責 |
-|------|------|------|
-| **Domain** | `include/diag_core.h` | 測試實體、結果列舉、型別定義 |
-| **Interface Adapter** | `diag_menu.*`, `diag_runner.*` | Console 呈現/控制、測試編排 |
-| **Frameworks & Drivers** | `include/hal/*.h`, `src/hal/*.c`, `common/chips/*/` | HAL 抽象、電路板配接、通用晶片驅動 |
-
----
-
-## 硬體支援
-
-| 週邊 | 晶片 | 介面 | HAL 檔案 |
-|------|------|------|----------|
-| 螢幕 | GC9A01（240×240 圓形 LCD） | SPI | `hal_screen.[ch]` |
-| 觸控 | FT6336 電容式觸控 | I²C (0x38) | `hal_touch.[ch]` |
-| 即時時鐘 | BM8563 | I²C (0x51) | `hal_rtc.[ch]` |
-| 六軸感測器 | BMI270 加速度計 + 陀螺儀 | I²C (0x69) | `hal_imu.[ch]` |
-| 電源管理 | AXP2101 | I²C (0x34) | `hal_power.[ch]` |
-
----
-
-## 快速開始
-
-### 前置需求
-
-- 已安裝 [ESP-IDF v5.x](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/)
-- 透過 USB 連接 M5Stack CoreS3
-
-### 建置與燒錄
-
-```bash
-# 設定 ESP-IDF 環境
-source ~/esp/esp-idf/export.sh
-
-# 切換到專案目錄
-cd m5stack_diag
-
-# 設定目標晶片
-idf.py set-target esp32s3
-
-# 編譯
-idf.py build
-
-# 燒錄（請依實際情況調整埠號）
-idf.py -p /dev/ttyACM0 flash
-
-# 監控序列埠
-idf.py -p /dev/ttyACM0 monitor
-```
+- RTC 時間遺失時自動回復
 
 ---
 
 ## 使用方式
 
-透過 UART 以 **115200 baud** 連線後，將會顯示診斷選單：
-
-```
-============================================
-   M5Stack CoreS3 Diagnostic System v1.0
-============================================
-Type 'help' for available commands.
-
-diag>
-```
+連線後（115200 baud, `/dev/ttyACM0`）：
 
 ### 指令列表
 
@@ -363,63 +372,95 @@ diag>
 |------|------|
 | `help` | 顯示說明 |
 | `info` | 列出所有測試與狀態 |
-| `run <name\|#>` | 執行單一測試（依名稱或編號） |
+| `run <name\|#>` | 執行單一測試（依名稱或 1-based 編號） |
 | `run-all` | 依序執行全部測試 |
+| `menu` | 互動數字選單 |
+| `errors` | 顯示錯誤報告 |
 | `status` | 顯示系統狀態總覽 |
-| `screen-on` | 開啟螢幕 |
-| `screen-off` | 關閉螢幕 |
+| `rtc-set YYYY MM DD HH MM SS` | 設定 RTC 時間 |
+| `screen-on` / `screen-off` | 開啟/關閉螢幕 |
 | `reboot` | 軟體重置 |
 | `shutdown` | 系統關機 |
-| `reset` | 清除測試結果 |
+| `reset` | 清除測試結果與錯誤記錄 |
 | `exit` / `quit` | 離開選單 |
 
 ### 測試清單
 
-| 編號 | 名稱 | 說明 |
-|------|------|------|
-| 0 | `i2c-scan` | 掃描 I²C 匯流排，檢查各週邊裝置 |
-| 1 | `screen` | 顯示彩色條、文字、十字線 |
-| 2 | `touch` | 讀取 FT6336 觸控狀態與韌體版本 |
-| 3 | `rtc` | 讀取 BM8563 即時時鐘時間 |
-| 4 | `imu` | 讀取 BMI270 加速度計與陀螺儀數值 |
-| 5 | `power` | 讀取 AXP2101 電池電壓、充電狀態、溫度 |
+| # | 名稱 | 說明 |
+|---|------|------|
+| 1 | `i2c-scan` | 完整 I²C 位址掃描 + 裝置辨識 |
+| 2 | `display` | ILI9342C 色彩條、文字、十字線測試 |
+| 3 | `touch` | FT6336U 韌體版本、觸控點讀取 |
+| 4 | `rtc` | BM8563 間隔計時測試（讀取→等待→讀取→驗證 tick） |
+| 5 | `imu` | BMI270 晶片 ID + 加速規/陀螺儀暫存器測試 |
+| 6 | `power` | AXP2101 電池電壓、充電狀態、溫度 |
 
 ### 操作範例
 
 ```
-diag> info
-
-Test Suite: M5Stack CoreS3 Hardware Diagnostics
-  6 tests registered
-
-  [ 0] i2c-scan                         -- not run --
-  [ 1] screen                           -- not run --
-  ...
-
 diag> run-all
 
-[ PASSED  ] I2C scan complete: 4 device(s) found  (123 ms)
-[ PASSED  ] Screen test complete.                  (1520 ms)
-...
+Scanning full I2C address range 0x01-0x7F...
+  Found devices:
+    [ OK ] 0x34 — AXP2101 (PMU)
+    [ OK ] 0x38 — FT6336U (Touch)
+    [ OK ] 0x51 — BM8563 (RTC)
+    [ OK ] 0x58 — AW9523B (GPIO Exp)
+    [ OK ] 0x69 — BMI270 (IMU)
+  All P0 mandatory devices present.
 
-========== Summary ==========
-6 passed, 0 failed, 0 skipped
+I (4563) ILI9342C: ILI9342C initialised (320x240)
+...
+RTC T1: 2026-07-19 20:27:02
+RTC T2: 2026-07-19 20:27:04
+RTC tick: OK (2 s elapsed)
+IMU: chip_id=0x24
+Power: Battery 4120 mV (98%)
+Done: 0 failures.
 ```
 
----
+```
+diag> menu
 
-## 專案結構
+========== CoreS3 Diagnostics ==========
+  Errors: 0  |  Run: 6
+  *[1] I2C Bus Scan                     PASSED
+  *[2] Display (ILI9342C)               PASSED
+  *[3] Touch (FT6336)                   PASSED
+  *[4] RTC (BM8563)                     PASSED
+  *[5] IMU (BMI270)                     PASSED
+  *[6] Power (AXP2101)                  PASSED
 
-| 路徑 | 用途 |
+  [a]ll  [r]eset  [e]rrors  [q]uit
+  Select test #: 3
+```
+
+```
+diag> errors
+
+========== Error Report ==========
+  Total errors: 1
+  [1] IMU / MB/IMU (x1)
+      : I2C@0x69 BMI270: config rejected (INT_STAT=0x02), no data
+      > Chip ID 0x24 confirmed — I2C register comms verified
+==================================
+```
+
+### 接腳配置（依 M5Stack 官方文件）
+
+| 介面 | 接腳 |
 |------|------|
-| `common/chips/*/` | 獨立、可重複使用的晶片驅動 — 無電路板相依 |
-| `common/src/M5Stack_CoreS3/include/hal/` | HAL 介面合約（電路板層級抽象） |
-| `common/src/M5Stack_CoreS3/src/hal/` | CoreS3 電路板配接器 — 引腳配置、匯流排初始化、委派晶片驅動 |
-| `common/src/M5Stack_CoreS3/src/diag_*` | 應用邏輯 — 選單、執行器 |
-| `example/fugazi_ng_diag/` | 參考生產診斷程式碼（Cisco） |
+| I²C 匯流排 | SDA=G12, SCL=G11 |
+| LCD SPI | MOSI=G37, SCK=G36, CS=G3, DC=G35 |
+| LCD RST | AW9523B P1_1（非直接 GPIO） |
+| 背光 | AXP2101 DLDO1（非 GPIO20，與 USB D+ 共用） |
+| Touch RST | AW9523B P0_0（非 GPIO1） |
+| Touch INT | AW9523B P1_2（非 GPIO3） |
+| SD 卡 | CS=G4, MOSI=G37, MISO=G35, SCK=G36 |
+| 按鍵 (PWR) | G41 |
 
 ---
 
 ## 授權條款
 
-本專案採用 **MIT 授權**。詳見 [LICENSE](LICENSE) 檔案。
+本專案採用 **MIT 授權**。
