@@ -116,13 +116,24 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
     }
     esp_rom_delay_us(10000);
 
+    /*
+     * CRITICAL: Disable advance power save BEFORE loading the firmware
+     * config blob.  The BMI270 powers up with APS enabled; the config
+     * loader port (INIT_DATA / INIT_ADDR / INIT_CTRL) is inaccessible
+     * while APS is active.  Per Bosch app note BST-BMI270-AN002-01:
+     *
+     *   1. Disable advanced power save: PWR_CONF.adv_power_save = 0
+     *   2. Wait >= 450 us
+     *   3. Upload config blob
+     */
+    if (write_reg(BMI270_REG_PWR_CONF, 0x00) != 0) return -1;
+    esp_rom_delay_us(1000);
+
     /* Load firmware config (required for sensor data) */
     if (load_config() != 0) {
         return -1;
     }
 
-    if (write_reg(BMI270_REG_PWR_CONF, 0x00) != 0) return -1;
-    esp_rom_delay_us(1000);
     if (write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN) != 0) {
         return -1;
     }
