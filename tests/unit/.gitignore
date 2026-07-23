@@ -1,1 +1,4 @@
-*.o\ntest_*\n
+*.o
+test_*
+*.out
+*.app

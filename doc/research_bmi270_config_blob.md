@@ -299,6 +299,34 @@ but the sensor data path never activates.
 sensor. The diagnostics correctly identify this. No software fix can enable
 data output on this unit. A replacement board is needed for IMU testing.
 
+### Update 2026-07-24 — M5Unified register map cross-check
+
+After reverse-engineering M5Unified (M5Stack Arduino library) BMI270_Class:
+
+**Register address corrections from M5Unified:**
+| Register | Our old value | M5Unified value |
+|----------|-------------|-----------------|
+| CMD_REG   | 0x7C        | **0x7E** |
+| PWR_CONF  | 0x7D        | **0x7C** |
+| PWR_CTRL  | 0x7E        | **0x7D** |
+| ACC_X_LSB | 0x04        | **0x0C** |
+| GYR_X_LSB | 0x0A        | **0x12** |
+| Data-ready| STATUS (0x03)| **INT_STATUS_1 (0x1D)** |
+
+The register addresses were shifted by +1 for power/command registers,
+and the data-ready check was on the wrong register entirely.
+
+**Applied fixes:**
+1. Corrected all register addresses to match M5Unified
+2. Feature engine: `INT_MAP_DATA (0x58) = 0xFF`
+3. Data-ready: `INT_STATUS_1 (0x1D)` bits 7 (accel) / 6 (gyro)
+4. Data reading: both feature frame (0x04, 20 bytes) and legacy registers
+   (0x0C accel / 0x12 gyro) implemented
+
+**Result:** Even with correct register map from M5Unified, this unit's
+BMI270 produces zero data at all register addresses. This confirms the
+issue is hardware-specific, not software-configurable.
+
 If possible, integrate the Bosch `bmi2.c` `upload_file()` and
 `write_config_file()` functions directly instead of reimplementing the
 upload protocol. These handle edge cases (odd-length chunks, multi-page
