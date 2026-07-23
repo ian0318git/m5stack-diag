@@ -29,8 +29,18 @@ diag_result_t test_imu(void *context)
     }
 
     uint8_t imu_status = hal_imu_status();
-    diag_menu_printf("IMU: chip_id=0x%02X STATUS=0x%02X\r\n",
-                     hal_imu_chip_id(), imu_status);
+    /* Read ERR_REG (0x02) for fault diagnosis — set by chip on internal error */
+    uint8_t err_reg = 0;
+    {
+        extern i2c_master_dev_handle_t get_imu_dev(void);
+        i2c_master_dev_handle_t dev = get_imu_dev();
+        if (dev) {
+            uint8_t reg = 0x02;
+            i2c_master_transmit_receive(dev, &reg, 1, &err_reg, 1, -1);
+        }
+    }
+    diag_menu_printf("IMU: chip_id=0x%02X STATUS=0x%02X ERR=0x%02X\r\n",
+                     hal_imu_chip_id(), imu_status, err_reg);
 
     hal_imu_data_t data;
     r = hal_imu_read(&data);

@@ -19,6 +19,9 @@ static const char *TAG = "hal_imu";
 static i2c_master_dev_handle_t s_i2c_dev = NULL;
 static bool s_initialised = false;
 
+/* Exposed for diagnostic register reads in test_imu.c */
+i2c_master_dev_handle_t get_imu_dev(void) { return s_i2c_dev; }
+
 diag_result_t hal_imu_init(void)
 {
     if (s_initialised) return DIAG_PASSED;
