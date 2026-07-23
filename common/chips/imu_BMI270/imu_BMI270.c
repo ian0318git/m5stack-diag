@@ -145,32 +145,23 @@ int imu_BMI270_read(imu_BMI270_data_t *data)
     if (!data || !s_i2c || !s_bus) return -1;
     memset(data, 0, sizeof(*data));
 
-    /* Check INT_STATUS_1 (0x1D) for data-ready (per M5Unified)
-     * bit 7 = accel ready, bit 6 = gyro ready */
-    uint8_t drdy = 0;
-    for (int retry = 0; retry < 500; retry++) {
-        if (read_reg(BMI270_REG_INT_STATUS_1, &drdy) == 0 &&
-            (drdy & (BMI270_DRDY_ACCEL | BMI270_DRDY_GYRO))) {
-            break;
-        }
-        esp_rom_delay_us(100);
+    /* Read accel from legacy registers at 0x0C (per M5Unified ACC_X_LSB_ADDR)
+     * and gyro from 0x12 (per M5Unified GYR_X_LSB_ADDR).
+     * Each axis is 16-bit two's complement, LSB first, 6 bytes each. */
+    {
+        int16_t accel_raw[3], gyro_raw[3];
+        if (read_regs(0x0C, (uint8_t *)accel_raw, 6) != 0) return -1;
+        if (read_regs(0x12, (uint8_t *)gyro_raw, 6) != 0) return -1;
+
+        /* ±8g accel → mg: raw * 8000 / 32768 */
+        data->accel.x = (int16_t)((int32_t)accel_raw[0] * 8000 / 32768);
+        data->accel.y = (int16_t)((int32_t)accel_raw[1] * 8000 / 32768);
+        data->accel.z = (int16_t)((int32_t)accel_raw[2] * 8000 / 32768);
+        /* ±2000dps gyro → mdps: raw * 2000000 / 32768 */
+        data->gyro.x  = (int32_t)gyro_raw[0] * 2000000 / 32768;
+        data->gyro.y  = (int32_t)gyro_raw[1] * 2000000 / 32768;
+        data->gyro.z  = (int32_t)gyro_raw[2] * 2000000 / 32768;
     }
-
-    /* Read feature engine data frame from register 0x04.
-     * Per M5Unified: 20-byte frame at AUX_X_LSB (0x04)
-     *   buf[0..2] = mag (3 × int16)
-     *   buf[3]    = ?
-     *   buf[4..6] = accel (3 × int16)  ← at byte offset 8
-     *   buf[7..9] = gyro  (3 × int16)  ← at byte offset 14 */
-    int16_t frame[10];
-    if (read_regs(BMI270_REG_DATA_FRAME, (uint8_t *)frame, 20) != 0) return -1;
-
-    data->accel.x = frame[4];
-    data->accel.y = frame[5];
-    data->accel.z = frame[6];
-    data->gyro.x  = frame[7];
-    data->gyro.y  = frame[8];
-    data->gyro.z  = frame[9];
 
     read_reg(BMI270_REG_CHIP_ID, &data->chip_id);
     return 0;
