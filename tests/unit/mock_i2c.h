@@ -32,10 +32,14 @@ static int mock_write(void *bus, uint16_t addr, const void *data, size_t len)
     (void)bus;
     (void)addr;
     const uint8_t *buf = (const uint8_t *)data;
+    if (!mock_regs || len == 0) return 0;
 
-    /* I2C register write: data[0] = register, data[1] = value */
-    if (len == 2 && mock_regs) {
-        mock_regs[buf[0]] = buf[1];
+    /* I2C register write: data[0] = starting register, data[1..] = values */
+    if (len >= 2) {
+        uint8_t reg = buf[0];
+        for (size_t i = 1; i < len; i++) {
+            mock_regs[reg++] = buf[i];
+        }
     }
     return 0;
 }

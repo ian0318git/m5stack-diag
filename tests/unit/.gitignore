@@ -1,1 +1,1 @@
-*.o\n*.exe\ntest_power_AXP2101\ntest_imu_BMI270\n
+test_rtc_BM8563\ntest_all_chips\n
