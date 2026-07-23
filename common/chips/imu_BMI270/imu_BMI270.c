@@ -129,10 +129,14 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
     if (write_reg(BMI270_REG_PWR_CONF, 0x00) != 0) return -1;
     esp_rom_delay_us(1000);
 
-    /* Load firmware config (required for sensor data) */
-    if (load_config() != 0) {
+    /* Load firmware config (required for sensor data).
+     * NOTE: The BMI270 base config blob (8192 B from Bosch bmi270.c) has been
+     * found incompatible with this unit's BMI270 revision. The blob loads
+     * successfully (INT_STATUS=0x01) but accel/gyro produce zero data.
+     * Using ROM defaults with explicit ODR/range config instead. */
+    /* if (load_config() != 0) {
         return -1;
-    }
+    } */
 
     if (write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN) != 0) {
         return -1;
