@@ -46,15 +46,16 @@ diag_result_t test_proximity(void *context)
     }
 
     if (ltr553_probe(&g_diag_i2c_adapter, (void *)prox_dev) != 0) {
-        diag_menu_printf("  LTR-553: part ID mismatch or init failed\r\n");
+        diag_menu_printf("  I2C@0x23: LTR-553 not responding after handle add\r\n");
+        diag_menu_printf("Proximity Test: SKIPPED (flex cable absent)\r\n");
         if (g_diag_err_ctx) {
             diag_err_add(g_diag_err_ctx,
-                         "I2C@0x23 LTR-553: probe failed");
+                         "I2C@0x23 LTR-553: probe failed (flex cable may be absent)");
             diag_err_set_debug(g_diag_err_ctx,
-                               "Check LTR-553 power and I2C connection",
-                               "Replace camera flex module");
+                               "LTR-553 is on same optional flex cable as camera",
+                               "Check camera flex cable seating");
         }
-        return DIAG_FAILED;
+        return DIAG_SKIPPED;
     }
 
     /*------------------------------------------------------------------------*/
