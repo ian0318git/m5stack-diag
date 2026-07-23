@@ -8,6 +8,7 @@
 #include "diag_tests.h"
 #include "diag_menu.h"
 #include "hal_imu.h"
+#include "driver/i2c_master.h"
 
 diag_result_t test_imu(void *context)
 {
