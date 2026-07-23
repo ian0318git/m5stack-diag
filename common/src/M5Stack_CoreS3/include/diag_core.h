@@ -64,7 +64,9 @@ typedef enum {
     DIAG_TEST_IMU        = 4,
     DIAG_TEST_POWER      = 5,
     DIAG_TEST_BACKLIGHT  = 6,
-    DIAG_TEST_BUTTON     = 7,
+    DIAG_TEST_SPEAKER    = 7,
+    DIAG_TEST_MICROPHONE = 8,
+    DIAG_TEST_BUTTON     = 9,
     /* --- add new IDs above this line --- */
     DIAG_TEST_COUNT
 } diag_test_id_t;

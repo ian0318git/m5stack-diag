@@ -123,6 +123,7 @@ extern "C" {
 /* Audio Subsystem                                                           */
 /*===========================================================================*/
 
+#define CONFIG_I2S_NUM            0
 #define CONFIG_I2S_BCK_PIN        GPIO_NUM_34
 #define CONFIG_I2S_WCK_PIN        GPIO_NUM_33
 #define CONFIG_I2S_DATA_IN_PIN    GPIO_NUM_13   /* ES7210 ADC data           */

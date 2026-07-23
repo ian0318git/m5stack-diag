@@ -8,6 +8,7 @@ idf_component_register(
         "src/hal/hal_i2c_helpers.c"
         "src/hal/hal_i2c_adapter.c"
         "src/hal/hal_spi_adapter.c"
+        "src/hal/hal_audio.c"
         "src/hal/hal_screen.c"
         "src/hal/hal_touch.c"
         "src/hal/hal_rtc.c"
@@ -20,6 +21,8 @@ idf_component_register(
         "${PROJECT_DIR}/common/chips/imu_BMI270/imu_BMI270.c"
         "${PROJECT_DIR}/common/chips/power_AXP2101/power_AXP2101.c"
         "${PROJECT_DIR}/common/chips/aw9523b/aw9523b.c"
+        "${PROJECT_DIR}/common/chips/audio_AW88298/aw88298.c"
+        "${PROJECT_DIR}/common/chips/audio_ES7210/es7210.c"
 
         "tests/test_i2c_scan.c"
         "tests/test_screen.c"
@@ -28,6 +31,8 @@ idf_component_register(
         "tests/test_imu.c"
         "tests/test_power.c"
         "tests/test_backlight.c"
+        "tests/test_speaker.c"
+        "tests/test_microphone.c"
         "tests/test_button.c"
         "tests/fugazi_wrappers.c"
 
@@ -43,15 +48,19 @@ idf_component_register(
         "${PROJECT_DIR}/common/chips/imu_BMI270"
         "${PROJECT_DIR}/common/chips/power_AXP2101"
         "${PROJECT_DIR}/common/chips/aw9523b"
+        "${PROJECT_DIR}/common/chips/audio_AW88298"
+        "${PROJECT_DIR}/common/chips/audio_ES7210"
 
     REQUIRES
         esp_driver_usb_serial_jtag
         esp_driver_gpio
         esp_driver_spi
         esp_driver_i2c
+        esp_driver_i2s
         esp_timer
         nvs_flash
         freertos
         esp_system
         log
 )
+

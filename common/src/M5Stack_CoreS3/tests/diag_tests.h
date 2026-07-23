@@ -29,6 +29,8 @@ diag_result_t test_rtc(void *context);
 diag_result_t test_imu(void *context);
 diag_result_t test_power(void *context);
 diag_result_t test_backlight(void *context);
+diag_result_t test_speaker(void *context);
+diag_result_t test_microphone(void *context);
 diag_result_t test_button(void *context);
 
 /* Fugazi-style wrappers (int param signature for the menu engine) */
@@ -39,6 +41,8 @@ diag_result_t fugazi_test_rtc(int param);
 diag_result_t fugazi_test_imu(int param);
 diag_result_t fugazi_test_power(int param);
 diag_result_t fugazi_test_backlight(int param);
+diag_result_t fugazi_test_speaker(int param);
+diag_result_t fugazi_test_microphone(int param);
 diag_result_t fugazi_test_button(int param);
 
 #ifdef __cplusplus

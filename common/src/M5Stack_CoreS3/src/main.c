@@ -59,6 +59,8 @@ static const diag_menu_xtable_t s_main_menu[] = {
     { "IMU (BMI270)",             fugazi_test_imu,      0, F_PERIPH, NULL, 0 },
     { "Power (AXP2101)",          fugazi_test_power,    0, F_PERIPH, NULL, 0 },
     { "Backlight (DLDO1)",        fugazi_test_backlight,0, F_PERIPH, NULL, 0 },
+    { "Speaker (AW88298)",        fugazi_test_speaker,  0, F_PERIPH, NULL, 0 },
+    { "Microphone (ES7210)",      fugazi_test_microphone,0,F_PERIPH, NULL, 0 },
     { "Button (PWR)",             fugazi_test_button,   0, F_PERIPH, NULL, 0 },
 };
 #define MAIN_MENU_COUNT (sizeof(s_main_menu) / sizeof(s_main_menu[0]))
@@ -84,6 +86,10 @@ static const diag_test_t s_tests[] = {
                     test_power,   NULL, CONFIG_POWER_TEST_TIMEOUT_MS),
     DIAG_TEST_ENTRY(DIAG_TEST_BACKLIGHT,"backlight", "Toggle LCD backlight",
                     test_backlight, NULL, CONFIG_DEFAULT_TEST_TIMEOUT_MS),
+    DIAG_TEST_ENTRY(DIAG_TEST_SPEAKER,  "speaker",   "Play 1 kHz tone via AW88298",
+                    test_speaker,  NULL, CONFIG_DEFAULT_TEST_TIMEOUT_MS),
+    DIAG_TEST_ENTRY(DIAG_TEST_MICROPHONE,"mic",      "Capture audio via ES7210",
+                    test_microphone, NULL, CONFIG_DEFAULT_TEST_TIMEOUT_MS),
     DIAG_TEST_ENTRY(DIAG_TEST_BUTTON,   "button",    "Press side PWR button",
                     test_button,  NULL, CONFIG_DEFAULT_TEST_TIMEOUT_MS),
 };
