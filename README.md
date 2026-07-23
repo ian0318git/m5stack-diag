@@ -6,7 +6,7 @@
 
 [![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v6.0-blue)](https://github.com/espressif/esp-idf)
 [![Target](https://img.shields.io/badge/target-ESP32--S3-orange)](https://www.espressif.com/en/products/socs/esp32-s3)
-[![tag](https://img.shields.io/badge/tag-v1.0.0--tickets--done-green)](https://github.com/ian0318git/m5stack-diag)
+[![tag](https://img.shields.io/badge/tag-v1.0.0-green)](https://github.com/ian0318git/m5stack-diag)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 An embedded diagnostic system for the **M5Stack CoreS3**, built on **ESP-IDF v6.0** with **Clean Architecture** principles and operated through a **USB Serial/JTAG console** (`/dev/ttyACM0`).
@@ -374,7 +374,7 @@ This project is licensed under the **MIT License**.
 
 [![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v6.0-blue)](https://github.com/espressif/esp-idf)
 [![Target](https://img.shields.io/badge/target-ESP32--S3-orange)](https://www.espressif.com/en/products/socs/esp32-s3)
-[![tag](https://img.shields.io/badge/tag-v1.0.0--tickets--done-green)](https://github.com/ian0318git/m5stack-diag)
+[![tag](https://img.shields.io/badge/tag-v1.0.0-green)](https://github.com/ian0318git/m5stack-diag)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 以 **ESP-IDF v6.0** 框架開發、採用**乾淨架構（Clean Architecture）**、透過 USB Serial/JTAG Console 操作的 M5Stack CoreS3 嵌入式硬體診斷系統。
