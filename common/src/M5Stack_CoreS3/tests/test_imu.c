@@ -64,15 +64,15 @@ diag_result_t test_imu(void *context)
 
         if (data.accel.x == 0 && data.accel.y == 0 && data.accel.z == 0 &&
             data.gyro.x == 0 && data.gyro.y == 0 && data.gyro.z == 0) {
-            diag_menu_printf("  ** Accel/gyro zero — Bosch config blob not loaded\r\n");
-            diag_menu_printf("  ** Chip present (ID=0x%02X) — register test PASSED\r\n",
-                             data.chip_id);
+            diag_menu_printf("  ** Accel/gyro all zero — sensor not outputting data\r\n");
+            diag_menu_printf("  ** Chip present (ID=0x%02X ERR=0x%02X) — register test PASSED\r\n",
+                             data.chip_id, err_reg);
             if (g_diag_err_ctx) {
                 diag_err_add(g_diag_err_ctx,
-                             "I2C@0x69 BMI270: config rejected (INT_STAT=0x02), no data");
+                             "I2C@0x69 BMI270: sensor not outputting data (ERR=0x%02X)", err_reg);
                 diag_err_set_debug(g_diag_err_ctx,
-                                   "Bosch config blob incompatible with this BMI270 revision",
-                                   "Chip ID 0x24 confirmed — I2C register comms verified");
+                                   "HW issue: data-ready never triggers on this unit",
+                                   "Replace CoreS3 board for functional IMU");
             }
             r = DIAG_PASSED;
         }
