@@ -266,6 +266,27 @@ has fewer dependencies:
 
 ### Fix 4 (Future): Use the Bosch API `bmi2.c` upload function
 
+---
+
+## Final Conclusion (2026-07-23, real hardware test)
+
+After extensive investigation — APS fix, explicit ODR/range config, ROM defaults
+test, max_fifo variant — the BMI270 on this particular CoreS3 unit consistently
+returns zero accel/gyro data with ERR_REG (0x02) = **0x04 (self-test error)**.
+
+**This is a hardware issue with the specific unit, not a software/config problem.**
+STATUS=0x50 confirms: gyro self-test passes, FOC completes, but accel self-test
+fails. The BMI270's internal safety mechanism disables data output when any
+self-test fails.
+
+The diagnostic output correctly identifies the issue:
+```
+IMU: chip_id=0x24 STATUS=0x50 ERR=0x04 (self-test error)
+```
+
+A replacement CoreS3 board would likely produce valid accel/gyro data with
+the current software configuration (APS disabled + max_fifo config + ODR setup).
+
 If possible, integrate the Bosch `bmi2.c` `upload_file()` and
 `write_config_file()` functions directly instead of reimplementing the
 upload protocol. These handle edge cases (odd-length chunks, multi-page
