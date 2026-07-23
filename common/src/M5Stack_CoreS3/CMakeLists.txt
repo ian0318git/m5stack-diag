@@ -37,6 +37,7 @@ idf_component_register(
         "tests/test_microphone.c"
         "tests/test_camera.c"
         "tests/test_proximity.c"
+        "tests/test_sdcard.c"
         "tests/test_button.c"
         "tests/fugazi_wrappers.c"
 
@@ -63,6 +64,9 @@ idf_component_register(
         esp_driver_spi
         esp_driver_i2c
         esp_driver_i2s
+        esp_driver_sdspi
+        fatfs
+        sdmmc
         esp_timer
         nvs_flash
         freertos

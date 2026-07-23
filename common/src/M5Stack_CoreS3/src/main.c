@@ -63,6 +63,7 @@ static const diag_menu_xtable_t s_main_menu[] = {
     { "Microphone (ES7210)",      fugazi_test_microphone,0,F_PERIPH, NULL, 0 },
     { "Camera (GC0308)",          fugazi_test_camera,   0, F_PERIPH, NULL, 0 },
     { "Proximity (LTR-553)",      fugazi_test_proximity,0, F_PERIPH, NULL, 0 },
+    { "SD Card (microSD)",        fugazi_test_sdcard,   0, F_PERIPH, NULL, 0 },
     { "Button (PWR)",             fugazi_test_button,   0, F_PERIPH, NULL, 0 },
 };
 #define MAIN_MENU_COUNT (sizeof(s_main_menu) / sizeof(s_main_menu[0]))
@@ -96,6 +97,8 @@ static const diag_test_t s_tests[] = {
                     test_camera,   NULL, CONFIG_DEFAULT_TEST_TIMEOUT_MS),
     DIAG_TEST_ENTRY(DIAG_TEST_PROXIMITY,"proximity", "Read LTR-553 ALS + proximity",
                     test_proximity,NULL, CONFIG_DEFAULT_TEST_TIMEOUT_MS),
+    DIAG_TEST_ENTRY(DIAG_TEST_SDCARD,   "sdcard",    "Mount/write/read microSD",
+                    test_sdcard,   NULL, CONFIG_DEFAULT_TEST_TIMEOUT_MS),
     DIAG_TEST_ENTRY(DIAG_TEST_BUTTON,   "button",    "Press side PWR button",
                     test_button,  NULL, CONFIG_DEFAULT_TEST_TIMEOUT_MS),
 };

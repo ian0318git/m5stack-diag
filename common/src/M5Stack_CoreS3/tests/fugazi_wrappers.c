@@ -21,4 +21,5 @@ diag_result_t fugazi_test_speaker(int param)    { (void)param; return test_speak
 diag_result_t fugazi_test_microphone(int param) { (void)param; return test_microphone(NULL); }
 diag_result_t fugazi_test_camera(int param)     { (void)param; return test_camera(NULL); }
 diag_result_t fugazi_test_proximity(int param)  { (void)param; return test_proximity(NULL); }
+diag_result_t fugazi_test_sdcard(int param)     { (void)param; return test_sdcard(NULL); }
 diag_result_t fugazi_test_button(int param)     { (void)param; return test_button(NULL); }
