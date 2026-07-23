@@ -30,7 +30,7 @@ diag_result_t test_imu(void *context)
     }
 
     uint8_t imu_status = hal_imu_status();
-    /* Read ERR_REG (0x02) for fault diagnosis — set by chip on internal error */
+    /* Read ERR_REG (0x02) for fault diagnosis */
     uint8_t err_reg = 0;
     {
         extern i2c_master_dev_handle_t get_imu_dev(void);
@@ -40,8 +40,18 @@ diag_result_t test_imu(void *context)
             i2c_master_transmit_receive(dev, &reg, 1, &err_reg, 1, -1);
         }
     }
-    diag_menu_printf("IMU: chip_id=0x%02X STATUS=0x%02X ERR=0x%02X\r\n",
-                     hal_imu_chip_id(), imu_status, err_reg);
+
+    /* Interpret ERR_REG bits:
+     *   0x01 = fatal error     0x04 = self-test error
+     *   0x02 = internal error  0x08 = config load error */
+    const char *err_desc = "none";
+    if (err_reg & 0x04)      err_desc = "self-test error (HW)";
+    else if (err_reg & 0x08) err_desc = "config load error";
+    else if (err_reg & 0x01) err_desc = "fatal error";
+    else if (err_reg & 0x02) err_desc = "internal error";
+
+    diag_menu_printf("IMU: chip_id=0x%02X STATUS=0x%02X ERR=0x%02X (%s)\r\n",
+                     hal_imu_chip_id(), imu_status, err_reg, err_desc);
 
     hal_imu_data_t data;
     r = hal_imu_read(&data);
