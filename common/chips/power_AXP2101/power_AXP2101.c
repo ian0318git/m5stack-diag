@@ -61,6 +61,10 @@ int power_AXP2101_init(const diag_i2c_t *i2c, void *bus)
     if (read_reg(AXP2101_REG_CHIP_VER, &ver) != 0) {
         return -1;
     }
+    /* DFS: chip version register must return non-zero value */
+    if (ver == 0) {
+        return -1;
+    }
 
     return 0;
 }
@@ -100,7 +104,7 @@ int power_AXP2101_read(power_AXP2101_data_t *data)
     uint16_t mv = data->battery_millivolts;
     if (mv >= 4200)      data->battery_percent = 100;
     else if (mv >= 3700) data->battery_percent = (uint8_t)((mv - 3700) * 100 / 500);
-    else if (mv >= 3400) data->battery_percent = (uint8_t)((mv - 3400) * 10 / 30);
+    else if (mv >= 3400) data->battery_percent = (uint8_t)((mv - 3400) / 30);
     else                 data->battery_percent = 0;
 
     if (!(status & AXP2101_PWR_BAT_EXIST)) data->battery_percent = 0;
