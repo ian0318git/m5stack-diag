@@ -119,17 +119,11 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
         return -1;
     }
 
-    /* Step 5: Enable data-ready interrupt mapping (M5Unified writes 0xFF) */
-    if (write_reg(BMI270_REG_INT_MAP_DATA, 0xFF) != 0) return -1;
+    /* Step 5: Enable data-ready interrupt mapping (per M5Unified) */
+    write_reg(BMI270_REG_INT_MAP_DATA, 0xFF);
+    vTaskDelay(pdMS_TO_TICKS(10));
 
-    /* Step 6: Set accel/gyro ODR and range */
-    write_reg(BMI270_REG_ACC_CONF, BMI270_ACC_ODR_100HZ);
-    write_reg(0x41, BMI270_ACC_RANGE_2G);       /* ACC_RANGE */
-    write_reg(BMI270_REG_GYR_CONF, BMI270_GYR_ODR_100HZ);
-    write_reg(0x43, BMI270_GYR_RANGE_2000DPS);  /* GYR_RANGE */
-    vTaskDelay(pdMS_TO_TICKS(2));
-
-    /* Step 7: Enable accel + gyro power (PWR_CTRL = 0x7D per M5Unified) */
+    /* Step 6: Enable accel + gyro power (PWR_CTRL = 0x7D per M5Unified) */
     if (write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN) != 0) {
         return -1;
     }
