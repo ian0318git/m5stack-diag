@@ -16,3 +16,5 @@ diag_result_t fugazi_test_touch(int param)     { (void)param; return test_touch(
 diag_result_t fugazi_test_rtc(int param)       { (void)param; return test_rtc(NULL); }
 diag_result_t fugazi_test_imu(int param)       { (void)param; return test_imu(NULL); }
 diag_result_t fugazi_test_power(int param)     { (void)param; return test_power(NULL); }
+diag_result_t fugazi_test_backlight(int param) { (void)param; return test_backlight(NULL); }
+diag_result_t fugazi_test_button(int param)    { (void)param; return test_button(NULL); }

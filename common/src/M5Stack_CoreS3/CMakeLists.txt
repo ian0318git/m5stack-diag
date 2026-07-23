@@ -27,6 +27,8 @@ idf_component_register(
         "tests/test_rtc.c"
         "tests/test_imu.c"
         "tests/test_power.c"
+        "tests/test_backlight.c"
+        "tests/test_button.c"
         "tests/fugazi_wrappers.c"
 
     INCLUDE_DIRS
