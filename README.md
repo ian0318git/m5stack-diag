@@ -303,6 +303,25 @@ diag> menu
 
 ---
 
+## Development Process
+
+This project was developed following the **[Matt Pocock Engineering Skills](https://github.com/mattpocock/mattpocock-skills)** framework — a structured AI-assisted development methodology. Each stage invoked a specific skill to maintain focus, enforce quality, and prevent premature optimisation.
+
+| Stage | Skill | What was done |
+|-------|-------|---------------|
+| **1. Setup** | `setup-matt-pocock-skills` | Scaffolded per-repo config: issue tracker (GitHub), triage labels, domain docs layout |
+| **2. Spec → Tickets** | `wayfinder` + `to-tickets` | Analysed engineering phase; broke the DFS into 25 actionable GitHub issues (#1–#25) across 4 phases |
+| **3. Reference Analysis** | `codebase-design` | Deep-dive into `example/fugazi_ng_diag/` (Cisco production diagnostics): OOP-in-C via FVT, callin/callout seam pattern, Null Object pattern. Output saved to `doc/fugazi_design_analysis.md` |
+| **4. Architecture Evaluation** | `codebase-design` | Applied the deep/shallow/seam/adapter vocabulary to the CoreS3 codebase. Identified: shallow HAL pass-through, missing I2C/SPI transport seam, test functions coupled to main.c |
+| **5. Architecture Refactor** | (Lead Developer) | Implemented the improvements: `diag_transport.h` (abstract I²C/SPI seam), `hal_i2c_adapter.c` + `hal_spi_adapter.c` (ESP-IDF adapters), `hal_spi2_bus.c` (shared SPI2 manager), extracted test functions to `tests/` |
+| **6. Implement Tickets** | (Lead Developer) | Built all 25 tickets: 6 chip drivers (AW88298, ES7210, GC0308, LTR-553, backlight, button), 8 test functions, audio HAL, SPI2 bus manager, burn-in CLI command |
+| **7. Code Review** | `code-review` | 10-angled max-effort review: 5 correctness angles + 3 cleanup + altitude + conventions. Found 15 findings → 15 fixed (100% fix rate). Included LTR553 register collision, SPI2 bus leak, BMI270 unchecked init, memory leaks, transport seam bypass |
+| **8. Next** | `domain-modeling` (planned) | Formalise domain vocabulary in `CONTEXT.md` and architectural decisions in `docs/adr/` |
+
+The framework's core principles — **correctness first**, **forced exception handling**, **no silent failures**, and the **deep module** heuristic — are reflected throughout the codebase. Each chip driver is a deep module: small interface (`diag_i2c_t` + init/read/deinit), large implementation hidden behind.
+
+---
+
 ## Key Hardware Details
 
 ### Correct Pin Mapping (per M5Stack official docs)
@@ -423,6 +442,23 @@ idf.py -p /dev/ttyACM0 flash monitor
 | 11 | `camera` | GC0308 相機探測（選購件） |
 | 12 | `proximity` | LTR-553 光學感測（選購件） |
 | 13 | `button` | PWR 按鈕測試 |
+
+---
+
+## 開發流程
+
+本專案依照 **[Matt Pocock Engineering Skills](https://github.com/mattpocock/mattpocock-skills)** 框架開發——一套結構化的 AI 輔助開發方法論。每個階段呼叫特定 skill 來維持焦點、確保品質，並避免過早最佳化。
+
+| 階段 | Skill | 內容 |
+|-------|-------|------|
+| **1. 設定** | `setup-matt-pocock-skills` | 建立專案設定：issue tracker（GitHub）、triage labels、domain docs 佈局 |
+| **2. Spec → Tickets** | `wayfinder` + `to-tickets` | 分析工程階段；將 DFS 拆解為 25 個可執行的 GitHub issues（#1–#25） |
+| **3. 參考分析** | `codebase-design` | 深入分析 `example/fugazi_ng_diag/`（Cisco 產線診斷框架）：OOP-in-C via FVT、callin/callout seam 模式、Null Object 模式 |
+| **4. 架構評估** | `codebase-design` | 對 CoreS3 程式碼進行 deep/shallow/seam/adapter 分析，識別出：淺層 HAL pass-through、缺少 I2C/SPI transport seam、test 與 main.c 耦合 |
+| **5. 架構重構** | Lead Developer | 實作改進：`diag_transport.h`（抽象 I²C/SPI seam）、`hal_i2c_adapter.c` + `hal_spi_adapter.c`（ESP-IDF adapters）、`hal_spi2_bus.c`（共用 SPI2 管理器）、提取 test 至 `tests/` |
+| **6. 實作 Tickets** | Lead Developer | 完成全部 25 個 tickets：6 個晶片驅動、8 個測試函式、audio HAL、SPI2 bus manager、burn-in CLI |
+| **7. Code Review** | `code-review` | 10 角度最高強度審查：5 個正確性 + 3 個清理 + altitude + conventions。15 個 finding 全部修復（修復率 100%） |
+| **8. 下一步** | `domain-modeling`（規劃中） | 建立 `CONTEXT.md` 領域詞彙與 `docs/adr/` 架構決策記錄 |
 
 ---
 
