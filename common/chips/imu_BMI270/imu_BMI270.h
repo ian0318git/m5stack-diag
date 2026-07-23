@@ -50,6 +50,18 @@ extern "C" {
 #define BMI270_INIT_ADDR_0      0x5B
 #define BMI270_INIT_ADDR_1      0x5C
 
+/* Accel / Gyro configuration (need explicit setup after config load) */
+#define BMI270_REG_ACC_CONF     0x40   /* bits[7:4]=ODR, bits[1:0]=filter */
+#define BMI270_ACC_ODR_100HZ    (0x0A << 4)
+#define BMI270_ACC_ODR_200HZ    (0x0B << 4)
+#define BMI270_ACC_ODR_400HZ    (0x0C << 4)
+#define BMI270_ACC_RANGE_2G     0x00
+
+#define BMI270_REG_GYR_CONF     0x42   /* bits[7:4]=ODR, bits[1:0]=filter */
+#define BMI270_GYR_ODR_100HZ    (0x08 << 4)
+#define BMI270_GYR_ODR_200HZ    (0x09 << 4)
+#define BMI270_GYR_RANGE_2000DPS 0x00
+
 #define BMI270_CHIP_ID_VAL      0x24
 #define BMI270_CMD_SOFTRESET    0xB6
 #define BMI270_ACC_EN           (1 << 0)

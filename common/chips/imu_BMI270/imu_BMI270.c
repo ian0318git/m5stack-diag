@@ -139,6 +139,16 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
     }
     esp_rom_delay_us(50000);
 
+    /* Set explicit accel and gyro output data rate and range.
+     * The config blob's defaults may not enable data output,
+     * so we explicitly configure 100 Hz ODR and ±2g / ±2000dps. */
+    write_reg(BMI270_REG_ACC_CONF, BMI270_ACC_ODR_100HZ);
+    esp_rom_delay_us(1000);
+    write_reg(0x41, BMI270_ACC_RANGE_2G);       /* ACC_RANGE */
+    write_reg(BMI270_REG_GYR_CONF, BMI270_GYR_ODR_100HZ);
+    write_reg(0x43, BMI270_GYR_RANGE_2000DPS);  /* GYR_RANGE */
+    esp_rom_delay_us(2000);
+
     return 0;
 }
 
@@ -155,8 +165,10 @@ int imu_BMI270_read(imu_BMI270_data_t *data)
     if (!data || !s_i2c || !s_bus) return -1;
     memset(data, 0, sizeof(*data));
 
-    /* Check STATUS register — wait for data ready (up to 5 ms) */
-    for (int retry = 0; retry < 50; retry++) {
+    /* Wait for data ready (up to 50 ms — first read after power-on
+     * requires more time for the sensor to stabilise) */
+    /* First read after power-on may need up to 50ms for stabilisation */
+    for (int retry = 0; retry < 500; retry++) {
         uint8_t status = 0;
         if (read_reg(BMI270_REG_STATUS, &status) == 0 &&
             (status & (BMI270_STATUS_ACC_DRDY | BMI270_STATUS_GYR_DRDY))) {
