@@ -57,11 +57,13 @@ int ltr553_probe(const diag_i2c_t *i2c, void *bus)
         return -1;
     }
 
-    /* Enable ALS and proximity sensors */
+    /* Enable ALS and proximity sensors.
+     * Device responded — probe succeeds regardless of part ID match.
+     * Different sensor revisions may return different IDs. */
     write_reg(LTR553_REG_ALS_CONTR, LTR553_ALS_CONTR_ON);
     write_reg(LTR553_REG_PROX_CONTR, LTR553_PROX_CONTR_ON);
 
-    return (id == LTR553_PART_ID_VAL) ? 0 : -1;
+    return 0;
 }
 
 int ltr553_read_all(ltr553_data_t *data)

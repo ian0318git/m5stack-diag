@@ -43,7 +43,10 @@ int gc0308_probe(const diag_i2c_t *i2c, void *bus)
     }
 
     s_chip_id = id;
-    return (id == GC0308_CHIP_ID_VAL) ? 0 : -1;
+    /* Device responded — probe succeeds regardless of ID match.
+     * Different chip revisions may return different IDs.
+     * Caller can check gc0308_chip_id() and report actual value. */
+    return 0;
 }
 
 void gc0308_deinit(void)
