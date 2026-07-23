@@ -113,6 +113,57 @@ static const diag_test_suite_t s_suite = {
 /* Extended CLI commands                                                     */
 /*===========================================================================*/
 
+static diag_result_t cmd_burnin(diag_runner_t *runner, int argc, char *argv[])
+{
+    int iterations = 100;   /* DFS default */
+    if (argc >= 2) {
+        iterations = atoi(argv[1]);
+        if (iterations < 1) iterations = 1;
+        if (iterations > 10000) iterations = 10000;
+    }
+
+    diag_menu_printf("\r\n========== Burn-In Test ==========\r\n");
+    diag_menu_printf("  Target: %d iterations\r\n", iterations);
+    diag_menu_printf("  Running all P0+P1 tests in sequence...\r\n\n");
+
+    int total_failures = 0;
+    int stop_on_fail = 1;  /* stop at first failure per DFS */
+
+    for (int i = 1; i <= iterations; i++) {
+        diag_menu_printf("--- Iteration %d/%d ---\r\n", i, iterations);
+
+        int failures = diag_runner_run_all(runner, NULL, NULL);
+        total_failures += failures;
+
+        if (failures > 0) {
+            diag_menu_printf("** FAILED (%d test(s) failed)\r\n", failures);
+        } else {
+            diag_menu_printf("** PASSED\r\n");
+        }
+
+        if (failures > 0 && stop_on_fail) {
+            diag_menu_printf("\r\nBurn-In aborted: first failure at iteration %d\r\n", i);
+            break;
+        }
+
+        /* Small delay between iterations to let hardware settle */
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+
+    diag_menu_printf("\r\n========== Burn-In Summary ==========\r\n");
+    diag_menu_printf("  Completed: %d/%d iterations\r\n",
+                     iterations, iterations);
+    diag_menu_printf("  Total failures: %d\r\n", total_failures);
+
+    if (total_failures == 0) {
+        diag_menu_printf("  Result: PASSED\r\n");
+    } else {
+        diag_menu_printf("  Result: FAILED\r\n");
+    }
+
+    return (total_failures == 0) ? DIAG_PASSED : DIAG_FAILED;
+}
+
 static diag_result_t cmd_status(diag_runner_t *runner, int argc, char *argv[])
 {
     (void)argc; (void)argv; (void)runner;
@@ -262,6 +313,7 @@ void app_main(void)
 
     /* Register extended CLI commands */
     static const diag_menu_cmd_t ext_cmds[] = {
+        { "burnin",    "Burn-in: burnin [iterations]",  cmd_burnin     },
         { "status",     "Show system status",          cmd_status     },
         { "rtc-set",    "Set RTC: rtc-set YYYY MM DD HH MM SS", cmd_rtc_set },
         { "screen-on",  "Turn display on",             cmd_screen_on  },
