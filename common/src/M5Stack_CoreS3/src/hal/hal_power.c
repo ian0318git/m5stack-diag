@@ -44,8 +44,11 @@ void hal_power_deinit(void)
 {
     if (!s_initialised) return;
     power_AXP2101_deinit();
+    if (s_i2c_dev) {
+        i2c_master_bus_rm_device(s_i2c_dev);
+        s_i2c_dev = NULL;
+    }
     s_initialised = false;
-    s_i2c_dev = NULL;
 }
 
 diag_result_t hal_power_read(hal_power_data_t *data)

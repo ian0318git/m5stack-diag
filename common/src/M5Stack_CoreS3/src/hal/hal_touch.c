@@ -136,8 +136,15 @@ void hal_touch_deinit(void)
 {
     if (!s_initialised) return;
     touch_FT6336_deinit();
+    if (s_i2c_dev) {
+        i2c_master_bus_rm_device(s_i2c_dev);
+        s_i2c_dev = NULL;
+    }
+    if (s_aw9523b_dev) {
+        i2c_master_bus_rm_device(s_aw9523b_dev);
+        s_aw9523b_dev = NULL;
+    }
     s_initialised = false;
-    s_i2c_dev = NULL;
 }
 
 diag_result_t hal_touch_read(hal_touch_data_t *data)

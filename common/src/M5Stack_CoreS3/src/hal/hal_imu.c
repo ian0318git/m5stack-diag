@@ -40,8 +40,11 @@ void hal_imu_deinit(void)
 {
     if (!s_initialised) return;
     imu_BMI270_deinit();
+    if (s_i2c_dev) {
+        i2c_master_bus_rm_device(s_i2c_dev);
+        s_i2c_dev = NULL;
+    }
     s_initialised = false;
-    s_i2c_dev = NULL;
 }
 
 diag_result_t hal_imu_read(hal_imu_data_t *data)

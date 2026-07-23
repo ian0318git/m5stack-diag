@@ -93,6 +93,7 @@ static diag_result_t backlight_init(void)
     esp_err_t err = i2c_master_transmit(pmu, cmd, 2, -1);
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "AXP2101 DLDO1 write failed: %d", err);
+        return DIAG_FAILED;
     }
 
     return DIAG_PASSED;
@@ -113,7 +114,9 @@ diag_result_t hal_screen_init(void)
     }
 
     /* Step 2: Enable backlight via AXP2101 DLDO1 */
-    backlight_init();
+    if (backlight_init() != DIAG_PASSED) {
+        ESP_LOGW(TAG, "Backlight init failed — display may be dark");
+    }
 
     /* Step 3: Initialise SPI2 bus (shared with SD card) */
     if (hal_spi2_bus_init() != DIAG_PASSED) {

@@ -40,8 +40,11 @@ void hal_rtc_deinit(void)
 {
     if (!s_initialised) return;
     rtc_BM8563_deinit();
+    if (s_i2c_dev) {
+        i2c_master_bus_rm_device(s_i2c_dev);
+        s_i2c_dev = NULL;
+    }
     s_initialised = false;
-    s_i2c_dev = NULL;
 }
 
 diag_result_t hal_rtc_get_time(hal_rtc_time_t *t)
