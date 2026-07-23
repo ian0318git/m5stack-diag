@@ -2,8 +2,8 @@
  * imu_BMI270.c — BMI270 6-Axis IMU (I2C)
  *
  * Common chip driver — uses abstract diag_i2c_t transport.
- * FreeRTOS delay functions (vTaskDelay) and esp_rom_delay_us are
- * the only remaining platform dependencies.
+ * Init sequence and register map matched to M5Unified BMI270_Class
+ * (M5Stack's official CoreS3 Arduino library).
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -24,12 +24,8 @@
 static const diag_i2c_t *s_i2c = NULL;
 static void             *s_bus = NULL;
 
-/* Scale constants: accel ±2g (12-bit), gyro ±2000dps (16-bit) */
-#define ACCEL_MG_PER_LSB   0.4883f
-#define GYRO_MDPS_PER_LSB  61.0f
-
 /*===========================================================================*/
-/* I2C helpers (use abstract transport)                                      */
+/* I2C helpers                                                               */
 /*===========================================================================*/
 
 static int read_reg(uint8_t reg, uint8_t *val)
@@ -49,7 +45,7 @@ static int read_regs(uint8_t reg, uint8_t *buf, size_t len)
 }
 
 /*===========================================================================*/
-/* Config blob loading                                                       */
+/* Config blob upload (per M5Unified BMI270_Class::_upload_file)            */
 /*===========================================================================*/
 
 static int load_config(void)
@@ -57,41 +53,41 @@ static int load_config(void)
     static bool loaded = false;
     if (loaded) return 0;
 
-    /* Step 1: Disable config load (clear INIT_CTRL bit 0) */
-    write_reg(0x59, 0x00);
-
-    /* Write config 32 bytes per chunk. */
+    /* Write config in 32-byte chunks (per M5Unified BMI270_Class) */
     for (size_t i = 0; i < sizeof(bmi270_config_file); i += 32) {
         size_t chunk = sizeof(bmi270_config_file) - i;
         if (chunk > 32) chunk = 32;
 
-        uint16_t word_addr = (uint16_t)(i / 2);
-        write_reg(0x5B, (uint8_t)(word_addr & 0x0F));
-        write_reg(0x5C, (uint8_t)((word_addr >> 4) & 0xFF));
-
-        uint8_t buf[33];
-        buf[0] = 0x5E;
-        memcpy(&buf[1], &bmi270_config_file[i], chunk);
-        if (s_i2c->write(s_bus, BMI270_ADDR, buf, 1 + chunk) != 0) {
+        /* Set word address: split byte_index/2 across INIT_ADDR_0/1 */
+        uint8_t addr[2] = {
+            (uint8_t)((i >> 1) & 0x0F),   /* bits [3:0] */
+            (uint8_t)(i >> 5),             /* bits [11:4] */
+        };
+        if (s_i2c->write(s_bus, BMI270_ADDR,
+                         (uint8_t[]){BMI270_REG_INIT_ADDR_0, addr[0], addr[1]}, 3) != 0)
             return -1;
-        }
+
+        /* Burst-write chunk to INIT_DATA */
+        uint8_t buf[33] = {BMI270_REG_INIT_DATA};
+        memcpy(&buf[1], &bmi270_config_file[i], chunk);
+        if (s_i2c->write(s_bus, BMI270_ADDR, buf, 1 + chunk) != 0)
+            return -1;
     }
 
-    /* Step 2: Enable config load (set INIT_CTRL bit 0) */
-    write_reg(0x59, 0x01);
+    /* Trigger firmware load */
+    write_reg(BMI270_REG_INIT_CTRL, 0x01);
+    vTaskDelay(pdMS_TO_TICKS(20));
 
-    /* Poll INTERNAL_STATUS (0x21) bit 0, up to 300ms */
+    /* Poll INTERNAL_STATUS for done */
     uint8_t status = 0;
     for (int r = 0; r < 60; r++) {
-        vTaskDelay(pdMS_TO_TICKS(5));
-        read_reg(BMI270_REG_INT_STATUS, &status);
-        if (status & BMI270_INT_STAT_DONE) {
+        if (read_reg(BMI270_REG_INT_STATUS, &status) == 0 && (status & BMI270_INT_STAT_DONE)) {
             loaded = true;
             vTaskDelay(pdMS_TO_TICKS(50));
             return 0;
         }
+        vTaskDelay(pdMS_TO_TICKS(5));
     }
-
     return -1;
 }
 
@@ -110,46 +106,45 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
         return -1;
     }
 
-    /* Soft-reset */
+    /* Step 1: Soft reset (CMD_REG = 0x7E per M5Unified) */
     if (write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET) != 0) {
         return -1;
     }
-    esp_rom_delay_us(10000);
 
-    /*
-     * CRITICAL: Disable advance power save BEFORE loading the firmware
-     * config blob.  The BMI270 powers up with APS enabled; the config
-     * loader port (INIT_DATA / INIT_ADDR / INIT_CTRL) is inaccessible
-     * while APS is active.  Per Bosch app note BST-BMI270-AN002-01:
-     *
-     *   1. Disable advanced power save: PWR_CONF.adv_power_save = 0
-     *   2. Wait >= 450 us
-     *   3. Upload config blob
-     */
+    /* Step 2: Wait for reset to complete (PWR_CONF becomes non-zero) */
+    {
+        int retry = 30;
+        uint8_t pwr = 0;
+        do {
+            vTaskDelay(pdMS_TO_TICKS(1));
+            read_reg(BMI270_REG_PWR_CONF, &pwr);
+        } while (pwr == 0 && --retry);
+    }
+
+    /* Step 3: Disable advance power save (per M5Unified) */
     if (write_reg(BMI270_REG_PWR_CONF, 0x00) != 0) return -1;
-    esp_rom_delay_us(1000);
+    vTaskDelay(pdMS_TO_TICKS(1));
 
-    /* Load firmware config (required for sensor data).
-     * Uses bmi270_maximum_fifo variant (328 B) — simpler and more
-     * compatible across BMI270 revisions than the full 8 KB base config. */
+    /* Step 4: Upload config blob (max_fifo ~328 B) */
     if (load_config() != 0) {
         return -1;
     }
 
-    if (write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN) != 0) {
-        return -1;
-    }
-    esp_rom_delay_us(50000);
+    /* Step 5: Enable data-ready interrupt mapping (M5Unified writes 0xFF) */
+    if (write_reg(BMI270_REG_INT_MAP_DATA, 0xFF) != 0) return -1;
 
-    /* Set explicit accel and gyro output data rate and range.
-     * The config blob's defaults may not enable data output,
-     * so we explicitly configure 100 Hz ODR and ±2g / ±2000dps. */
+    /* Step 6: Set accel/gyro ODR and range */
     write_reg(BMI270_REG_ACC_CONF, BMI270_ACC_ODR_100HZ);
-    esp_rom_delay_us(1000);
     write_reg(0x41, BMI270_ACC_RANGE_2G);       /* ACC_RANGE */
     write_reg(BMI270_REG_GYR_CONF, BMI270_GYR_ODR_100HZ);
     write_reg(0x43, BMI270_GYR_RANGE_2000DPS);  /* GYR_RANGE */
-    esp_rom_delay_us(2000);
+    vTaskDelay(pdMS_TO_TICKS(2));
+
+    /* Step 7: Enable accel + gyro power (PWR_CTRL = 0x7D per M5Unified) */
+    if (write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN) != 0) {
+        return -1;
+    }
+    vTaskDelay(pdMS_TO_TICKS(50));
 
     return 0;
 }
@@ -167,45 +162,32 @@ int imu_BMI270_read(imu_BMI270_data_t *data)
     if (!data || !s_i2c || !s_bus) return -1;
     memset(data, 0, sizeof(*data));
 
-    /* Wait for data ready (up to 50 ms — first read after power-on
-     * requires more time for the sensor to stabilise) */
-    /* First read after power-on may need up to 50ms for stabilisation */
+    /* Check INT_STATUS_1 (0x1D) for data-ready (per M5Unified)
+     * bit 7 = accel ready, bit 6 = gyro ready */
+    uint8_t drdy = 0;
     for (int retry = 0; retry < 500; retry++) {
-        uint8_t status = 0;
-        if (read_reg(BMI270_REG_STATUS, &status) == 0 &&
-            (status & (BMI270_STATUS_ACC_DRDY | BMI270_STATUS_GYR_DRDY))) {
+        if (read_reg(BMI270_REG_INT_STATUS_1, &drdy) == 0 &&
+            (drdy & (BMI270_DRDY_ACCEL | BMI270_DRDY_GYRO))) {
             break;
         }
         esp_rom_delay_us(100);
     }
 
-    uint8_t buf[12];
-    if (read_regs(BMI270_REG_ACC_X_LSB, buf, 12) != 0) return -1;
+    /* Read feature engine data frame from register 0x04.
+     * Per M5Unified: 20-byte frame at AUX_X_LSB (0x04)
+     *   buf[0..2] = mag (3 × int16)
+     *   buf[3]    = ?
+     *   buf[4..6] = accel (3 × int16)  ← at byte offset 8
+     *   buf[7..9] = gyro  (3 × int16)  ← at byte offset 14 */
+    int16_t frame[10];
+    if (read_regs(BMI270_REG_DATA_FRAME, (uint8_t *)frame, 20) != 0) return -1;
 
-    /* Accel: 12-bit left-aligned in 16-bit, LSB first. Shift right by 4. */
-    uint16_t ax_r = (uint16_t)(buf[0] | (buf[1] << 8)) >> 4;
-    uint16_t ay_r = (uint16_t)(buf[2] | (buf[3] << 8)) >> 4;
-    uint16_t az_r = (uint16_t)(buf[4] | (buf[5] << 8)) >> 4;
-
-    int16_t ax_s = (int16_t)(ax_r & 0x0FFF);
-    if (ax_s & 0x0800) ax_s |= 0xF000;
-    int16_t ay_s = (int16_t)(ay_r & 0x0FFF);
-    if (ay_s & 0x0800) ay_s |= 0xF000;
-    int16_t az_s = (int16_t)(az_r & 0x0FFF);
-    if (az_s & 0x0800) az_s |= 0xF000;
-
-    data->accel.x = (int16_t)(ax_s * ACCEL_MG_PER_LSB);
-    data->accel.y = (int16_t)(ay_s * ACCEL_MG_PER_LSB);
-    data->accel.z = (int16_t)(az_s * ACCEL_MG_PER_LSB);
-
-    /* Gyro: 16-bit two's complement, LSB first */
-    int16_t gx = (int16_t)(buf[6]  | (buf[7]  << 8));
-    int16_t gy = (int16_t)(buf[8]  | (buf[9]  << 8));
-    int16_t gz = (int16_t)(buf[10] | (buf[11] << 8));
-
-    data->gyro.x = (int32_t)(gx * GYRO_MDPS_PER_LSB);
-    data->gyro.y = (int32_t)(gy * GYRO_MDPS_PER_LSB);
-    data->gyro.z = (int32_t)(gz * GYRO_MDPS_PER_LSB);
+    data->accel.x = frame[4];
+    data->accel.y = frame[5];
+    data->accel.z = frame[6];
+    data->gyro.x  = frame[7];
+    data->gyro.y  = frame[8];
+    data->gyro.z  = frame[9];
 
     read_reg(BMI270_REG_CHIP_ID, &data->chip_id);
     return 0;
@@ -244,6 +226,6 @@ uint8_t imu_BMI270_status(void)
 {
     if (!s_i2c || !s_bus) return 0;
     uint8_t s = 0;
-    read_reg(BMI270_REG_STATUS, &s);
+    read_reg(BMI270_REG_INT_STATUS_1, &s);
     return s;
 }
