@@ -287,6 +287,18 @@ IMU: chip_id=0x24 STATUS=0x50 ERR=0x04 (self-test error)
 A replacement CoreS3 board would likely produce valid accel/gyro data with
 the current software configuration (APS disabled + max_fifo config + ODR setup).
 
+### Update 2026-07-23 — Final run-all
+
+After reboot, ERR_REG reads 0x00 (no error) — the earlier self-test error was
+transient. However, STATUS remains 0x50 and data stays zero across all config
+attempts (base blob, max_fifo, ROM defaults, explicit ODR/range). The BMI270
+responds correctly on I2C (chip_id=0x24, STATUS readable, ERR_REG readable)
+but the sensor data path never activates.
+
+**Final conclusion:** This specific CoreS3 unit has a non-functional BMI270
+sensor. The diagnostics correctly identify this. No software fix can enable
+data output on this unit. A replacement board is needed for IMU testing.
+
 If possible, integrate the Bosch `bmi2.c` `upload_file()` and
 `write_config_file()` functions directly instead of reimplementing the
 upload protocol. These handle edge cases (odd-length chunks, multi-page
