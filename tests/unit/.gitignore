@@ -1,1 +1,1 @@
-test_rtc_BM8563\ntest_all_chips\n
+*.o\ntest_*\n
