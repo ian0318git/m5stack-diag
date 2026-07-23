@@ -31,6 +31,8 @@ diag_result_t test_power(void *context);
 diag_result_t test_backlight(void *context);
 diag_result_t test_speaker(void *context);
 diag_result_t test_microphone(void *context);
+diag_result_t test_camera(void *context);
+diag_result_t test_proximity(void *context);
 diag_result_t test_button(void *context);
 
 /* Fugazi-style wrappers (int param signature for the menu engine) */
@@ -43,6 +45,8 @@ diag_result_t fugazi_test_power(int param);
 diag_result_t fugazi_test_backlight(int param);
 diag_result_t fugazi_test_speaker(int param);
 diag_result_t fugazi_test_microphone(int param);
+diag_result_t fugazi_test_camera(int param);
+diag_result_t fugazi_test_proximity(int param);
 diag_result_t fugazi_test_button(int param);
 
 #ifdef __cplusplus

@@ -23,6 +23,8 @@ idf_component_register(
         "${PROJECT_DIR}/common/chips/aw9523b/aw9523b.c"
         "${PROJECT_DIR}/common/chips/audio_AW88298/aw88298.c"
         "${PROJECT_DIR}/common/chips/audio_ES7210/es7210.c"
+        "${PROJECT_DIR}/common/chips/camera_GC0308/gc0308.c"
+        "${PROJECT_DIR}/common/chips/proximity_LTR553/ltr553.c"
 
         "tests/test_i2c_scan.c"
         "tests/test_screen.c"
@@ -33,6 +35,8 @@ idf_component_register(
         "tests/test_backlight.c"
         "tests/test_speaker.c"
         "tests/test_microphone.c"
+        "tests/test_camera.c"
+        "tests/test_proximity.c"
         "tests/test_button.c"
         "tests/fugazi_wrappers.c"
 
@@ -50,6 +54,8 @@ idf_component_register(
         "${PROJECT_DIR}/common/chips/aw9523b"
         "${PROJECT_DIR}/common/chips/audio_AW88298"
         "${PROJECT_DIR}/common/chips/audio_ES7210"
+        "${PROJECT_DIR}/common/chips/camera_GC0308"
+        "${PROJECT_DIR}/common/chips/proximity_LTR553"
 
     REQUIRES
         esp_driver_usb_serial_jtag
