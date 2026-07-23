@@ -107,25 +107,14 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
     }
 
     /* Step 1: Soft reset (CMD_REG = 0x7E per M5Unified) */
-    if (write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET) != 0) {
-        return -1;
-    }
+    write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
+    vTaskDelay(pdMS_TO_TICKS(10));
 
-    /* Step 2: Wait for reset to complete (PWR_CONF becomes non-zero) */
-    {
-        int retry = 30;
-        uint8_t pwr = 0;
-        do {
-            vTaskDelay(pdMS_TO_TICKS(1));
-            read_reg(BMI270_REG_PWR_CONF, &pwr);
-        } while (pwr == 0 && --retry);
-    }
+    /* Step 2: Disable advance power save (per M5Unified) */
+    write_reg(BMI270_REG_PWR_CONF, 0x00);
+    vTaskDelay(pdMS_TO_TICKS(2));
 
-    /* Step 3: Disable advance power save (per M5Unified) */
-    if (write_reg(BMI270_REG_PWR_CONF, 0x00) != 0) return -1;
-    vTaskDelay(pdMS_TO_TICKS(1));
-
-    /* Step 4: Upload config blob (max_fifo ~328 B) */
+    /* Step 3: Upload config blob (base 8192 B) */
     if (load_config() != 0) {
         return -1;
     }
