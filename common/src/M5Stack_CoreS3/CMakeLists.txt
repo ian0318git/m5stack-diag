@@ -8,6 +8,7 @@ idf_component_register(
         "src/hal/hal_i2c_helpers.c"
         "src/hal/hal_i2c_adapter.c"
         "src/hal/hal_spi_adapter.c"
+        "src/hal/hal_spi2_bus.c"
         "src/hal/hal_audio.c"
         "src/hal/hal_screen.c"
         "src/hal/hal_touch.c"

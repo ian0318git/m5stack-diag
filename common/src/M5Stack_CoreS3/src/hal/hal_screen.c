@@ -14,11 +14,11 @@
 #include "hal_i2c_helpers.h"
 #include "hal_i2c_adapter.h"
 #include "hal_spi_adapter.h"
+#include "hal_spi2_bus.h"
 #include "hal_power.h"
 #include "aw9523b.h"
 #include "lcd_ILI9342C.h"
 #include "diag_config.h"
-#include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include <string.h>
@@ -105,37 +105,20 @@ diag_result_t hal_screen_init(void)
     /* Step 2: Enable backlight via AXP2101 DLDO1 */
     backlight_init();
 
-    /* Step 3: Initialise SPI bus */
-    spi_bus_config_t bus_cfg = {
-        .mosi_io_num     = CONFIG_LCD_MOSI_PIN,
-        .miso_io_num     = CONFIG_LCD_MISO_PIN,
-        .sclk_io_num     = CONFIG_LCD_SCLK_PIN,
-        .quadwp_io_num   = -1,
-        .quadhd_io_num   = -1,
-        .max_transfer_sz = CONFIG_LCD_WIDTH * CONFIG_LCD_HEIGHT * 2 + 8,
-    };
-
-    esp_err_t err = spi_bus_initialize(CONFIG_LCD_SPI_NUM, &bus_cfg,
-                                       SPI_DMA_CH_AUTO);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "SPI bus init failed: %d", err);
+    /* Step 3: Initialise SPI2 bus (shared with SD card) */
+    if (hal_spi2_bus_init() != DIAG_PASSED) {
+        ESP_LOGE(TAG, "SPI2 bus init failed");
         return DIAG_FAILED;
     }
 
-    /* Step 4: Attach SPI device */
-    spi_device_interface_config_t dev_cfg = {
-        .clock_speed_hz = CONFIG_LCD_SPI_CLOCK_HZ,
-        .mode           = 0,
-        .spics_io_num   = CONFIG_LCD_CS_PIN,
-        .queue_size     = 1,
-        .flags          = SPI_DEVICE_HALFDUPLEX,
-    };
-    err = spi_bus_add_device(CONFIG_LCD_SPI_NUM, &dev_cfg, &s_spi);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "SPI device add failed: %d", err);
-        spi_bus_free(CONFIG_LCD_SPI_NUM);
+    /* Step 4: Attach LCD device to shared SPI2 bus */
+    spi_device_handle_t spi = NULL;
+    if (hal_spi2_add_lcd_device(&spi) != DIAG_PASSED) {
+        ESP_LOGE(TAG, "LCD SPI device add failed");
+        hal_spi2_bus_deinit();
         return DIAG_FAILED;
     }
+    s_spi = spi;
 
     /* Step 5: Init ILI9342C chip driver through abstract transport */
     if (lcd_ILI9342C_init(&g_diag_spi_adapter, (void *)s_spi,
@@ -162,8 +145,8 @@ void hal_screen_deinit(void)
 {
     if (!s_initialised) return;
     lcd_ILI9342C_deinit();
-    spi_bus_remove_device(s_spi);
-    spi_bus_free(CONFIG_LCD_SPI_NUM);
+    hal_spi2_remove_lcd_device();
+    hal_spi2_bus_deinit();
     s_spi = NULL;
     s_initialised = false;
 }
