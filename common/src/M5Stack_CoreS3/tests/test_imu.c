@@ -28,6 +28,10 @@ diag_result_t test_imu(void *context)
         return r;
     }
 
+    uint8_t imu_status = hal_imu_status();
+    diag_menu_printf("IMU: chip_id=0x%02X STATUS=0x%02X\r\n",
+                     hal_imu_chip_id(), imu_status);
+
     hal_imu_data_t data;
     r = hal_imu_read(&data);
     if (r == DIAG_PASSED) {

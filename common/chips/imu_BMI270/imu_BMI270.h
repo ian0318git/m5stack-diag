@@ -118,6 +118,7 @@ void imu_BMI270_deinit(void);
 int  imu_BMI270_read(imu_BMI270_data_t *data);
 int  imu_BMI270_set_mode(imu_BMI270_mode_t mode);
 uint8_t imu_BMI270_chip_id(void);
+uint8_t imu_BMI270_status(void);
 
 #ifdef __cplusplus
 }

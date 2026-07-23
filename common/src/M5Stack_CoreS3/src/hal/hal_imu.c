@@ -79,3 +79,8 @@ uint8_t hal_imu_chip_id(void)
 {
     return imu_BMI270_chip_id();
 }
+
+uint8_t hal_imu_status(void)
+{
+    return imu_BMI270_status();
+}

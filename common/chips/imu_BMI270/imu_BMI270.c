@@ -241,3 +241,11 @@ uint8_t imu_BMI270_chip_id(void)
     read_reg(BMI270_REG_CHIP_ID, &id);
     return id;
 }
+
+uint8_t imu_BMI270_status(void)
+{
+    if (!s_i2c || !s_bus) return 0;
+    uint8_t s = 0;
+    read_reg(BMI270_REG_STATUS, &s);
+    return s;
+}

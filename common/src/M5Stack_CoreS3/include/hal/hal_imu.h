@@ -85,6 +85,12 @@ diag_result_t hal_imu_set_mode(hal_imu_mode_t mode);
  */
 uint8_t hal_imu_chip_id(void);
 
+/**
+ * @brief Read BMI270 STATUS register (0x03) for diagnostics.
+ * @return STATUS byte (bit 0 = accel DRDY, bit 1 = gyro DRDY), 0 on error.
+ */
+uint8_t hal_imu_status(void);
+
 #ifdef __cplusplus
 }
 #endif
