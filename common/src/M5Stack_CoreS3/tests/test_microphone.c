@@ -151,9 +151,9 @@ diag_result_t test_microphone(void *context)
             }
             rms_l = compute_rms(ch_l, actual_frames);
             rms_r = compute_rms(ch_r, actual_frames);
-            free(ch_l);
-            free(ch_r);
         }
+        free(ch_l);
+        free(ch_r);
     }
 
     free(audio_buf);
@@ -164,8 +164,8 @@ diag_result_t test_microphone(void *context)
     /* Step 5: Report results                                                 */
     /*------------------------------------------------------------------------*/
 
-    diag_menu_printf("  Captured: %u frames (%u bytes)\r\n",
-                     (unsigned)actual_frames, (unsigned)bytes_read);
+    diag_menu_printf("  Captured: %zu frames (%zu bytes)\r\n",
+                     actual_frames, bytes_read);
     diag_menu_printf("  RMS level — Channel L: %.1f\r\n", (double)rms_l);
     diag_menu_printf("  RMS level — Channel R: %.1f\r\n", (double)rms_r);
 

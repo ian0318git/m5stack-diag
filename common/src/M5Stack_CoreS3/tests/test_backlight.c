@@ -32,15 +32,19 @@
 #define AXP2101_DLDO1_3V3_ON    0x0C   /* enable + 3.3V */
 #define AXP2101_DLDO1_OFF       0x00   /* disable */
 
+static i2c_master_dev_handle_t s_pmu_dev = NULL;
+
 static diag_result_t backlight_set(uint8_t val)
 {
-    i2c_master_dev_handle_t pmu = NULL;
-    if (hal_i2c_add_device(CONFIG_I2C_ADDR_POWER, 400000, &pmu) != DIAG_PASSED) {
-        return DIAG_FAILED;
+    if (!s_pmu_dev) {
+        if (hal_i2c_add_device(CONFIG_I2C_ADDR_POWER, 400000, &s_pmu_dev)
+            != DIAG_PASSED) {
+            return DIAG_FAILED;
+        }
     }
 
     uint8_t cmd[2] = { AXP2101_REG_DLDO1, val };
-    esp_err_t err = i2c_master_transmit(pmu, cmd, 2, -1);
+    esp_err_t err = i2c_master_transmit(s_pmu_dev, cmd, 2, -1);
     if (err != ESP_OK) {
         return DIAG_FAILED;
     }
@@ -56,19 +60,8 @@ diag_result_t test_backlight(void *context)
         diag_err_set_component(g_diag_err_ctx, "BACKLIGHT", "MB/LCD");
 
     /*------------------------------------------------------------------------*/
-    /* Precondition: AXP2101 must be reachable                               */
+    /* Precondition: AXP2101 DLDO1 must be writable (checked by backlight_set) */
     /*------------------------------------------------------------------------*/
-
-    i2c_master_dev_handle_t pmu = NULL;
-    if (hal_i2c_add_device(CONFIG_I2C_ADDR_POWER, 400000, &pmu) != DIAG_PASSED) {
-        if (g_diag_err_ctx) {
-            diag_err_add(g_diag_err_ctx, "AXP2101 not reachable — backlight test skipped");
-            diag_err_set_debug(g_diag_err_ctx,
-                               "Run PMU Register Test first",
-                               "Check I2C bus 0x34");
-        }
-        return DIAG_SKIPPED;
-    }
 
     /*------------------------------------------------------------------------*/
     /* Step 1: Backlight ON                                                  */
@@ -117,6 +110,11 @@ diag_result_t test_backlight(void *context)
     diag_menu_printf("  Restoring backlight ON...\r\n");
     backlight_set(AXP2101_DLDO1_3V3_ON);
     vTaskDelay(pdMS_TO_TICKS(200));
+
+    if (s_pmu_dev) {
+        i2c_master_bus_rm_device(s_pmu_dev);
+        s_pmu_dev = NULL;
+    }
 
     diag_menu_printf("\r\nBacklight Test: PASSED (visual check)\r\n");
     diag_menu_printf("  DLDO1=0x%02X: 3.3V output verified\r\n", AXP2101_DLDO1_3V3_ON);

@@ -87,10 +87,12 @@ diag_result_t test_camera(void *context)
                                "Flex cable seated? Try reseating",
                                "Replace camera module");
         }
+        gc0308_deinit();
         return DIAG_FAILED;
     }
 
     diag_menu_printf("  GC0308 chip ID: 0x%02X\r\n", gc0308_chip_id());
+    gc0308_deinit();
     diag_menu_printf("Camera Test: PASSED\r\n");
     return DIAG_PASSED;
 }

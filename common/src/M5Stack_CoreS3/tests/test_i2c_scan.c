@@ -12,7 +12,7 @@
 #include "diag_config.h"
 #include "diag_menu.h"
 #include "hal_i2c_helpers.h"
-#include "driver/i2c_master.h"
+#include "hal_i2c_adapter.h"
 #include <string.h>
 
 diag_result_t test_i2c_scan(void *context)
@@ -23,8 +23,8 @@ diag_result_t test_i2c_scan(void *context)
         diag_err_set_component(g_diag_err_ctx, "I2C", "MB/I2C");
     diag_menu_printf("Scanning full I2C address range 0x01-0x7F...\r\n");
 
-    i2c_master_bus_handle_t bus = hal_i2c_bus_get();
-    if (!bus) {
+    i2c_master_bus_handle_t bus_h = hal_i2c_bus_get();
+    if (!bus_h) {
         if (g_diag_err_ctx) {
             diag_err_add(g_diag_err_ctx, "I2C bus not available");
             diag_err_set_debug(g_diag_err_ctx,
@@ -34,12 +34,16 @@ diag_result_t test_i2c_scan(void *context)
         return DIAG_FAILED;
     }
 
+    /* Use the abstract transport seam for probing */
+    const diag_i2c_t *i2c = &g_diag_i2c_adapter;
+    void *bus = (void *)bus_h;
+
     int found = 0;
     diag_menu_printf("\r\n  Found devices:\r\n");
 
     for (uint16_t addr = 1; addr < 0x80; addr++) {
-        esp_err_t err = i2c_master_probe(bus, addr, 50);
-        if (err == ESP_OK) {
+        int err = i2c->probe(bus, addr);
+        if (err == 0) {
             const char *name = NULL;
             switch (addr) {
                 case CONFIG_I2C_ADDR_TOUCH:     name = "FT6336U (Touch)";    break;
@@ -74,7 +78,7 @@ diag_result_t test_i2c_scan(void *context)
         };
         int m_missing = 0;
         for (size_t i = 0; i < sizeof(mandatory); i++) {
-            if (i2c_master_probe(bus, mandatory[i], 50) != ESP_OK) {
+            if (i2c->probe(bus, mandatory[i]) != 0) {
                 diag_menu_printf("  ** MISSING: 0x%02X %s — P0 mandatory\r\n",
                                  mandatory[i], m_names[i]);
                 if (g_diag_err_ctx) {
@@ -100,7 +104,7 @@ diag_result_t test_i2c_scan(void *context)
             "FT6336U needs AXP2101 LDOIO0 + AW9523B P0_0 — run Touch test to power on",
         };
         for (size_t i = 0; i < sizeof(advisory); i++) {
-            if (i2c_master_probe(bus, advisory[i], 50) != ESP_OK) {
+            if (i2c->probe(bus, advisory[i]) != 0) {
                 diag_menu_printf("  -- 0x%02X %s — no ACK\r\n", advisory[i], a_names[i]);
                 diag_menu_printf("     > %s\r\n", a_hints[i]);
                 if (g_diag_err_ctx) {
@@ -117,14 +121,14 @@ diag_result_t test_i2c_scan(void *context)
         const uint8_t opt[] = { 0x36, 0x21, 0x23 };
         const char *on[] = { "AW88298 (Speaker)", "GC0308 (Camera)", "LTR-553 (Prox)" };
         for (size_t i = 0; i < sizeof(opt); i++) {
-            if (i2c_master_probe(bus, opt[i], 50) != ESP_OK) {
+            if (i2c->probe(bus, opt[i]) != 0) {
                 diag_menu_printf("  -- 0x%02X %s — optional, skip\r\n", opt[i], on[i]);
             }
         }
     }
 
     /* Alt touch address check */
-    if (i2c_master_probe(bus, 0x3A, 50) == ESP_OK) {
+    if (i2c->probe(bus, 0x3A) == 0) {
         diag_menu_printf("  ** NOTE: Touch found at 0x3A (not 0x38)\r\n");
         if (g_diag_err_ctx)
             diag_err_add(g_diag_err_ctx, "FT6336: found at 0x3A, not expected 0x38");

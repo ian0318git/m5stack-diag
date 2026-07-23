@@ -69,9 +69,12 @@ static int i2c_adapter_write_then_read(void *bus, uint16_t addr,
 
 static int i2c_adapter_probe(void *bus, uint16_t addr)
 {
-    (void)bus;
-    i2c_master_bus_handle_t h = hal_i2c_bus_get();
-    if (!h) return -1;
+    /* bus is the i2c_master_bus_handle_t, passed through from the caller */
+    i2c_master_bus_handle_t h = (i2c_master_bus_handle_t)bus;
+    if (!h) {
+        h = hal_i2c_bus_get();
+        if (!h) return -1;
+    }
     return (i2c_master_probe(h, addr, 50) == ESP_OK) ? 0 : -1;
 }
 

@@ -16,7 +16,15 @@
 
 static const diag_i2c_t *s_i2c = NULL;
 static void             *s_bus = NULL;
-static uint16_t          s_addr = FT6336_ADDR;
+
+/*
+ * NOTE: I2C address is passed to the transport layer on every call.
+ * On ESP-IDF the addr parameter is informational (device handle
+ * has the baked-in address).  On other platforms the transport
+ * uses this address to route the transaction.
+ * Tests that detect the touch at 0x3A or 0x40 create the I2C device
+ * handle for that address; the transport handles routing correctly.
+ */
 
 /*===========================================================================*/
 /* I2C helpers                                                               */
@@ -24,12 +32,12 @@ static uint16_t          s_addr = FT6336_ADDR;
 
 static int read_reg(uint8_t reg, uint8_t *val)
 {
-    return s_i2c->write_then_read(s_bus, s_addr, &reg, 1, val, 1);
+    return s_i2c->write_then_read(s_bus, FT6336_ADDR, &reg, 1, val, 1);
 }
 
 static int read_regs(uint8_t reg, uint8_t *buf, size_t len)
 {
-    return s_i2c->write_then_read(s_bus, s_addr, &reg, 1, buf, len);
+    return s_i2c->write_then_read(s_bus, FT6336_ADDR, &reg, 1, buf, len);
 }
 
 /*===========================================================================*/
@@ -41,7 +49,6 @@ int touch_FT6336_init(const diag_i2c_t *i2c, void *bus)
     if (!i2c || !bus) return -1;
     s_i2c = i2c;
     s_bus = bus;
-    s_addr = FT6336_ADDR;
 
     /* Verify presence */
     uint8_t mode = 0;

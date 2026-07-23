@@ -72,14 +72,22 @@ diag_result_t test_proximity(void *context)
     diag_menu_printf("  ALS CH1 (vis+IR): %u\r\n", data.als_ch1);
     diag_menu_printf("  Proximity:     %u\r\n",    data.proximity);
 
-    /* Typical ambient light gives non-zero ALS values.
-     * Proximity near 0 means no object detected. */
-    if (data.als_ch0 > 0 || data.als_ch1 > 0) {
+    /* Check that at least the ALS sensor returns non-zero data.
+     * Zero ALS in normal lighting suggests a sensor fault. */
+    if (data.als_ch0 > 5 || data.als_ch1 > 5) {
         diag_menu_printf("Proximity Test: PASSED (ALS functional)\r\n");
-    } else {
-        diag_menu_printf("Proximity Test: PASSED (sensor present, ALS near zero — "
-                         "check lighting)\r\n");
+        return DIAG_PASSED;
     }
 
-    return DIAG_PASSED;
+    diag_menu_printf("Proximity Test: ADVISORY (ALS readings near zero — "
+                     "check ambient lighting or sensor)\r\n");
+    if (g_diag_err_ctx) {
+        diag_err_add(g_diag_err_ctx,
+                     "LTR-553: ALS readings near zero (CH0=%u, CH1=%u)",
+                     data.als_ch0, data.als_ch1);
+        diag_err_set_debug(g_diag_err_ctx,
+                           "Ensure adequate ambient light",
+                           "If in bright light, LTR-553 may be faulty");
+    }
+    return DIAG_SKIPPED;
 }

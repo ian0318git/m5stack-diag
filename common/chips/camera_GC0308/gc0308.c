@@ -46,6 +46,13 @@ int gc0308_probe(const diag_i2c_t *i2c, void *bus)
     return (id == GC0308_CHIP_ID_VAL) ? 0 : -1;
 }
 
+void gc0308_deinit(void)
+{
+    s_i2c = NULL;
+    s_bus = NULL;
+    s_chip_id = 0;
+}
+
 uint8_t gc0308_chip_id(void)
 {
     return s_chip_id;

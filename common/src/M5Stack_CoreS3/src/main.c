@@ -128,12 +128,14 @@ static diag_result_t cmd_burnin(diag_runner_t *runner, int argc, char *argv[])
 
     int total_failures = 0;
     int stop_on_fail = 1;  /* stop at first failure per DFS */
+    int completed = 0;
 
     for (int i = 1; i <= iterations; i++) {
         diag_menu_printf("--- Iteration %d/%d ---\r\n", i, iterations);
 
         int failures = diag_runner_run_all(runner, NULL, NULL);
         total_failures += failures;
+        completed = i;  /* track actual completed count even on early break */
 
         if (failures > 0) {
             diag_menu_printf("** FAILED (%d test(s) failed)\r\n", failures);
@@ -152,7 +154,7 @@ static diag_result_t cmd_burnin(diag_runner_t *runner, int argc, char *argv[])
 
     diag_menu_printf("\r\n========== Burn-In Summary ==========\r\n");
     diag_menu_printf("  Completed: %d/%d iterations\r\n",
-                     iterations, iterations);
+                     completed, iterations);
     diag_menu_printf("  Total failures: %d\r\n", total_failures);
 
     if (total_failures == 0) {
@@ -242,7 +244,11 @@ static diag_result_t cmd_rtc_set(diag_runner_t *runner, int argc, char *argv[])
 static diag_result_t cmd_screen_on(diag_runner_t *runner, int argc, char *argv[])
 {
     (void)runner; (void)argc; (void)argv;
-    hal_screen_init();
+    diag_result_t r = hal_screen_init();
+    if (r != DIAG_PASSED) {
+        diag_menu_printf("Screen init failed\r\n");
+        return r;
+    }
     hal_screen_fill(HAL_SCREEN_COLOR_BLACK);
     diag_menu_printf("Screen ON\r\n");
     return DIAG_PASSED;

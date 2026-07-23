@@ -16,11 +16,12 @@
 #include <string.h>
 
 /*===========================================================================*/
-/* Module state                                                              */
+/* Module state — refcounted so multiple callers can safely share the chip   */
 /*===========================================================================*/
 
 static const diag_i2c_t *s_i2c = NULL;
 static void             *s_bus = NULL;
+static int               s_refcount = 0;
 
 /*===========================================================================*/
 /* I2C helpers (use abstract transport)                                      */
@@ -43,6 +44,11 @@ static int read_reg(uint8_t reg, uint8_t *val)
 
 int aw9523b_init(const diag_i2c_t *i2c, void *bus)
 {
+    if (s_refcount > 0) {
+        s_refcount++;
+        return 0;
+    }
+
     if (!i2c || !bus) return -1;
     s_i2c = i2c;
     s_bus = bus;
@@ -53,11 +59,16 @@ int aw9523b_init(const diag_i2c_t *i2c, void *bus)
         return -1;
     }
 
+    s_refcount = 1;
     return 0;
 }
 
 void aw9523b_deinit(void)
 {
+    if (s_refcount <= 0) return;
+    s_refcount--;
+    if (s_refcount > 0) return;
+
     s_i2c = NULL;
     s_bus = NULL;
 }
