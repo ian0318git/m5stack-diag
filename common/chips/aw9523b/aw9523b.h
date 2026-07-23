@@ -1,8 +1,8 @@
 /*
  * aw9523b.h — AW9523B I2C GPIO Expander Driver
  *
- * Common chip driver.  AW9523B provides 16 GPIO pins (P0_0–P0_7, P1_0–P1_7)
- * with individual direction and output control, plus LED PWM mode.
+ * Common chip driver — platform-agnostic.
+ * Caller provides an initialised diag_i2c_t transport.
  *
  * CoreS3 connections:
  *   P0_0 = FT6336U TOUCH_RST      P1_0 = GC0308 CAM_RST
@@ -17,7 +17,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "driver/i2c_master.h"
+#include "diag_transport.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,6 +26,8 @@ extern "C" {
 /*===========================================================================*/
 /* Register Map                                                              */
 /*===========================================================================*/
+
+#define AW9523B_ADDR            0x58
 
 #define AW9523B_REG_INPUT0      0x00   /* Port 0 input value               */
 #define AW9523B_REG_INPUT1      0x01   /* Port 1 input value               */
@@ -54,7 +56,7 @@ typedef uint16_t aw9523b_pin_mask_t;
 /* Lifecycle                                                                 */
 /*===========================================================================*/
 
-int  aw9523b_init(i2c_master_dev_handle_t dev);
+int  aw9523b_init(const diag_i2c_t *i2c, void *bus);
 void aw9523b_deinit(void);
 
 /*===========================================================================*/
@@ -67,10 +69,6 @@ int  aw9523b_pin_read(uint8_t pin, int *level);
 int  aw9523b_port_write(int port, uint8_t value);
 int  aw9523b_port_read(int port, uint8_t *value);
 
-/**
- * @brief Disable LED (PWM) mode for a single pin, switching it to GPIO.
- *        Uses read-modify-write to avoid affecting other pins.
- */
 int  aw9523b_pin_set_gpio_mode(uint8_t pin);
 
 /*===========================================================================*/

@@ -1,8 +1,9 @@
 /*
  * lcd_ILI9342C.h — ILI9342C 320×240 IPS LCD Driver (SPI)
  *
- * Common chip driver.  Caller provides an initialised SPI device handle
- * and a function to control the RST pin (typically via AW9523B expander).
+ * Common chip driver — platform-agnostic.
+ * Caller provides an initialised diag_spi_t transport and a
+ * callback for reset control (typically via AW9523B expander).
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -12,7 +13,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "driver/spi_master.h"
+#include "diag_transport.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,13 +47,16 @@ extern "C" {
 /**
  * @brief Initialise the ILI9342C display.
  *
- * @param spi       Initialised SPI device handle.
- * @param dc_gpio   GPIO for Data/Command control.
+ * @param spi       Abstract SPI transport.
+ * @param spi_bus   SPI device handle (opaque, passed to transport callbacks).
+ * @param dc_set    Callback to set Data/Command GPIO level (0=cmd, 1=data).
+ *                  May be NULL if DC is handled externally.
  * @param set_rst   Callback to assert/de-assert RST (1=release, 0=hold).
- *                  Pass NULL if RST is handled externally.
- * @return          0 on success, -1 on error.
+ *                  May be NULL if RST is handled externally.
+ * @return 0 on success, -1 on error.
  */
-int  lcd_ILI9342C_init(spi_device_handle_t spi, int dc_gpio,
+int  lcd_ILI9342C_init(const diag_spi_t *spi, void *spi_bus,
+                        void (*dc_set)(int level),
                         void (*set_rst)(int level));
 void lcd_ILI9342C_deinit(void);
 

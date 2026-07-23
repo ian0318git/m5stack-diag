@@ -6,11 +6,14 @@ idf_component_register(
         "src/diag_error.c"
         "src/diag_runner.c"
         "src/hal/hal_i2c_helpers.c"
+        "src/hal/hal_i2c_adapter.c"
+        "src/hal/hal_spi_adapter.c"
         "src/hal/hal_screen.c"
         "src/hal/hal_touch.c"
         "src/hal/hal_rtc.c"
         "src/hal/hal_imu.c"
         "src/hal/hal_power.c"
+
         "${PROJECT_DIR}/common/chips/lcd_ILI9342C/lcd_ILI9342C.c"
         "${PROJECT_DIR}/common/chips/touch_FT6336/touch_FT6336.c"
         "${PROJECT_DIR}/common/chips/rtc_BM8563/rtc_BM8563.c"
@@ -18,10 +21,20 @@ idf_component_register(
         "${PROJECT_DIR}/common/chips/power_AXP2101/power_AXP2101.c"
         "${PROJECT_DIR}/common/chips/aw9523b/aw9523b.c"
 
+        "tests/test_i2c_scan.c"
+        "tests/test_screen.c"
+        "tests/test_touch.c"
+        "tests/test_rtc.c"
+        "tests/test_imu.c"
+        "tests/test_power.c"
+        "tests/fugazi_wrappers.c"
+
     INCLUDE_DIRS
         "include"
         "include/hal"
         "src/hal"
+        "tests"
+
         "${PROJECT_DIR}/common/chips/lcd_ILI9342C"
         "${PROJECT_DIR}/common/chips/touch_FT6336"
         "${PROJECT_DIR}/common/chips/rtc_BM8563"

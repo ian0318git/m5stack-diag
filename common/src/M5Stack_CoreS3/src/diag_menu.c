@@ -231,21 +231,6 @@ static int tokenise(char *line, char *argv[], int max_args)
 /* Built-in command handlers                                                 */
 /*===========================================================================*/
 
-static diag_result_t cmd_help(diag_runner_t *runner, int argc, char *argv[])
-{
-    (void)argc;
-    (void)argv;
-    (void)runner;
-
-    diag_menu_printf("\r\nAvailable commands:\r\n");
-    for (int i = 0; i < s_num_commands; i++) {
-        diag_menu_printf("  %-12s %s\r\n",
-                         s_commands[i].name,
-                         s_commands[i].help ? s_commands[i].help : "");
-    }
-    return DIAG_PASSED;
-}
-
 static diag_result_t cmd_info(diag_runner_t *runner, int argc, char *argv[])
 {
     (void)argc;

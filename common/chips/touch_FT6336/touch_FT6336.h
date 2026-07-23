@@ -1,7 +1,7 @@
 /*
  * touch_FT6336.h — FT6336 Capacitive Touch Controller (I2C)
  *
- * Common chip driver.
+ * Common chip driver — platform-agnostic.
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -10,7 +10,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "driver/i2c_master.h"
+#include "diag_transport.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +19,9 @@ extern "C" {
 /*===========================================================================*/
 /* Register Map                                                              */
 /*===========================================================================*/
+
+#define FT6336_ADDR           0x38
+#define FT6336_ADDR_ALT       0x3A   /* Alternative address for some units  */
 
 #define FT6336_REG_DEVICE_MODE   0x00
 #define FT6336_REG_GESTURE_ID    0x01
@@ -51,7 +54,7 @@ typedef struct {
 /* Lifecycle                                                                 */
 /*===========================================================================*/
 
-int touch_FT6336_init(i2c_master_dev_handle_t dev);
+int  touch_FT6336_init(const diag_i2c_t *i2c, void *bus);
 void touch_FT6336_deinit(void);
 
 /*===========================================================================*/

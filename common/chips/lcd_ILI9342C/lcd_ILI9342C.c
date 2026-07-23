@@ -1,59 +1,49 @@
 /*
  * lcd_ILI9342C.c — ILI9342C 320×240 IPS LCD Driver (SPI)
  *
- * Common chip driver.  Initialisation sequence targets the ILI9342C
- * variant used on the M5Stack CoreS3.
+ * Common chip driver — uses abstract diag_spi_t transport.
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
  */
 
 #include "lcd_ILI9342C.h"
-#include "esp_log.h"
-#include "driver/gpio.h"
+#include "esp_rom_sys.h"
 #include <string.h>
 
-static const char *TAG = "ILI9342C";
+/*===========================================================================*/
+/* Module state                                                              */
+/*===========================================================================*/
 
-static spi_device_handle_t s_spi = NULL;
-static int s_dc_gpio = -1;
+static const diag_spi_t *s_spi = NULL;
+static void             *s_spi_bus = NULL;
+static void (*s_dc_set)(int level) = NULL;
 static void (*s_set_rst)(int level) = NULL;
 
 /*===========================================================================*/
-/* SPI Primitives (DC pin controlled via GPIO)                               */
+/* SPI Primitives (DC pin controlled via callback)                           */
 /*===========================================================================*/
 
 static void spi_cmd(uint8_t cmd)
 {
-    gpio_set_level(s_dc_gpio, 0);
-    spi_transaction_t t = {
-        .length    = 8,
-        .tx_buffer = &cmd,
-        .flags     = SPI_TRANS_USE_TXDATA,
-    };
-    spi_device_transmit(s_spi, &t);
+    if (s_dc_set) s_dc_set(0);
+    s_spi->transmit(s_spi_bus, &cmd, 1);
+    if (s_dc_set) s_dc_set(1);
 }
 
-static void spi_data(uint8_t data)
+static void spi_data_buf(const uint8_t *data, size_t len)
 {
-    gpio_set_level(s_dc_gpio, 1);
-    spi_transaction_t t = {
-        .length    = 8,
-        .tx_buffer = &data,
-        .flags     = SPI_TRANS_USE_TXDATA,
-    };
-    spi_device_transmit(s_spi, &t);
+    if (s_dc_set) s_dc_set(1);
+    s_spi->transmit(s_spi_bus, data, len);
 }
 
 static void spi_cmd_data(uint8_t cmd, const uint8_t *data, size_t len)
 {
     spi_cmd(cmd);
-    for (size_t i = 0; i < len; i++) {
-        spi_data(data[i]);
-    }
+    spi_data_buf(data, len);
 }
 
-static inline void spi_cmd_d1(uint8_t cmd, uint8_t d1)
+static void spi_cmd_d1(uint8_t cmd, uint8_t d1)
 {
     spi_cmd_data(cmd, &d1, 1);
 }
@@ -62,15 +52,15 @@ static inline void spi_cmd_d1(uint8_t cmd, uint8_t d1)
 /* Lifecycle                                                                 */
 /*===========================================================================*/
 
-int lcd_ILI9342C_init(spi_device_handle_t spi, int dc_gpio,
+int lcd_ILI9342C_init(const diag_spi_t *spi, void *spi_bus,
+                       void (*dc_set)(int level),
                        void (*set_rst)(int level))
 {
-    if (!spi) return -1;
-    s_spi    = spi;
-    s_dc_gpio = dc_gpio;
+    if (!spi || !spi_bus) return -1;
+    s_spi     = spi;
+    s_spi_bus = spi_bus;
+    s_dc_set  = dc_set;
     s_set_rst = set_rst;
-
-    gpio_set_direction(dc_gpio, GPIO_MODE_OUTPUT);
 
     /* Hardware reset */
     if (s_set_rst) {
@@ -85,13 +75,13 @@ int lcd_ILI9342C_init(spi_device_handle_t spi, int dc_gpio,
     esp_rom_delay_us(5000);
 
     /* Common ILI9341-compatible init sequence (valid for ILI9342C) */
-    spi_cmd_data(0xCB, (uint8_t[]){0x39, 0x2C, 0x00, 0x34, 0x02}, 5);  /* POWERA */
-    spi_cmd_data(0xCF, (uint8_t[]){0x00, 0xC1, 0x30}, 3);             /* POWERB */
-    spi_cmd_data(0xE8, (uint8_t[]){0x85, 0x00, 0x78}, 3);             /* DTCA   */
-    spi_cmd_data(0xEA, (uint8_t[]){0x00, 0x00}, 2);                   /* DTCB   */
-    spi_cmd_data(0xB1, (uint8_t[]){0x00, 0x1B}, 2);                   /* FRAMERATE */
-    spi_cmd_d1(0xB6, 0x0A);                                            /* DISPCTRL */
-    spi_cmd_d1(0xF2, 0x00);                                            /* 3GAMMA_EN */
+    spi_cmd_data(0xCB, (uint8_t[]){0x39, 0x2C, 0x00, 0x34, 0x02}, 5);
+    spi_cmd_data(0xCF, (uint8_t[]){0x00, 0xC1, 0x30}, 3);
+    spi_cmd_data(0xE8, (uint8_t[]){0x85, 0x00, 0x78}, 3);
+    spi_cmd_data(0xEA, (uint8_t[]){0x00, 0x00}, 2);
+    spi_cmd_data(0xB1, (uint8_t[]){0x00, 0x1B}, 2);
+    spi_cmd_d1(0xB6, 0x0A);
+    spi_cmd_d1(0xF2, 0x00);
 
     /* Colour mode: 16-bit RGB565 */
     spi_cmd_d1(ILI9342_CMD_COLMOD, 0x55);
@@ -116,7 +106,6 @@ int lcd_ILI9342C_init(spi_device_handle_t spi, int dc_gpio,
     spi_cmd(ILI9342_CMD_DISPON);
     esp_rom_delay_us(10000);
 
-    ESP_LOGI(TAG, "ILI9342C initialised (320x240)");
     return 0;
 }
 
@@ -124,6 +113,7 @@ void lcd_ILI9342C_deinit(void)
 {
     if (s_set_rst) s_set_rst(0);
     s_spi = NULL;
+    s_spi_bus = NULL;
 }
 
 /*===========================================================================*/
@@ -144,15 +134,11 @@ void lcd_ILI9342C_set_window(uint16_t x0, uint16_t y0,
 
 void lcd_ILI9342C_write_pixels(const uint16_t *pixels, size_t count)
 {
-    gpio_set_level(s_dc_gpio, 1);   /* data */
+    if (s_dc_set) s_dc_set(1);   /* data mode */
 
     while (count > 0) {
         size_t chunk = (count > 4096) ? 4096 : count;
-        spi_transaction_t t = {
-            .length    = chunk * 16,
-            .tx_buffer = pixels,
-        };
-        spi_device_transmit(s_spi, &t);
+        s_spi->transmit(s_spi_bus, pixels, chunk * sizeof(uint16_t));
         pixels += chunk;
         count  -= chunk;
     }

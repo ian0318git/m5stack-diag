@@ -1,9 +1,12 @@
 /*
- * main.c - M5Stack CoreS3 Diagnostic System Entry Point
+ * main.c — M5Stack CoreS3 Diagnostic System Entry Point
  *
  * ESP-IDF app_main: initialises all subsystems, builds the test suite
  * (both the flat runner suite and the fugazi-style hierarchical menu),
  * registers extended menu commands, and enters the UART menu loop.
+ *
+ * This file is the COMPOSITION ROOT — it wires together domain,
+ * adapter, and infrastructure layers but contains no test logic.
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -23,12 +26,9 @@
 #include "diag_menu_core.h"
 #include "diag_runner.h"
 #include "diag_error.h"
-#include "driver/i2c_master.h"
+#include "diag_tests.h"
 
-/*===========================================================================*/
-/* HAL includes                                                              */
-/*===========================================================================*/
-
+/* HAL includes for extended CLI commands */
 #include "hal_screen.h"
 #include "hal_touch.h"
 #include "hal_rtc.h"
@@ -38,467 +38,15 @@
 static const char *TAG = "m5s3_diag";
 
 /*===========================================================================*/
-/* Global error context (shared by all test functions)                       */
+/* Global error context — shared by all test functions                       */
 /*===========================================================================*/
 
+diag_err_ctx_t *g_diag_err_ctx = NULL;
 static diag_err_ctx_t s_err_ctx;
-
-/*===========================================================================*/
-/* Test function implementations                                             */
-/*===========================================================================*/
-
-static diag_result_t test_i2c_scan(void *context)
-{
-    (void)context;
-
-    diag_err_set_component(&s_err_ctx, "I2C", "MB/I2C");
-    diag_menu_printf("Scanning full I2C address range 0x01-0x7F...\r\n");
-
-    extern i2c_master_bus_handle_t hal_i2c_bus_get(void);
-    i2c_master_bus_handle_t bus = hal_i2c_bus_get();
-    if (!bus) {
-        diag_err_add(&s_err_ctx, "I2C bus not available");
-        diag_err_set_debug(&s_err_ctx,
-                           "Check power supply to the I2C bus",
-                           "Check SDA/SCL pull-up resistors");
-        return DIAG_FAILED;
-    }
-
-    int found = 0;
-    diag_menu_printf("\r\n  Found devices:\r\n");
-
-    /* Full scan: probe every 7-bit address from 0x01 to 0x7F */
-    for (uint16_t addr = 1; addr < 0x80; addr++) {
-        esp_err_t err = i2c_master_probe(bus, addr, 50);
-        if (err == ESP_OK) {
-            /* Known devices get named labels */
-            const char *name = NULL;
-            switch (addr) {
-                case CONFIG_I2C_ADDR_TOUCH:     name = "FT6336U (Touch)";    break;
-                case 0x3A:                      name = "FT6336 alt (Touch)"; break;
-                case CONFIG_I2C_ADDR_RTC:       name = "BM8563 (RTC)";       break;
-                case CONFIG_I2C_ADDR_IMU:       name = "BMI270 (IMU)";       break;
-                case CONFIG_I2C_ADDR_POWER:     name = "AXP2101 (PMU)";      break;
-                case CONFIG_I2C_ADDR_AUDIO_ADC: name = "ES7210 (Audio ADC)"; break;
-                case CONFIG_I2C_ADDR_SPK_AMP:   name = "AW88298 (Speaker)";  break;
-                case CONFIG_I2C_ADDR_GPIO_EXP:  name = "AW9523B (GPIO Exp)"; break;
-                case CONFIG_I2C_ADDR_CAMERA:    name = "GC0308 (Camera)";    break;
-                case CONFIG_I2C_ADDR_PROXIMITY: name = "LTR-553ALS (Proximity)"; break;
-            }
-            if (name) {
-                diag_menu_printf("    [ OK ] 0x%02X — %s\r\n", addr, name);
-            } else {
-                diag_menu_printf("    [ OK ] 0x%02X — UNKNOWN\r\n", addr);
-            }
-            found++;
-        }
-    }
-
-    diag_menu_printf("\r\n  %d device(s) found on I2C bus\r\n", found);
-
-    /* Cross-check: warn if any expected device is missing */
-    /*
-     * Cross-check: mandatory P0 devices must be present.
-     * Per DFS §Test Coverage Matrix: {AXP2101, AW9523B} are P0.
-     */
-    {
-        const uint8_t mandatory[] = { CONFIG_I2C_ADDR_POWER, CONFIG_I2C_ADDR_GPIO_EXP };
-        const char *m_names[] = { "AXP2101 (PMU)", "AW9523B (GPIO Exp)" };
-        const char *m_hints[] = {
-            "PMU is root power — check USB/battery input",
-            "GPIO expander controls all peripheral RST lines",
-        };
-        int m_missing = 0;
-        for (size_t i = 0; i < sizeof(mandatory); i++) {
-            if (i2c_master_probe(bus, mandatory[i], 50) != ESP_OK) {
-                diag_menu_printf("  ** MISSING: 0x%02X %s — P0 mandatory\r\n",
-                                 mandatory[i], m_names[i]);
-                diag_err_add(&s_err_ctx, "I2C@0x%02X %s: P0 mandatory device missing",
-                             mandatory[i], m_names[i]);
-                diag_err_set_debug(&s_err_ctx, m_hints[i], NULL);
-                m_missing++;
-            }
-        }
-        if (m_missing > 0) {
-            return DIAG_FAILED;
-        }
-    }
-
-    /* Advisory P1 devices — warn but do not fail the scan */
-    {
-        const uint8_t advisory[] = {
-            CONFIG_I2C_ADDR_RTC,
-            CONFIG_I2C_ADDR_IMU,
-            CONFIG_I2C_ADDR_TOUCH,
-        };
-        const char *a_names[] = {
-            "BM8563 (RTC)",
-            "BMI270 (IMU)",
-            "FT6336U (Touch)",
-        };
-        const char *a_hints[] = {
-            "RTC powered by AXP2101 RTC_VDD",
-            "IMU powered by AXP2101 SYS_3V3",
-            "FT6336U needs AXP2101 LDOIO0 + AW9523B P0_0 — run Touch test to power on",
-        };
-        for (size_t i = 0; i < sizeof(advisory); i++) {
-            if (i2c_master_probe(bus, advisory[i], 50) != ESP_OK) {
-                diag_menu_printf("  -- 0x%02X %s — no ACK\r\n",
-                                 advisory[i], a_names[i]);
-                diag_menu_printf("     > %s\r\n", a_hints[i]);
-                diag_err_add(&s_err_ctx, "I2C@0x%02X %s: no ACK (advisory)",
-                             advisory[i], a_names[i]);
-                diag_err_set_debug(&s_err_ctx, a_hints[i], NULL);
-            }
-        }
-    }
-
-    /* Optional devices — absent is expected if flex cable not fitted */
-    {
-        const uint8_t opt[] = { 0x36, 0x21, 0x23 };
-        const char *on[] = { "AW88298 (Speaker)", "GC0308 (Camera)", "LTR-553 (Prox)" };
-        for (size_t i = 0; i < sizeof(opt); i++) {
-            if (i2c_master_probe(bus, opt[i], 50) != ESP_OK) {
-                diag_menu_printf("  -- 0x%02X %s — optional, skip\r\n", opt[i], on[i]);
-            }
-        }
-    }
-
-    /* Check alt touch address 0x3A */
-    if (i2c_master_probe(bus, 0x3A, 50) == ESP_OK) {
-        diag_menu_printf("  ** NOTE: Touch found at 0x3A (not 0x38)\r\n");
-        diag_err_add(&s_err_ctx, "FT6336: found at 0x3A, not expected 0x38");
-    }
-
-    diag_menu_printf("\r\n  All P0 mandatory devices present.\r\n");
-    return DIAG_PASSED;
-}
-
-static diag_result_t test_screen(void *context)
-{
-    (void)context;
-
-    diag_err_set_component(&s_err_ctx, "SCREEN", "MB/LCD");
-
-    diag_result_t r = hal_screen_init();
-    if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx, "ILI9342C screen init failed");
-        diag_err_set_debug(&s_err_ctx,
-                           "Check SPI bus (MOSI=G37, SCLK=G36, CS=G3, DC=G35)",
-                           "Check AW9523B P1_1 LCD_RST and AXP2101 DLDO1 backlight");
-        return r;
-    }
-
-    int w = hal_screen_width();
-    int h = hal_screen_height();
-
-    hal_screen_fill(HAL_SCREEN_COLOR_RED);    vTaskDelay(pdMS_TO_TICKS(300));
-    hal_screen_fill(HAL_SCREEN_COLOR_GREEN);  vTaskDelay(pdMS_TO_TICKS(300));
-    hal_screen_fill(HAL_SCREEN_COLOR_BLUE);   vTaskDelay(pdMS_TO_TICKS(300));
-    hal_screen_fill(HAL_SCREEN_COLOR_BLACK);  vTaskDelay(pdMS_TO_TICKS(200));
-
-    hal_screen_set_font(2);
-    const char *lines[] = { "CoreS3", "Diagnostic", "System", NULL };
-    int y = 60;
-    for (int i = 0; lines[i]; i++) {
-        int text_w = strlen(lines[i]) * hal_screen_font_width();
-        int tx = (w - text_w) / 2;
-        hal_screen_draw_text(tx, y, lines[i],
-                             HAL_SCREEN_COLOR_CYAN, HAL_SCREEN_COLOR_BLACK);
-        y += hal_screen_font_height() + 4;
-    }
-
-    hal_screen_draw_line(w / 2, 0, w / 2, h - 1, HAL_SCREEN_COLOR_WHITE);
-    hal_screen_draw_line(0, h / 2, w - 1, h / 2, HAL_SCREEN_COLOR_WHITE);
-
-    diag_menu_printf("Screen test complete.\r\n");
-    hal_screen_deinit();
-    return DIAG_PASSED;
-}
-
-static diag_result_t test_touch(void *context)
-{
-    (void)context;
-
-    diag_err_set_component(&s_err_ctx, "TOUCH", "MB/TOUCH");
-
-    diag_result_t r = hal_touch_init();
-    if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx,
-                     "I2C@0x38 FT6336: init failed (no ACK)");
-        diag_err_set_debug(&s_err_ctx,
-                           "Check AXP2101 LDOIO0 touch power (reg 0x90)",
-                           "Check I2C bus 0x38 pull-ups and INT/RST pins");
-        return r;
-    }
-
-    uint8_t fw = hal_touch_firmware_version();
-    if (fw == 0) {
-        diag_err_add(&s_err_ctx,
-                     "I2C@0x38 FT6336: firmware version read returned 0");
-    }
-    diag_menu_printf("Touch: FT6336 fw=0x%02X max_points=%d\r\n",
-                     fw, hal_touch_max_points());
-
-    hal_touch_data_t data;
-    r = hal_touch_read(&data);
-    if (r == DIAG_PASSED) {
-        diag_menu_printf("Touch points: %d\r\n", data.point_count);
-        for (uint8_t i = 0; i < data.point_count; i++) {
-            diag_menu_printf("  Point %d: (%u, %u) event=%u id=%u\r\n",
-                             i, data.points[i].x, data.points[i].y,
-                             data.points[i].event, data.points[i].id);
-        }
-    } else {
-        diag_err_add(&s_err_ctx,
-                     "I2C@0x38 FT6336: read touch data failed");
-    }
-
-    hal_touch_deinit();
-    return (fw > 0 && r == DIAG_PASSED) ? DIAG_PASSED : DIAG_FAILED;
-}
-
-static diag_result_t test_rtc(void *context)
-{
-    (void)context;
-
-    diag_err_set_component(&s_err_ctx, "RTC", "MB/RTC");
-    hal_rtc_time_t t1, t2;
-
-    diag_result_t r = hal_rtc_init();
-    if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx,
-                     "I2C@0x51 BM8563: init failed (no ACK)");
-        diag_err_set_debug(&s_err_ctx,
-                           "Check I2C bus 0x51 pull-ups",
-                           "Check RTC battery backup voltage");
-        return r;
-    }
-
-    /* Read time #1 */
-    r = hal_rtc_get_time(&t1);
-    if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx, "I2C@0x51 BM8563: first read failed");
-        hal_rtc_deinit();
-        return r;
-    }
-    diag_menu_printf("RTC T1: %04u-%02u-%02u %02u:%02u:%02u\r\n",
-                     t1.year, t1.month, t1.day,
-                     t1.hour, t1.minute, t1.second);
-
-    /*
-     * Verify RTC is ticking: wait 2 seconds, read again.
-     * Pattern from fugazi rtc_tests() in
-     * example/fugazi_ng_diag/common/src/katar/x86/platform_rtc.c
-     */
-    vTaskDelay(pdMS_TO_TICKS(2000));
-
-    r = hal_rtc_get_time(&t2);
-    if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx, "I2C@0x51 BM8563: second read failed");
-        hal_rtc_deinit();
-        return r;
-    }
-    diag_menu_printf("RTC T2: %04u-%02u-%02u %02u:%02u:%02u\r\n",
-                     t2.year, t2.month, t2.day,
-                     t2.hour, t2.minute, t2.second);
-
-    /* Elapsed seconds (handle minute rollover) */
-    int elapsed = (int)t2.second - (int)t1.second;
-    if (elapsed < 0) elapsed += 60;
-
-    bool time_valid = (t1.year >= 2024 && t1.month >= 1 && t1.month <= 12 &&
-                       t1.day >= 1 && t1.day <= 31);
-
-    if (!time_valid) {
-        diag_menu_printf("  ** VL flag was set — RTC time invalid, setting default...\r\n");
-
-        /* Parse compiler __DATE__ (e.g. "Jul 19 2025") and __TIME__ */
-        hal_rtc_time_t def;
-        memset(&def, 0, sizeof(def));
-        const char *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
-        char mstr[4] = { __DATE__[0], __DATE__[1], __DATE__[2], 0 };
-        const char *p = strstr(months, mstr);
-        def.month = p ? (int)((p - months) / 3 + 1) : 1;
-        def.day   = (__DATE__[4] >= '0' && __DATE__[4] <= '9')
-                        ? (__DATE__[4] - '0') * 10 + (__DATE__[5] - '0')
-                        : (__DATE__[5] - '0');
-        def.year  = (__DATE__[7] - '0') * 1000 + (__DATE__[8] - '0') * 100
-                  + (__DATE__[9] - '0') * 10  + (__DATE__[10] - '0');
-        def.hour   = (__TIME__[0] - '0') * 10 + (__TIME__[1] - '0');
-        def.minute = (__TIME__[3] - '0') * 10 + (__TIME__[4] - '0');
-        def.second = (__TIME__[6] - '0') * 10 + (__TIME__[7] - '0');
-
-        diag_menu_printf("  Setting RTC to build time: %04u-%02u-%02u %02u:%02u:%02u\r\n",
-                         def.year, def.month, def.day,
-                         def.hour, def.minute, def.second);
-
-        if (hal_rtc_set_time(&def) != DIAG_PASSED) {
-            diag_err_add(&s_err_ctx, "I2C@0x51 BM8563: set default time failed");
-            hal_rtc_deinit();
-            return DIAG_FAILED;
-        }
-
-        /* Read back and retry tick test */
-        vTaskDelay(pdMS_TO_TICKS(100));
-        hal_rtc_get_time(&t1);
-        diag_menu_printf("RTC now: %04u-%02u-%02u %02u:%02u:%02u\r\n",
-                         t1.year, t1.month, t1.day,
-                         t1.hour, t1.minute, t1.second);
-
-        vTaskDelay(pdMS_TO_TICKS(2000));
-        r = hal_rtc_get_time(&t2);
-        if (r != DIAG_PASSED) {
-            diag_err_add(&s_err_ctx, "I2C@0x51 BM8563: read after set failed");
-            hal_rtc_deinit();
-            return DIAG_FAILED;
-        }
-
-        elapsed = (int)t2.second - (int)t1.second;
-        if (elapsed < 0) elapsed += 60;
-
-        if (elapsed >= 1 && elapsed <= 3) {
-            diag_menu_printf("RTC tick: OK (%d s elapsed)\r\n", elapsed);
-            r = DIAG_PASSED;
-        } else {
-            diag_menu_printf("  ** RTC not ticking after set (elapsed=%d s)\r\n", elapsed);
-            diag_err_add(&s_err_ctx, "I2C@0x51 BM8563: not ticking after set");
-            diag_err_set_debug(&s_err_ctx,
-                               "RTC oscillator stopped — check XTAL/battery",
-                               "Re-init control registers and retry");
-            r = DIAG_FAILED;
-        }
-    } else if (elapsed < 1 || elapsed > 3) {
-        diag_menu_printf("  ** RTC not ticking (elapsed=%d s, expected ~2 s)\r\n",
-                         elapsed);
-        diag_err_add(&s_err_ctx,
-                     "I2C@0x51 BM8563: not ticking (elapsed=%d s)", elapsed);
-        diag_err_set_debug(&s_err_ctx,
-                           "RTC oscillator stopped — check battery/XTAL",
-                           "Re-init control registers and retry");
-        r = DIAG_FAILED;
-    } else {
-        diag_menu_printf("RTC tick: OK (%d s elapsed)\r\n", elapsed);
-    }
-
-    hal_rtc_deinit();
-    return r;
-}
-
-static diag_result_t test_imu(void *context)
-{
-    (void)context;
-
-    diag_err_set_component(&s_err_ctx, "IMU", "MB/IMU");
-
-    diag_result_t r = hal_imu_init();
-    if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx,
-                     "I2C@0x69 BMI270: init failed (wrong chip ID or no ACK)");
-        diag_err_set_debug(&s_err_ctx,
-                           "Check I2C bus 0x69 pull-ups",
-                           "Verify BMI270 power supply");
-        return r;
-    }
-
-    hal_imu_data_t data;
-    r = hal_imu_read(&data);
-    if (r == DIAG_PASSED) {
-        diag_menu_printf("IMU: chip_id=0x%02X\r\n", data.chip_id);
-        diag_menu_printf("  Accel (mg):   x=%+5d  y=%+5d  z=%+5d\r\n",
-                         data.accel.x, data.accel.y, data.accel.z);
-        diag_menu_printf("  Gyro  (mdps): x=%+6ld  y=%+6ld  z=%+6ld\r\n",
-                         (long)data.gyro.x, (long)data.gyro.y, (long)data.gyro.z);
-
-        /* If all data is zero, BMI270 config blob was rejected */
-        if (data.accel.x == 0 && data.accel.y == 0 && data.accel.z == 0 &&
-            data.gyro.x == 0 && data.gyro.y == 0 && data.gyro.z == 0) {
-            diag_menu_printf("  ** Accel/gyro zero — Bosch config blob not loaded\r\n");
-            diag_menu_printf("  ** Chip present (ID=0x%02X) — register test PASSED\r\n",
-                             data.chip_id);
-            diag_err_add(&s_err_ctx,
-                         "I2C@0x69 BMI270: config rejected (INT_STAT=0x02), no data");
-            diag_err_set_debug(&s_err_ctx,
-                               "Bosch config blob incompatible with this BMI270 revision",
-                               "Chip ID 0x24 confirmed — I2C register comms verified");
-            /* Register test passes — chip is present and communicating */
-            r = DIAG_PASSED;
-        }
-    } else {
-        diag_err_add(&s_err_ctx,
-                     "I2C@0x69 BMI270: read sensor data failed");
-    }
-
-    hal_imu_deinit();
-    return r;
-}
-
-static diag_result_t test_power(void *context)
-{
-    (void)context;
-
-    diag_err_set_component(&s_err_ctx, "POWER", "MB/PMU");
-
-    diag_result_t r = hal_power_init();
-    if (r != DIAG_PASSED) {
-        diag_err_add(&s_err_ctx,
-                     "I2C@0x34 AXP2101: init failed (no ACK)");
-        diag_err_set_debug(&s_err_ctx,
-                           "Check I2C bus 0x34 pull-ups",
-                           "Check battery connection and PMU power rails");
-        return r;
-    }
-
-    hal_power_data_t pwr;
-    r = hal_power_read(&pwr);
-    if (r == DIAG_PASSED) {
-        diag_menu_printf("Power: version=0x%02X\r\n",
-                         hal_power_chip_version());
-        diag_menu_printf("  Battery: %u mV (%u%%)\r\n",
-                         pwr.battery_millivolts, pwr.battery_percent);
-        diag_menu_printf("  USB:     %u mV %s\r\n",
-                         pwr.usb_millivolts,
-                         (pwr.flags & HAL_POWER_FLAG_USB) ? "connected" : "disconnected");
-        diag_menu_printf("  Charge:  %u mA %s\r\n",
-                         pwr.charge_current_ma,
-                         (pwr.flags & HAL_POWER_FLAG_BAT_CHARGING) ? "charging" :
-                         (pwr.flags & HAL_POWER_FLAG_BAT_FULL) ? "full" : "idle");
-        diag_menu_printf("  Temp:    %u C\r\n", pwr.temperature_celsius);
-    } else {
-        diag_err_add(&s_err_ctx,
-                     "I2C@0x34 AXP2101: read PMU data failed");
-    }
-
-    hal_power_deinit();
-    return r;
-}
-
-/*===========================================================================*/
-/* Fugazi-style test function wrappers (int param signature)                 */
-/*===========================================================================*/
-
-/*
- * These wrappers allow the existing test functions to be called from the
- * fugazi-style menu which uses the (int param) function signature.
- */
-
-static diag_result_t fugazi_test_i2c_scan(int param)  { (void)param; return test_i2c_scan(NULL); }
-static diag_result_t fugazi_test_screen(int param)    { (void)param; return test_screen(NULL); }
-static diag_result_t fugazi_test_touch(int param)     { (void)param; return test_touch(NULL); }
-static diag_result_t fugazi_test_rtc(int param)       { (void)param; return test_rtc(NULL); }
-static diag_result_t fugazi_test_imu(int param)       { (void)param; return test_imu(NULL); }
-static diag_result_t fugazi_test_power(int param)     { (void)param; return test_power(NULL); }
 
 /*===========================================================================*/
 /* Fugazi-style submenu definition                                           */
 /*===========================================================================*/
-
-/*
- * Main fugazi-style menu — all tests in one interactive menu.
- *
- * In the future, sub-groups can be split into separate submenu_xtable_t
- * arrays (I2C tests, peripheral tests, etc.) and nested via MF_SUBMENU.
- */
 
 #define F_I2C    (MF_CONTINUOUS | MF_DOALL | MF_SHOW_ERRCOUNT)
 #define F_PERIPH (MF_CONTINUOUS | MF_DOALL | MF_SHOW_ERRCOUNT)
@@ -513,7 +61,6 @@ static const diag_menu_xtable_t s_main_menu[] = {
 };
 #define MAIN_MENU_COUNT (sizeof(s_main_menu) / sizeof(s_main_menu[0]))
 
-/* Fugazi menu runtime instance */
 static diag_menu_t s_fugazi_menu;
 
 /*===========================================================================*/
@@ -682,13 +229,13 @@ void app_main(void)
         return;
     }
 
-    /* Initialise error context */
+    /* Initialise error context and set global pointer */
     diag_err_init(&s_err_ctx);
+    g_diag_err_ctx = &s_err_ctx;
 
     /* Build the fugazi-style interactive menu */
     if (diag_menu_build(&s_fugazi_menu, s_main_menu, MAIN_MENU_COUNT,
                         "CoreS3 Diagnostics") == DIAG_PASSED) {
-        /* Register with the CLI so 'menu' and 'errors' commands work */
         diag_menu_set_fugazi(&s_fugazi_menu, &s_err_ctx);
     }
 

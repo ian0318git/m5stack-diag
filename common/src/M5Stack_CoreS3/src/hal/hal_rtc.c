@@ -1,8 +1,8 @@
 /*
  * hal_rtc.c — CoreS3 board adapter for BM8563 RTC
  *
- * Board-specific: initialises I2C device, delegates to common
- * BM8563 chip driver.
+ * Board-specific — bridges between the abstract chip driver and the
+ * ESP-IDF I2C implementation through the transport seam.
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -10,6 +10,7 @@
 
 #include "hal_rtc.h"
 #include "hal_i2c_helpers.h"
+#include "hal_i2c_adapter.h"
 #include "rtc_BM8563.h"
 #include "diag_config.h"
 #include "esp_log.h"
@@ -27,7 +28,7 @@ diag_result_t hal_rtc_init(void)
         return DIAG_FAILED;
     }
 
-    if (rtc_BM8563_init(s_i2c_dev) != 0) {
+    if (rtc_BM8563_init(&g_diag_i2c_adapter, (void *)s_i2c_dev) != 0) {
         return DIAG_FAILED;
     }
 

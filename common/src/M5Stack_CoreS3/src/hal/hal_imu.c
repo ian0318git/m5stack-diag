@@ -1,8 +1,8 @@
 /*
  * hal_imu.c — CoreS3 board adapter for BMI270 IMU
  *
- * Board-specific: initialises I2C device, delegates to common
- * BMI270 chip driver.
+ * Board-specific — bridges between the abstract chip driver and the
+ * ESP-IDF I2C implementation through the transport seam.
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -10,6 +10,7 @@
 
 #include "hal_imu.h"
 #include "hal_i2c_helpers.h"
+#include "hal_i2c_adapter.h"
 #include "imu_BMI270.h"
 #include "diag_config.h"
 #include "esp_log.h"
@@ -27,7 +28,7 @@ diag_result_t hal_imu_init(void)
         return DIAG_FAILED;
     }
 
-    if (imu_BMI270_init(s_i2c_dev) != 0) {
+    if (imu_BMI270_init(&g_diag_i2c_adapter, (void *)s_i2c_dev) != 0) {
         return DIAG_FAILED;
     }
 

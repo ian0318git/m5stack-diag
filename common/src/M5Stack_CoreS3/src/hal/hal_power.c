@@ -1,8 +1,8 @@
 /*
  * hal_power.c — CoreS3 board adapter for AXP2101 PMU
  *
- * Board-specific: initialises I2C device, delegates to common
- * AXP2101 chip driver.
+ * Board-specific — bridges between the abstract chip driver and the
+ * ESP-IDF I2C implementation through the transport seam.
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -10,9 +10,11 @@
 
 #include "hal_power.h"
 #include "hal_i2c_helpers.h"
+#include "hal_i2c_adapter.h"
 #include "power_AXP2101.h"
 #include "diag_config.h"
 #include "esp_log.h"
+#include <string.h>
 
 static const char *TAG = "hal_power";
 static i2c_master_dev_handle_t s_i2c_dev = NULL;
@@ -22,12 +24,15 @@ diag_result_t hal_power_init(void)
 {
     if (s_initialised) return DIAG_PASSED;
 
+    /* Create ESP-IDF device handle for the AXP2101 */
     if (hal_i2c_add_device(CONFIG_I2C_ADDR_POWER, 400000, &s_i2c_dev)
         != DIAG_PASSED) {
         return DIAG_FAILED;
     }
 
-    if (power_AXP2101_init(s_i2c_dev) != 0) {
+    /* Init the chip driver through the abstract transport seam */
+    if (power_AXP2101_init(&g_diag_i2c_adapter, (void *)s_i2c_dev) != 0) {
+        ESP_LOGE(TAG, "AXP2101 init failed");
         return DIAG_FAILED;
     }
 
@@ -65,22 +70,7 @@ diag_result_t hal_power_read(hal_power_data_t *data)
     return DIAG_PASSED;
 }
 
-uint8_t hal_power_battery_percent(void)
-{
-    return power_AXP2101_battery_percent();
-}
-
-bool hal_power_is_vbus_present(void)
-{
-    return power_AXP2101_is_vbus_present();
-}
-
-void hal_power_shutdown(void)
-{
-    power_AXP2101_shutdown(); /* noreturn */
-}
-
-uint8_t hal_power_chip_version(void)
-{
-    return power_AXP2101_chip_version();
-}
+uint8_t hal_power_battery_percent(void) { return power_AXP2101_battery_percent(); }
+bool    hal_power_is_vbus_present(void)  { return power_AXP2101_is_vbus_present(); }
+void    hal_power_shutdown(void)         { power_AXP2101_shutdown(); }
+uint8_t hal_power_chip_version(void)     { return power_AXP2101_chip_version(); }

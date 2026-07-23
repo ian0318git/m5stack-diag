@@ -1,7 +1,12 @@
 /*
  * imu_BMI270.h — BMI270 6-Axis IMU (I2C)
  *
- * Common chip driver.
+ * Common chip driver — platform-agnostic.
+ * Uses abstract diag_i2c_t transport.
+ *
+ * NOTE: Delay functions (vTaskDelay, esp_rom_delay_us) are the
+ * remaining platform dependency.  Caller must ensure FreeRTOS
+ * (or compatible delay) is available.
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -10,7 +15,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "driver/i2c_master.h"
+#include "diag_transport.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,16 +25,18 @@ extern "C" {
 /* Register Map                                                              */
 /*===========================================================================*/
 
+#define BMI270_ADDR           0x69
+
 #define BMI270_REG_CHIP_ID      0x00
 #define BMI270_REG_ERR_REG      0x02
 #define BMI270_REG_STATUS       0x03
-#define BMI270_REG_ACC_X_LSB    0x04  /* 12-bit accel, LSB first */
+#define BMI270_REG_ACC_X_LSB    0x04
 #define BMI270_REG_ACC_X_MSB    0x05
 #define BMI270_REG_ACC_Y_LSB    0x06
 #define BMI270_REG_ACC_Y_MSB    0x07
 #define BMI270_REG_ACC_Z_LSB    0x08
 #define BMI270_REG_ACC_Z_MSB    0x09
-#define BMI270_REG_GYR_X_LSB    0x0A  /* 16-bit gyro, LSB first */
+#define BMI270_REG_GYR_X_LSB    0x0A
 #define BMI270_REG_GYR_X_MSB    0x0B
 #define BMI270_REG_GYR_Y_LSB    0x0C
 #define BMI270_REG_GYR_Y_MSB    0x0D
@@ -48,15 +55,12 @@ extern "C" {
 #define BMI270_ACC_EN           (1 << 0)
 #define BMI270_GYR_EN           (1 << 1)
 
-/* STATUS register bits */
 #define BMI270_STATUS_ACC_DRDY  (1 << 0)
 #define BMI270_STATUS_GYR_DRDY  (1 << 1)
 
-/* Internal status (0x21) — config load completion */
 #define BMI270_REG_INT_STATUS   0x21
 #define BMI270_INT_STAT_DONE    (1 << 0)
 
-/* Config load sequence */
 #define BMI270_CONFIG_START_ADDR  0x8000
 #define BMI270_INIT_WAIT_MS       150
 
@@ -65,13 +69,13 @@ extern "C" {
 /*===========================================================================*/
 
 typedef struct {
-    int16_t x;   /* milli-g */
+    int16_t x;
     int16_t y;
     int16_t z;
 } imu_BMI270_accel_t;
 
 typedef struct {
-    int32_t x;   /* milli-dps */
+    int32_t x;
     int32_t y;
     int32_t z;
 } imu_BMI270_gyro_t;
@@ -92,7 +96,7 @@ typedef enum {
 /* Lifecycle                                                                 */
 /*===========================================================================*/
 
-int  imu_BMI270_init(i2c_master_dev_handle_t dev);
+int  imu_BMI270_init(const diag_i2c_t *i2c, void *bus);
 void imu_BMI270_deinit(void);
 
 /*===========================================================================*/

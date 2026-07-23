@@ -1,7 +1,7 @@
 /*
  * rtc_BM8563.h — BM8563 Real-Time Clock (I2C)
  *
- * Common chip driver.
+ * Common chip driver — platform-agnostic.
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "driver/i2c_master.h"
+#include "diag_transport.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,6 +20,8 @@ extern "C" {
 /*===========================================================================*/
 /* Register Map                                                              */
 /*===========================================================================*/
+
+#define BM8563_ADDR           0x51
 
 #define BM8563_REG_CTRL1      0x00
 #define BM8563_REG_CTRL2      0x01
@@ -49,7 +51,7 @@ typedef struct {
 /* Lifecycle                                                                 */
 /*===========================================================================*/
 
-int  rtc_BM8563_init(i2c_master_dev_handle_t dev);
+int  rtc_BM8563_init(const diag_i2c_t *i2c, void *bus);
 void rtc_BM8563_deinit(void);
 
 /*===========================================================================*/

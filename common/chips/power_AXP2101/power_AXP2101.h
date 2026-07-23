@@ -1,7 +1,8 @@
 /*
  * power_AXP2101.h — AXP2101 Power Management Unit (I2C)
  *
- * Common chip driver.
+ * Common chip driver — platform-agnostic.
+ * Caller provides an initialised diag_i2c_t transport.
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -11,7 +12,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "driver/i2c_master.h"
+#include "diag_transport.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,6 +32,9 @@ extern "C" {
 #define AXP2101_REG_CHG_CUR_L   0x63
 #define AXP2101_REG_TEMP_H      0x94
 #define AXP2101_REG_TEMP_L      0x95
+
+/* I2C address (7-bit) */
+#define AXP2101_ADDR            0x34
 
 #define AXP2101_PWR_VBUS        (1 << 0)
 #define AXP2101_PWR_BAT_CHG     (1 << 1)
@@ -62,7 +66,15 @@ typedef struct {
 /* Lifecycle                                                                 */
 /*===========================================================================*/
 
-int  power_AXP2101_init(i2c_master_dev_handle_t dev);
+/**
+ * @brief Initialise the AXP2101 PMU.
+ *
+ * @param i2c   Abstract I2C transport.  Must remain valid for the
+ *              driver's lifetime.
+ * @param bus   I2C device handle (opaque, passed to transport callbacks).
+ * @return 0 on success, -1 on error.
+ */
+int  power_AXP2101_init(const diag_i2c_t *i2c, void *bus);
 void power_AXP2101_deinit(void);
 
 /*===========================================================================*/

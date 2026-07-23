@@ -1,7 +1,9 @@
 /*
  * imu_BMI270.c — BMI270 6-Axis IMU (I2C)
  *
- * Common chip driver.
+ * Common chip driver — uses abstract diag_i2c_t transport.
+ * FreeRTOS delay functions (vTaskDelay) and esp_rom_delay_us are
+ * the only remaining platform dependencies.
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -9,44 +11,45 @@
 
 #include "imu_BMI270.h"
 #include "imu_BMI270_config.h"
-#include "esp_log.h"
-#include "esp_timer.h"
+#include "esp_rom_sys.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include <string.h>
 #include <stdbool.h>
 
-static const char *TAG = "BMI270";
-static i2c_master_dev_handle_t s_dev = NULL;
-static bool s_init = false;
+/*===========================================================================*/
+/* Module state                                                              */
+/*===========================================================================*/
+
+static const diag_i2c_t *s_i2c = NULL;
+static void             *s_bus = NULL;
 
 /* Scale constants: accel ±2g (12-bit), gyro ±2000dps (16-bit) */
-#define ACCEL_MG_PER_LSB   0.4883f  /* 2g / 4096 * 1000               */
-#define GYRO_MDPS_PER_LSB  61.0f    /* 2000 / 32768 * 1000            */
+#define ACCEL_MG_PER_LSB   0.4883f
+#define GYRO_MDPS_PER_LSB  61.0f
 
 /*===========================================================================*/
-/* I2C helpers                                                               */
+/* I2C helpers (use abstract transport)                                      */
 /*===========================================================================*/
 
 static int read_reg(uint8_t reg, uint8_t *val)
 {
-    return (i2c_master_transmit_receive(s_dev, &reg, 1, val, 1, -1)
-            == ESP_OK) ? 0 : -1;
+    return s_i2c->write_then_read(s_bus, BMI270_ADDR, &reg, 1, val, 1);
 }
 
 static int write_reg(uint8_t reg, uint8_t val)
 {
     uint8_t buf[2] = { reg, val };
-    return (i2c_master_transmit(s_dev, buf, 2, -1) == ESP_OK) ? 0 : -1;
+    return s_i2c->write(s_bus, BMI270_ADDR, buf, 2);
 }
 
 static int read_regs(uint8_t reg, uint8_t *buf, size_t len)
 {
-    return (i2c_master_transmit_receive(s_dev, &reg, 1, buf, len, -1)
-            == ESP_OK) ? 0 : -1;
+    return s_i2c->write_then_read(s_bus, BMI270_ADDR, &reg, 1, buf, len);
 }
 
 /*===========================================================================*/
-/* Config blob loading (required for sensor data output)                     */
+/* Config blob loading                                                       */
 /*===========================================================================*/
 
 static int load_config(void)
@@ -57,10 +60,7 @@ static int load_config(void)
     /* Step 1: Disable config load (clear INIT_CTRL bit 0) */
     write_reg(0x59, 0x00);
 
-    /* Write config 32 bytes per chunk.
-     * Address = byte_index / 2 (word offset, not byte offset).
-     * INIT_ADDR_0 = bits [3:0] of word offset.
-     * INIT_ADDR_1 = bits [11:4] of word offset. */
+    /* Write config 32 bytes per chunk. */
     for (size_t i = 0; i < sizeof(bmi270_config_file); i += 32) {
         size_t chunk = sizeof(bmi270_config_file) - i;
         if (chunk > 32) chunk = 32;
@@ -72,8 +72,7 @@ static int load_config(void)
         uint8_t buf[33];
         buf[0] = 0x5E;
         memcpy(&buf[1], &bmi270_config_file[i], chunk);
-        if (i2c_master_transmit(s_dev, buf, 1 + chunk, -1) != ESP_OK) {
-            ESP_LOGE(TAG, "Config write failed at offset %u", (unsigned)i);
+        if (s_i2c->write(s_bus, BMI270_ADDR, buf, 1 + chunk) != 0) {
             return -1;
         }
     }
@@ -89,12 +88,10 @@ static int load_config(void)
         if (status & BMI270_INT_STAT_DONE) {
             loaded = true;
             vTaskDelay(pdMS_TO_TICKS(50));
-            ESP_LOGI(TAG, "Config loaded (%u B)", (unsigned)sizeof(bmi270_config_file));
             return 0;
         }
     }
 
-    ESP_LOGW(TAG, "Config timeout (INT_STAT=0x%02X)", status);
     return -1;
 }
 
@@ -102,19 +99,15 @@ static int load_config(void)
 /* Public API                                                                */
 /*===========================================================================*/
 
-int imu_BMI270_init(i2c_master_dev_handle_t dev)
+int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
 {
-    if (!dev) return -1;
-    s_dev = dev;
+    if (!i2c || !bus) return -1;
+    s_i2c = i2c;
+    s_bus = bus;
 
     uint8_t chip_id = 0;
     if (read_reg(BMI270_REG_CHIP_ID, &chip_id) != 0) {
-        ESP_LOGE(TAG, "BMI270 not responding");
         return -1;
-    }
-    if (chip_id != BMI270_CHIP_ID_VAL) {
-        ESP_LOGW(TAG, "Unexpected chip ID: 0x%02X (expected 0x%02X)",
-                 chip_id, BMI270_CHIP_ID_VAL);
     }
 
     /* Soft-reset */
@@ -129,25 +122,20 @@ int imu_BMI270_init(i2c_master_dev_handle_t dev)
     write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN);
     esp_rom_delay_us(50000);
 
-    /* NOTE: Config blob not loaded (INT_STAT=0x02). ROM defaults used.
-     * Basic accel/gyro should work; BMM150 and advanced features won't. */
-
-    s_init = true;
-    ESP_LOGI(TAG, "BMI270 initialised (chip_id=0x%02X)", chip_id);
     return 0;
 }
 
 void imu_BMI270_deinit(void)
 {
-    if (!s_init) return;
+    if (!s_i2c || !s_bus) return;
     write_reg(BMI270_REG_PWR_CONF, (1 << 1)); /* suspend */
-    s_init = false;
-    s_dev = NULL;
+    s_i2c = NULL;
+    s_bus = NULL;
 }
 
 int imu_BMI270_read(imu_BMI270_data_t *data)
 {
-    if (!data || !s_dev) return -1;
+    if (!data || !s_i2c || !s_bus) return -1;
     memset(data, 0, sizeof(*data));
 
     /* Check STATUS register — wait for data ready (up to 5 ms) */
@@ -168,7 +156,6 @@ int imu_BMI270_read(imu_BMI270_data_t *data)
     uint16_t ay_r = (uint16_t)(buf[2] | (buf[3] << 8)) >> 4;
     uint16_t az_r = (uint16_t)(buf[4] | (buf[5] << 8)) >> 4;
 
-    /* Sign-extend 12-bit to 16-bit */
     int16_t ax_s = (int16_t)(ax_r & 0x0FFF);
     if (ax_s & 0x0800) ax_s |= 0xF000;
     int16_t ay_s = (int16_t)(ay_r & 0x0FFF);
@@ -195,7 +182,7 @@ int imu_BMI270_read(imu_BMI270_data_t *data)
 
 int imu_BMI270_set_mode(imu_BMI270_mode_t mode)
 {
-    if (!s_dev) return -1;
+    if (!s_i2c || !s_bus) return -1;
 
     switch (mode) {
     case IMU_BMI270_MODE_NORMAL:
@@ -216,7 +203,7 @@ int imu_BMI270_set_mode(imu_BMI270_mode_t mode)
 
 uint8_t imu_BMI270_chip_id(void)
 {
-    if (!s_dev) return 0;
+    if (!s_i2c || !s_bus) return 0;
     uint8_t id = 0;
     read_reg(BMI270_REG_CHIP_ID, &id);
     return id;

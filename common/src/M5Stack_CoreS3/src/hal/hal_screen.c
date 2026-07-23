@@ -6,20 +6,20 @@
  *   - RST via AW9523B GPIO expander P1_1
  *   - Backlight via AXP2101 DLDO1
  *
- * Verified against: https://docs.m5stack.com/zh_CN/core/CoreS3
- *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
  */
 
 #include "hal_screen.h"
 #include "hal_i2c_helpers.h"
+#include "hal_i2c_adapter.h"
+#include "hal_spi_adapter.h"
 #include "hal_power.h"
 #include "aw9523b.h"
 #include "lcd_ILI9342C.h"
 #include "diag_config.h"
 #include "driver/spi_master.h"
-#include "driver/i2c_master.h"
+#include "driver/gpio.h"
 #include "esp_log.h"
 #include <string.h>
 
@@ -28,32 +28,34 @@ static const char *TAG = "hal_screen";
 static spi_device_handle_t s_spi = NULL;
 static bool s_initialised = false;
 static i2c_master_dev_handle_t s_aw9523b_dev = NULL;
+static bool s_aw9523b_inited = false;
 
 /*===========================================================================*/
-/* AW9523B initialisation (shared — also used by hal_touch.c)                */
+/* AW9523B initialisation (shared with hal_touch.c)                          */
 /*===========================================================================*/
 
-/*
- * lcd_rst_callback — called by the ILI9342C chip driver to assert/de-assert
- * the LCD reset line via AW9523B P1_1.
- */
 static void lcd_rst_callback(int level)
 {
-    if (s_aw9523b_dev) {
+    if (s_aw9523b_inited) {
         aw9523b_pin_write(AW9523B_PIN_LCD_RST, level);
     }
 }
 
+static void dc_callback(int level)
+{
+    gpio_set_level(CONFIG_LCD_DC_PIN, level);
+}
+
 static diag_result_t gpio_exp_init(void)
 {
-    if (s_aw9523b_dev) return DIAG_PASSED;
+    if (s_aw9523b_inited) return DIAG_PASSED;
 
     if (hal_i2c_add_device(CONFIG_I2C_ADDR_GPIO_EXP, 400000, &s_aw9523b_dev)
         != DIAG_PASSED) {
         return DIAG_FAILED;
     }
 
-    if (aw9523b_init(s_aw9523b_dev) != 0) {
+    if (aw9523b_init(&g_diag_i2c_adapter, (void *)s_aw9523b_dev) != 0) {
         return DIAG_FAILED;
     }
 
@@ -62,6 +64,10 @@ static diag_result_t gpio_exp_init(void)
     aw9523b_pin_set_direction(AW9523B_PIN_LCD_RST, 1);
     aw9523b_pin_write(AW9523B_PIN_LCD_RST, 0);
 
+    /* Configure DC pin as GPIO output */
+    gpio_set_direction(CONFIG_LCD_DC_PIN, GPIO_MODE_OUTPUT);
+
+    s_aw9523b_inited = true;
     ESP_LOGI(TAG, "AW9523B LCD pins configured");
     return DIAG_PASSED;
 }
@@ -70,28 +76,16 @@ static diag_result_t gpio_exp_init(void)
 /* Backlight control via AXP2101 DLDO1                                      */
 /*===========================================================================*/
 
-static diag_result_t backlight_init(void)
+static void backlight_init(void)
 {
-    if (hal_power_init() != DIAG_PASSED) {
-        ESP_LOGW(TAG, "AXP2101 init failed — backlight may not work");
-        return DIAG_FAILED;
-    }
-
-    /* AXP2101 DLDO1 output voltage register */
     i2c_master_dev_handle_t pmu = NULL;
     if (hal_i2c_add_device(CONFIG_I2C_ADDR_POWER, 400000, &pmu) != DIAG_PASSED) {
-        return DIAG_FAILED;
+        return;
     }
 
-    /* AXP2101 register 0x12: DLDO1 control (bit 3 = enable, bits 0-2 = voltage) */
-    /* 0x0C = enable + 3.3V (0b00001100) */
+    /* AXP2101 register 0x12: DLDO1 control — enable + 3.3V */
     uint8_t cmd[2] = { 0x12, 0x0C };
-    esp_err_t err = i2c_master_transmit(pmu, cmd, 2, -1);
-    if (err != ESP_OK) {
-        ESP_LOGW(TAG, "AXP2101 DLDO1 write failed: %d", err);
-    }
-
-    return DIAG_PASSED;
+    i2c_master_transmit(pmu, cmd, 2, -1);
 }
 
 /*===========================================================================*/
@@ -102,7 +96,7 @@ diag_result_t hal_screen_init(void)
 {
     if (s_initialised) return DIAG_PASSED;
 
-    /* Step 1: Init AW9523B for LCD RST */
+    /* Step 1: Init AW9523B for LCD RST + DC GPIO */
     if (gpio_exp_init() != DIAG_PASSED) {
         ESP_LOGE(TAG, "GPIO expander init failed");
         return DIAG_FAILED;
@@ -143,8 +137,9 @@ diag_result_t hal_screen_init(void)
         return DIAG_FAILED;
     }
 
-    /* Step 5: Init the ILI9342C chip driver */
-    if (lcd_ILI9342C_init(s_spi, CONFIG_LCD_DC_PIN, lcd_rst_callback) != 0) {
+    /* Step 5: Init ILI9342C chip driver through abstract transport */
+    if (lcd_ILI9342C_init(&g_diag_spi_adapter, (void *)s_spi,
+                           dc_callback, lcd_rst_callback) != 0) {
         ESP_LOGE(TAG, "ILI9342C init failed");
         return DIAG_FAILED;
     }
@@ -173,6 +168,7 @@ void hal_screen_deinit(void)
     s_initialised = false;
 }
 
+/* Drawing functions remain unchanged — they use the chip driver primitives */
 void hal_screen_fill(hal_screen_colour_t colour)
 {
     lcd_ILI9342C_set_window(0, 0, CONFIG_LCD_WIDTH - 1, CONFIG_LCD_HEIGHT - 1);
@@ -192,7 +188,7 @@ void hal_screen_draw_pixel(int x, int y, hal_screen_colour_t colour)
 }
 
 void hal_screen_fill_rect(int x, int y, int w, int h,
-                          hal_screen_colour_t colour)
+                           hal_screen_colour_t colour)
 {
     if (w <= 0 || h <= 0) return;
     if (x < 0) { w += x; x = 0; }
@@ -211,7 +207,7 @@ void hal_screen_fill_rect(int x, int y, int w, int h,
 }
 
 void hal_screen_draw_line(int x0, int y0, int x1, int y1,
-                          hal_screen_colour_t colour)
+                           hal_screen_colour_t colour)
 {
     int dx = (x1 > x0) ? (x1 - x0) : (x0 - x1);
     int dy = (y1 > y0) ? (y1 - y0) : (y0 - y1);
@@ -228,10 +224,7 @@ void hal_screen_draw_line(int x0, int y0, int x1, int y1,
     }
 }
 
-/*===========================================================================*/
-/* Font + text rendering                                                     */
-/*===========================================================================*/
-
+/* Font data (s_font6x8) and text rendering remain unchanged */
 static const uint8_t s_font6x8[95][6] = {
     {0x00,0x00,0x00,0x00,0x00,0x00},{0x00,0x00,0x5F,0x00,0x00,0x00},
     {0x00,0x07,0x00,0x07,0x00,0x00},{0x14,0x7F,0x14,0x7F,0x14,0x00},
@@ -288,7 +281,7 @@ static const int s_fw[] = { 6, 10, 16 };
 static const int s_fh[] = { 8, 16, 24 };
 
 void hal_screen_draw_text(int x, int y, const char *text,
-                          hal_screen_colour_t fg, hal_screen_colour_t bg)
+                           hal_screen_colour_t fg, hal_screen_colour_t bg)
 {
     if (!text) return;
     int fw = s_fw[s_font_idx], fh = s_fh[s_font_idx];
@@ -326,11 +319,6 @@ void hal_screen_set_font(int size)
 int hal_screen_font_width(void)  { return s_fw[s_font_idx]; }
 int hal_screen_font_height(void) { return s_fh[s_font_idx]; }
 
-void hal_screen_set_backlight(uint8_t b)
-{
-    (void)b;
-    /* Backlight controlled via AXP2101 DLDO1 — see hal_screen_init() */
-}
-
-int hal_screen_width(void)  { return CONFIG_LCD_WIDTH; }
-int hal_screen_height(void) { return CONFIG_LCD_HEIGHT; }
+void hal_screen_set_backlight(uint8_t b) { (void)b; }
+int  hal_screen_width(void)  { return CONFIG_LCD_WIDTH; }
+int  hal_screen_height(void) { return CONFIG_LCD_HEIGHT; }

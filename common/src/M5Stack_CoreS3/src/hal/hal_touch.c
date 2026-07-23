@@ -1,12 +1,8 @@
 /*
  * hal_touch.c — CoreS3 board adapter for FT6336U touch controller
  *
- * Board-specific:
- *   - Touch power via AXP2101 LDOIO0 (register 0x90)
- *   - TOUCH_RST via AW9523B GPIO expander P0_0 (NOT a direct GPIO)
- *   - TOUCH_INT via AW9523B GPIO expander P1_2 (NOT a direct GPIO)
- *
- * Verified against: https://docs.m5stack.com/zh_CN/core/CoreS3
+ * Board-specific — bridges between the abstract chip driver and the
+ * ESP-IDF I2C implementation through the transport seam.
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -14,13 +10,13 @@
 
 #include "hal_touch.h"
 #include "hal_i2c_helpers.h"
+#include "hal_i2c_adapter.h"
 #include "hal_power.h"
 #include "touch_FT6336.h"
 #include "aw9523b.h"
 #include "diag_config.h"
-#include "driver/i2c_master.h"
-#include "driver/gpio.h"
 #include "esp_log.h"
+#include "esp_rom_sys.h"
 #include <string.h>
 
 static const char *TAG = "hal_touch";
@@ -29,18 +25,12 @@ static i2c_master_dev_handle_t s_i2c_dev = NULL;
 static i2c_master_dev_handle_t s_aw9523b_dev = NULL;
 static bool s_initialised = false;
 
-/*
- * CoreS3 touch power (FT6336U VCC) is supplied by AXP2101 LDOIO0.
- * The PMU must be initialised before the FT6336 will respond on I2C.
- */
-
 #define AXP2101_REG_GPIO0_LDO     0x90
 #define AXP2101_GPIO0_3V3         0x07
 
 static diag_result_t touch_power_on(void)
 {
     if (hal_power_init() != DIAG_PASSED) {
-        ESP_LOGE(TAG, "AXP2101 init failed");
         return DIAG_FAILED;
     }
 
@@ -53,40 +43,26 @@ static diag_result_t touch_power_on(void)
     uint8_t cmd[2] = { AXP2101_REG_GPIO0_LDO, AXP2101_GPIO0_3V3 };
     esp_err_t err = i2c_master_transmit(pmu, cmd, 2, -1);
     if (err != ESP_OK) {
-        ESP_LOGW(TAG, "AXP2101 LDO write failed: %d", err);
         return DIAG_FAILED;
     }
 
-    ESP_LOGI(TAG, "Touch power enabled (AXP2101 LDOIO0 = 3.3V)");
     return DIAG_PASSED;
 }
 
-/*
- * AW9523B GPIO expander initialisation for touch control lines.
- * Called once; subsequent calls are no-ops.
- */
 static diag_result_t gpio_exp_init(void)
 {
     if (s_aw9523b_dev) return DIAG_PASSED;
 
     if (hal_i2c_add_device(CONFIG_I2C_ADDR_GPIO_EXP, 400000, &s_aw9523b_dev)
         != DIAG_PASSED) {
-        ESP_LOGE(TAG, "AW9523B I2C add failed");
         return DIAG_FAILED;
     }
 
-    if (aw9523b_init(s_aw9523b_dev) != 0) {
-        ESP_LOGE(TAG, "AW9523B init failed");
+    if (aw9523b_init(&g_diag_i2c_adapter, (void *)s_aw9523b_dev) != 0) {
         return DIAG_FAILED;
     }
 
-    /*
-     * Per-pin init using read-modify-write only for the specific pins
-     * we need.  Never write full registers (0x12/0x13 = 0x00) — that
-     * affects ALL pins and may toggle undcoumented USB_OTG_EN signals.
-     */
-
-    /* P0_0 = TOUCH_RST: GPIO mode, output, held low (assert reset) */
+    /* P0_0 = TOUCH_RST: GPIO mode, output, held low */
     aw9523b_pin_set_gpio_mode(AW9523B_PIN_TOUCH_RST);
     aw9523b_pin_set_direction(AW9523B_PIN_TOUCH_RST, 1);
     aw9523b_pin_write(AW9523B_PIN_TOUCH_RST, 0);
@@ -109,7 +85,7 @@ diag_result_t hal_touch_init(void)
     }
     esp_rom_delay_us(50000);
 
-    /* Step 2: Initialise AW9523B GPIO expander for RST/INT control */
+    /* Step 2: Initialise AW9523B for RST/INT control */
     if (gpio_exp_init() != DIAG_PASSED) {
         return DIAG_FAILED;
     }
@@ -120,11 +96,10 @@ diag_result_t hal_touch_init(void)
     aw9523b_pin_write(AW9523B_PIN_TOUCH_RST, 1);
     esp_rom_delay_us(50000);
 
-    /* Step 4: Probe for touch controller address (0x38 default, try 0x3A/0x40) */
+    /* Step 4: Probe for touch controller address */
     const uint16_t addrs[] = { 0x38, 0x3A, 0x40 };
     const char *labels[]   = { "0x38", "0x3A", "0x40" };
     int found = -1;
-    extern i2c_master_bus_handle_t hal_i2c_bus_get(void);
     i2c_master_bus_handle_t bus = hal_i2c_bus_get();
     if (bus) {
         for (int i = 0; i < 3; i++) {
@@ -141,13 +116,13 @@ diag_result_t hal_touch_init(void)
         return DIAG_FAILED;
     }
 
-    /* Step 5: Add I2C device and init chip driver */
+    /* Step 5: Add I2C device and init chip driver through transport seam */
     if (hal_i2c_add_device((uint16_t)found, 400000, &s_i2c_dev)
         != DIAG_PASSED) {
         return DIAG_FAILED;
     }
 
-    if (touch_FT6336_init(s_i2c_dev) != 0) {
+    if (touch_FT6336_init(&g_diag_i2c_adapter, (void *)s_i2c_dev) != 0) {
         ESP_LOGE(TAG, "FT6336 init failed at 0x%02X", found);
         return DIAG_FAILED;
     }
@@ -182,12 +157,5 @@ diag_result_t hal_touch_read(hal_touch_data_t *data)
     return DIAG_PASSED;
 }
 
-uint8_t hal_touch_firmware_version(void)
-{
-    return touch_FT6336_firmware_version();
-}
-
-int hal_touch_max_points(void)
-{
-    return CONFIG_TOUCH_MAX_POINTS;
-}
+uint8_t hal_touch_firmware_version(void) { return touch_FT6336_firmware_version(); }
+int     hal_touch_max_points(void)       { return CONFIG_TOUCH_MAX_POINTS; }
