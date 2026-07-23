@@ -76,16 +76,26 @@ static diag_result_t gpio_exp_init(void)
 /* Backlight control via AXP2101 DLDO1                                      */
 /*===========================================================================*/
 
-static void backlight_init(void)
+static diag_result_t backlight_init(void)
 {
+    if (hal_power_init() != DIAG_PASSED) {
+        ESP_LOGW(TAG, "AXP2101 init failed — backlight may not work");
+        return DIAG_FAILED;
+    }
+
     i2c_master_dev_handle_t pmu = NULL;
     if (hal_i2c_add_device(CONFIG_I2C_ADDR_POWER, 400000, &pmu) != DIAG_PASSED) {
-        return;
+        return DIAG_FAILED;
     }
 
     /* AXP2101 register 0x12: DLDO1 control — enable + 3.3V */
     uint8_t cmd[2] = { 0x12, 0x0C };
-    i2c_master_transmit(pmu, cmd, 2, -1);
+    esp_err_t err = i2c_master_transmit(pmu, cmd, 2, -1);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "AXP2101 DLDO1 write failed: %d", err);
+    }
+
+    return DIAG_PASSED;
 }
 
 /*===========================================================================*/
@@ -124,6 +134,9 @@ diag_result_t hal_screen_init(void)
     if (lcd_ILI9342C_init(&g_diag_spi_adapter, (void *)s_spi,
                            dc_callback, lcd_rst_callback) != 0) {
         ESP_LOGE(TAG, "ILI9342C init failed");
+        hal_spi2_remove_lcd_device();
+        hal_spi2_bus_deinit();
+        s_spi = NULL;
         return DIAG_FAILED;
     }
 

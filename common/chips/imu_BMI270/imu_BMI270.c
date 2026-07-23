@@ -111,15 +111,21 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
     }
 
     /* Soft-reset */
-    write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
+    if (write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET) != 0) {
+        return -1;
+    }
     esp_rom_delay_us(10000);
 
     /* Load firmware config (required for sensor data) */
-    load_config();
+    if (load_config() != 0) {
+        return -1;
+    }
 
-    write_reg(BMI270_REG_PWR_CONF, 0x00);
+    if (write_reg(BMI270_REG_PWR_CONF, 0x00) != 0) return -1;
     esp_rom_delay_us(1000);
-    write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN);
+    if (write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN) != 0) {
+        return -1;
+    }
     esp_rom_delay_us(50000);
 
     return 0;

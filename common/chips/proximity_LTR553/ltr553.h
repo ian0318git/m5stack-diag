@@ -31,10 +31,10 @@ extern "C" {
 #define LTR553_REG_ALS_CONTR    0x80   /* ALS control */
 #define LTR553_ALS_CONTR_ON     (1 << 0)
 
-#define LTR553_REG_ALS_CH1_0    0x85   /* ALS channel 1 (visible+IR) low byte */
-#define LTR553_REG_ALS_CH1_1    0x86   /* ALS channel 1 high byte */
-#define LTR553_REG_ALS_CH0_0    0x87   /* ALS channel 0 (visible) low byte */
-#define LTR553_REG_ALS_CH0_1    0x88   /* ALS channel 0 high byte */
+#define LTR553_REG_ALS_CH1_0    0x88   /* ALS channel 1 (visible+IR) low byte */
+#define LTR553_REG_ALS_CH1_1    0x89   /* ALS channel 1 high byte */
+#define LTR553_REG_ALS_CH0_0    0x8A   /* ALS channel 0 (visible) low byte */
+#define LTR553_REG_ALS_CH0_1    0x8B   /* ALS channel 0 high byte */
 
 #define LTR553_REG_PROX_CONTR   0x81   /* Proximity control */
 #define LTR553_PROX_CONTR_ON    (1 << 0)
