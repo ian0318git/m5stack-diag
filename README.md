@@ -309,6 +309,7 @@ This project was developed following the **[Matt Pocock Engineering Skills](http
 
 | Stage | Skill | What was done |
 |-------|-------|---------------|
+| **0. Spec Writing** | `hfs-to-dfs-writer` | Transformed the M5Stack CoreS3 hardware-framework summary (HFS) — pin mappings, I²C address table, power distribution, bus topology — into a complete **Diagnostics Functional Specification (DFS)**. The DFS lives at `doc/diag_function_spec.md` and is the single source of truth for all 25 tickets |
 | **1. Setup** | `setup-matt-pocock-skills` | Scaffolded per-repo config: issue tracker (GitHub), triage labels, domain docs layout |
 | **2. Spec → Tickets** | `wayfinder` + `to-tickets` | Analysed engineering phase; broke the DFS into 25 actionable GitHub issues (#1–#25) across 4 phases |
 | **3. Reference Analysis** | `codebase-design` | Deep-dive into `example/fugazi_ng_diag/` (Cisco production diagnostics): OOP-in-C via FVT, callin/callout seam pattern, Null Object pattern. Output saved to `doc/fugazi_design_analysis.md` |
@@ -351,7 +352,7 @@ The framework's core principles — **correctness first**, **forced exception ha
 | `include/hal/` | HAL interface contracts (board-level abstraction) |
 | `src/hal/` | CoreS3 board adapters + ESP-IDF transport adapters |
 | `tests/` | Test functions — one compilation unit per test |
-| `doc/diag_function_spec.md` | Full DFS with coverage matrix, failure analysis, debug steps |
+| `doc/diag_function_spec.md` | Full DFS with coverage matrix, failure analysis, debug steps — generated from HFS via `hfs-to-dfs-writer` skill |
 | `doc/fugazi_design_analysis.md` | Design pattern analysis of the reference codebase (fugazi_ng_diag) |
 | `example/fugazi_ng_diag/` | Reference production diagnostics codebase (Cisco) |
 
@@ -451,6 +452,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 
 | 階段 | Skill | 內容 |
 |-------|-------|------|
+| **0. 規格撰寫** | `hfs-to-dfs-writer` | 將 M5Stack CoreS3 硬體框架摘要（HFS）——接腳對應、I²C 位址表、電源分佈、匯流排拓撲——轉換為完整的**診斷功能規格書（DFS）**。DFS 位於 `doc/diag_function_spec.md`，是全部 25 個 tickets 的單一事實來源 |
 | **1. 設定** | `setup-matt-pocock-skills` | 建立專案設定：issue tracker（GitHub）、triage labels、domain docs 佈局 |
 | **2. Spec → Tickets** | `wayfinder` + `to-tickets` | 分析工程階段；將 DFS 拆解為 25 個可執行的 GitHub issues（#1–#25） |
 | **3. 參考分析** | `codebase-design` | 深入分析 `example/fugazi_ng_diag/`（Cisco 產線診斷框架）：OOP-in-C via FVT、callin/callout seam 模式、Null Object 模式 |
