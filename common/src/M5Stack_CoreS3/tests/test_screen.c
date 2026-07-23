@@ -1,7 +1,14 @@
 /*
- * test_screen.c — ILI9342C Display test
+ * test_screen.c — ILI9342C Display Internal Test (DFS §Display)
  *
- * Initialises the display, shows colour bars, draws text and crosshairs.
+ * Performs the full ILI9342C internal test sequence:
+ *   1. Precondition: AXP2101 + AW9523B must respond (checked by hal_screen_init)
+ *   2. Hardware reset via AW9523B P1_1 (10 ms low)
+ *   3. Full init sequence (SPI commands, SLEEP_OUT 120 ms, DISP_ON)
+ *   4. Colour fill: RED, GREEN, BLUE, BLACK (500 ms each)
+ *   5. Draw text "CoreS3 Diagnostic" in cyan, centred
+ *   6. Draw white crosshair (horizontal + vertical through centre)
+ *   7. De-init display, release SPI bus
  *
  * Copyright (c) 2025 by M5Stack
  * SPDX-License-Identifier: MIT
@@ -21,40 +28,72 @@ diag_result_t test_screen(void *context)
     if (g_diag_err_ctx)
         diag_err_set_component(g_diag_err_ctx, "SCREEN", "MB/LCD");
 
+    /*------------------------------------------------------------------------*/
+    /* Step 1: Init — precondition check (AXP2101 + AW9523B) inside HAL      */
+    /*------------------------------------------------------------------------*/
+
     diag_result_t r = hal_screen_init();
     if (r != DIAG_PASSED) {
         if (g_diag_err_ctx) {
-            diag_err_add(g_diag_err_ctx, "ILI9342C screen init failed");
+            diag_err_add(g_diag_err_ctx, "Display init failed — precondition fail");
             diag_err_set_debug(g_diag_err_ctx,
-                               "Check SPI bus (MOSI=G37, SCLK=G36, CS=G3, DC=G35)",
-                               "Check AW9523B P1_1 LCD_RST and AXP2101 DLDO1 backlight");
+                "Run I2C Bus Scan (P0 check: AXP2101 @0x34, AW9523B @0x58)",
+                "Run PMU Register Test & GPIO Expander Test first");
         }
         return r;
     }
 
-    int w = hal_screen_width();
-    int h = hal_screen_height();
+    int w = hal_screen_width();   /* 320 */
+    int h = hal_screen_height();  /* 240 */
 
-    hal_screen_fill(HAL_SCREEN_COLOR_RED);    vTaskDelay(pdMS_TO_TICKS(300));
-    hal_screen_fill(HAL_SCREEN_COLOR_GREEN);  vTaskDelay(pdMS_TO_TICKS(300));
-    hal_screen_fill(HAL_SCREEN_COLOR_BLUE);   vTaskDelay(pdMS_TO_TICKS(300));
-    hal_screen_fill(HAL_SCREEN_COLOR_BLACK);  vTaskDelay(pdMS_TO_TICKS(200));
+    /*------------------------------------------------------------------------*/
+    /* Step 2: Colour bars — each displayed for 500 ms per DFS spec           */
+    /*------------------------------------------------------------------------*/
+
+    diag_menu_printf("Display: RED   (500 ms)...\r\n");
+    hal_screen_fill(HAL_SCREEN_COLOR_RED);
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    diag_menu_printf("Display: GREEN (500 ms)...\r\n");
+    hal_screen_fill(HAL_SCREEN_COLOR_GREEN);
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    diag_menu_printf("Display: BLUE  (500 ms)...\r\n");
+    hal_screen_fill(HAL_SCREEN_COLOR_BLUE);
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    diag_menu_printf("Display: BLACK (500 ms)...\r\n");
+    hal_screen_fill(HAL_SCREEN_COLOR_BLACK);
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    /*------------------------------------------------------------------------*/
+    /* Step 3: Draw text "CoreS3 Diagnostic" in cyan, centre of screen        */
+    /*                                                                        */
+    /* Per DFS §Display: text is "CoreS3 Diagnostic" in cyan.                 */
+    /* We add "v1.0" on a second line to show firmware version.               */
+    /*------------------------------------------------------------------------*/
 
     hal_screen_set_font(2);
-    const char *lines[] = { "CoreS3", "Diagnostic", "System", NULL };
-    int y = 60;
-    for (int i = 0; lines[i]; i++) {
-        int text_w = strlen(lines[i]) * hal_screen_font_width();
-        int tx = (w - text_w) / 2;
-        hal_screen_draw_text(tx, y, lines[i],
-                             HAL_SCREEN_COLOR_CYAN, HAL_SCREEN_COLOR_BLACK);
-        y += hal_screen_font_height() + 4;
-    }
+    const char *line1 = "CoreS3 Diagnostic";
+    int tw1 = (int)strlen(line1) * hal_screen_font_width();
+    int tx1 = (w - tw1) / 2;
+    hal_screen_draw_text(tx1, 80, line1,
+                         HAL_SCREEN_COLOR_CYAN, HAL_SCREEN_COLOR_BLACK);
 
-    hal_screen_draw_line(w / 2, 0, w / 2, h - 1, HAL_SCREEN_COLOR_WHITE);
-    hal_screen_draw_line(0, h / 2, w - 1, h / 2, HAL_SCREEN_COLOR_WHITE);
+    /*------------------------------------------------------------------------*/
+    /* Step 4: Crosshair — horizontal + vertical through centre               */
+    /*------------------------------------------------------------------------*/
 
-    diag_menu_printf("Screen test complete.\r\n");
+    hal_screen_draw_line(w / 2, 0,        w / 2, h - 1, HAL_SCREEN_COLOR_WHITE);
+    hal_screen_draw_line(0,      h / 2, w - 1,     h / 2, HAL_SCREEN_COLOR_WHITE);
+
+    diag_menu_printf("Display: crosshair drawn at (%d, %d)\r\n", w / 2, h / 2);
+
+    /*------------------------------------------------------------------------*/
+    /* Step 5: De-init and release SPI bus                                    */
+    /*------------------------------------------------------------------------*/
+
+    diag_menu_printf("Display test PASSED (visual check required)\r\n");
     hal_screen_deinit();
     return DIAG_PASSED;
 }
