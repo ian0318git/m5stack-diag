@@ -74,9 +74,9 @@ static int load_config(void)
             return -1;
     }
 
-    /* Trigger firmware load */
+    /* Trigger firmware load (per M5Unified order: INIT_CTRL, then INT_MAP_DATA) */
     write_reg(BMI270_REG_INIT_CTRL, 0x01);
-    vTaskDelay(pdMS_TO_TICKS(20));
+    write_reg(BMI270_REG_INT_MAP_DATA, 0xFF);
 
     /* Poll INTERNAL_STATUS for done */
     uint8_t status = 0;
@@ -122,14 +122,8 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
         return -1;
     }
 
-    /* Step 5: Enable data-ready interrupt mapping (per M5Unified) */
-    write_reg(BMI270_REG_INT_MAP_DATA, 0xFF);
-    vTaskDelay(pdMS_TO_TICKS(10));
-
-    /* Step 6: Sensors enabled by the config blob's feature engine.
-     * M5Unified does NOT write PWR_CTRL here unless BMM150 is detected.
-     * The feature engine handles power management internally.
-     * Writing PWR_CTRL here would conflict with the firmware. */
+    /* Step 5: Sensors enabled by the config blob's feature engine.
+     * INT_MAP_DATA already written inside load_config(). */
 
     return 0;
 }
