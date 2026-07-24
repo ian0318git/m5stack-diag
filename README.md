@@ -358,6 +358,40 @@ The framework's core principles — **correctness first**, **forced exception ha
 
 ---
 
+## CI/CD
+
+The project uses **GitHub Actions** for continuous integration and deployment.
+
+### CI — Continuous Integration
+
+On every push to `main` and every PR to `main`:
+
+| Job | What it does | Time |
+|-----|-------------|------|
+| **Host unit tests** | Compiles & runs 37 unit tests via `gcc` on `ubuntu-latest` | ~30s |
+| **ESP-IDF build** | Cross-compiles firmware for esp32s3 via `espressif/idf:release-v6.0` docker | ~5-8 min |
+
+### CD — Continuous Deployment
+
+When a tag matching `v*` is pushed (e.g. `v1.1.0`):
+
+1. ✅ **CI runs first** — unit tests + ESP-IDF build must pass
+2. ✅ **Release created** — GitHub Release is auto-generated
+3. ✅ **Binary attached** — `m5s3_diag.bin` is attached to the release
+
+To trigger a release:
+
+```bash
+git tag -a v1.1.0 -m "v1.1.0"
+git push origin v1.1.0
+```
+
+### Status Badges
+
+![CI](https://github.com/ian0318git/m5stack-diag/actions/workflows/ci.yml/badge.svg)
+
+---
+
 ## Development Journey
 
 This project was built from scratch through every stage of the **Matt Pocock Engineering Skills** framework:
