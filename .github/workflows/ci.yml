@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # WHAT:  Host-side unit tests (gcc, no ESP-IDF needed)
+  #
+  # WHY:   34 tests across 9 chip drivers, using mock I2C transport.
+  #        These tests verify chip driver logic (register encoding,
+  #        battery % lookup, accel sign-extension, etc.) WITHOUT
+  #        needing real ESP32 hardware or the ESP-IDF toolchain.
+  #        They run on the GitHub runner in ~2 seconds.
+  #
+  # WHEN:  Every push to main, every PR to main.
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  unit-test:
+    name: Host unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tests/unit
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gcc libc6-dev
+
+      - name: Build and run power_AXP2101 tests
+        run: |
+          gcc -I . \
+            -I ../../common/chips/power_AXP2101 \
+            -I ../../common/src/M5Stack_CoreS3/include \
+            -o test_power_AXP2101 test_power_AXP2101.c \
+            ../../common/chips/power_AXP2101/power_AXP2101.c \
+            -lm && ./test_power_AXP2101
+
+      - name: Build and run IMU BMI270 tests
+        run: |
+          gcc -I . -I freertos -I esp_rom \
+            -I ../../common/chips/imu_BMI270 \
+            -I ../../common/src/M5Stack_CoreS3/include \
+            -include esp_stubs.h \
+            -o test_imu_BMI270 test_imu_BMI270.c \
+            ../../common/chips/imu_BMI270/imu_BMI270.c \
+            -lm && ./test_imu_BMI270
+
+      - name: Build and run RTC BM8563 tests
+        run: |
+          gcc -I . \
+            -I ../../common/chips/rtc_BM8563 \
+            -I ../../common/src/M5Stack_CoreS3/include \
+            -o test_rtc_BM8563 test_rtc_BM8563.c \
+            ../../common/chips/rtc_BM8563/rtc_BM8563.c \
+            -lm && ./test_rtc_BM8563
+
+      - name: Build and run all remaining chip tests
+        run: |
+          gcc -I . \
+            -I ../../common/chips/aw9523b \
+            -I ../../common/chips/audio_AW88298 \
+            -I ../../common/chips/audio_ES7210 \
+            -I ../../common/chips/proximity_LTR553 \
+            -I ../../common/chips/camera_GC0308 \
+            -I ../../common/chips/touch_FT6336 \
+            -I ../../common/src/M5Stack_CoreS3/include \
+            -o test_all_chips test_all_chips.c \
+            ../../common/chips/aw9523b/aw9523b.c \
+            ../../common/chips/audio_AW88298/aw88298.c \
+            ../../common/chips/audio_ES7210/es7210.c \
+            ../../common/chips/proximity_LTR553/ltr553.c \
+            ../../common/chips/camera_GC0308/gc0308.c \
+            ../../common/chips/touch_FT6336/touch_FT6336.c \
+            -lm && ./test_all_chips
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # WHAT:  ESP-IDF build (cross-compile for ESP32-S3)
+  #
+  # WHY:   Verify the firmware compiles correctly for the target.
+  #        This catches compilation errors that host-side tests
+  #        can't — ESP-IDF-specific headers, linker scripts,
+  #        FreeRTOS API usage, etc.
+  #
+  # WHEN:  Every push to main, every PR to main.
+  #        Takes ~5-8 minutes (ESP-IDF docker is ~2 GB).
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  esp-idf-build:
+    name: ESP-IDF build (esp32s3)
+    runs-on: ubuntu-latest
+    container:
+      image: espressif/idf:v6.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build firmware
+        run: |
+          . /opt/esp/idf/export.sh
+          idf.py set-target esp32s3
+          idf.py build
