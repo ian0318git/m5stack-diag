@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: [v*]
   pull_request:
     branches: [main]
 
@@ -102,3 +103,36 @@ jobs:
           . /opt/esp/idf/export.sh
           idf.py set-target esp32s3
           idf.py build
+
+      - name: Upload firmware binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: m5s3_diag
+          path: build/m5s3_diag.bin
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # WHAT:  Create GitHub Release and attach firmware binary
+  #
+  # WHY:   Every tagged version (v1.*) automatically gets a
+  #        release with the compiled .bin for direct download.
+  #
+  # WHEN:  Tag push matching v* (e.g. v1.0.0, v1.1.0)
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  release:
+    name: Create Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [esp-idf-build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download firmware binary
+        uses: actions/download-artifact@v4
+        with:
+          name: m5s3_diag
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: m5s3_diag.bin
+          generate_release_notes: true
