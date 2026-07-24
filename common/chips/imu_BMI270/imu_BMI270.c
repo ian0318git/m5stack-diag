@@ -126,11 +126,10 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
     write_reg(BMI270_REG_INT_MAP_DATA, 0xFF);
     vTaskDelay(pdMS_TO_TICKS(10));
 
-    /* Step 6: Enable accel + gyro power (PWR_CTRL = 0x7D per M5Unified) */
-    if (write_reg(BMI270_REG_PWR_CTRL, BMI270_ACC_EN | BMI270_GYR_EN) != 0) {
-        return -1;
-    }
-    vTaskDelay(pdMS_TO_TICKS(50));
+    /* Step 6: Sensors enabled by the config blob's feature engine.
+     * M5Unified does NOT write PWR_CTRL here unless BMM150 is detected.
+     * The feature engine handles power management internally.
+     * Writing PWR_CTRL here would conflict with the firmware. */
 
     return 0;
 }
