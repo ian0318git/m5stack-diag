@@ -118,8 +118,12 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
         return -1;
     }
 
-    /* Step 5: Sensors enabled by the config blob's feature engine.
-     * INT_MAP_DATA already written inside load_config(). */
+    /* Step 5: Enable sensors (PWR_CTRL = TEMP|GYR|ACC = 0x07).
+     * Register dump confirmed PWR_CTRL=0x00 after config loading.
+     * The config blob loads the feature engine firmware, but accel and
+     * gyro still need the PWR_CTRL enable bits set to start producing data. */
+    write_reg(BMI270_REG_PWR_CTRL, 0x07);  /* TEMP_EN | GYR_EN | ACC_EN */
+    vTaskDelay(pdMS_TO_TICKS(50));
 
     return 0;
 }
