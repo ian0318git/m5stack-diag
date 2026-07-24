@@ -53,6 +53,25 @@ diag_result_t test_imu(void *context)
     diag_menu_printf("IMU: chip_id=0x%02X STATUS=0x%02X ERR=0x%02X (%s)\r\n",
                      hal_imu_chip_id(), imu_status, err_reg, err_desc);
 
+    /* Diagnostic: read legacy registers directly */
+    {
+        extern i2c_master_dev_handle_t get_imu_dev(void);
+        i2c_master_dev_handle_t dev = get_imu_dev();
+        if (dev) {
+            uint8_t reg_acc = 0x0C, buf_acc[6], reg_gyr = 0x12, buf_gyr[6];
+            i2c_master_transmit_receive(dev, &reg_acc, 1, buf_acc, 6, -1);
+            i2c_master_transmit_receive(dev, &reg_gyr, 1, buf_gyr, 6, -1);
+            int16_t ax = (int16_t)(buf_acc[0] | (buf_acc[1] << 8));
+            int16_t ay = (int16_t)(buf_acc[2] | (buf_acc[3] << 8));
+            int16_t az = (int16_t)(buf_acc[4] | (buf_acc[5] << 8));
+            int16_t gx = (int16_t)(buf_gyr[0] | (buf_gyr[1] << 8));
+            int16_t gy = (int16_t)(buf_gyr[2] | (buf_gyr[3] << 8));
+            int16_t gz = (int16_t)(buf_gyr[4] | (buf_gyr[5] << 8));
+            diag_menu_printf("  Legacy: ACC=%+5d,%+5d,%+5d GYR=%+6d,%+6d,%+6d\r\n",
+                             ax, ay, az, gx, gy, gz);
+        }
+    }
+
     hal_imu_data_t data;
     r = hal_imu_read(&data);
     if (r == DIAG_PASSED) {
