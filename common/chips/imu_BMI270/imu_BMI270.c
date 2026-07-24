@@ -145,28 +145,21 @@ int imu_BMI270_read(imu_BMI270_data_t *data)
      * and gyro from 0x12 (per M5Unified GYR_X_LSB_ADDR).
      * Each axis is 16-bit two's complement, LSB first, 6 bytes each. */
     {
-        /* Read feature engine data frame from register 0x04 (AUX_X_LSB).
-         * Per M5Unified BMI270_Class::getImuRawData():
-         *   - Check INT_STATUS_1 (0x1D): bit 7=accel DRDY, bit 6=gyro DRDY
-         *   - Read 20 bytes from 0x04 into int16_t[10]
-         *   - buf[4..6] = accel, buf[7..9] = gyro (16-bit two's complement)
-         *   - Scale: 1 LSB = 8g/32768 (accel), 2000dps/32768 (gyro) */
-        uint8_t intstat = 0;
-        read_reg(BMI270_REG_INT_STATUS_1, &intstat);
+        /* Read accel/gyro from legacy registers at 0x0C/0x12.
+         * INT_STS1=0x80 indicates accel data-ready; the data is
+         * available at the M5Unified legacy register addresses. */
+        int16_t accel_raw[3], gyro_raw[3];
+        if (read_regs(0x0C, (uint8_t *)accel_raw, 6) != 0) return -1;
+        if (read_regs(0x12, (uint8_t *)gyro_raw, 6) != 0) return -1;
 
-        int16_t frame[10];
-        if (read_regs(BMI270_REG_DATA_FRAME, (uint8_t *)frame, 20) != 0) return -1;
-
-        if (intstat & BMI270_DRDY_ACCEL) {
-            data->accel.x = (int16_t)((int32_t)frame[4] * 8000 / 32768);
-            data->accel.y = (int16_t)((int32_t)frame[5] * 8000 / 32768);
-            data->accel.z = (int16_t)((int32_t)frame[6] * 8000 / 32768);
-        }
-        if (intstat & BMI270_DRDY_GYRO) {
-            data->gyro.x  = (int32_t)((int64_t)frame[7] * 2000000 / 32768);
-            data->gyro.y  = (int32_t)((int64_t)frame[8] * 2000000 / 32768);
-            data->gyro.z  = (int32_t)((int64_t)frame[9] * 2000000 / 32768);
-        }
+        /* ±8g accel → mg: raw × 8000 / 32768 */
+        data->accel.x = (int16_t)((int32_t)accel_raw[0] * 8000 / 32768);
+        data->accel.y = (int16_t)((int32_t)accel_raw[1] * 8000 / 32768);
+        data->accel.z = (int16_t)((int32_t)accel_raw[2] * 8000 / 32768);
+        /* ±2000dps gyro → mdps: raw × 2000000 / 32768 */
+        data->gyro.x  = (int32_t)((int64_t)gyro_raw[0] * 2000000 / 32768);
+        data->gyro.y  = (int32_t)((int64_t)gyro_raw[1] * 2000000 / 32768);
+        data->gyro.z  = (int32_t)((int64_t)gyro_raw[2] * 2000000 / 32768);
     }
 
     read_reg(BMI270_REG_CHIP_ID, &data->chip_id);
