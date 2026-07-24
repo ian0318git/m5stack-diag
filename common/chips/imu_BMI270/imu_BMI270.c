@@ -125,6 +125,7 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
             vTaskDelay(pdMS_TO_TICKS(1));
             read_reg(BMI270_REG_PWR_CONF, &pwr);
         } while (pwr == 0 && --retry);
+        /* Note: some BMI270 revisions keep PWR_CONF=0 after reset; proceed anyway */
     }
 
     /* Step 3: Disable advance power save */
