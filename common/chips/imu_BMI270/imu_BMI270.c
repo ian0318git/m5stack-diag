@@ -107,19 +107,9 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
 
     /* Step 1: Soft reset */
     write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
+    vTaskDelay(pdMS_TO_TICKS(10));
 
-    /* Step 2: Wait for reset to complete (PWR_CONF becomes non-zero per M5Unified) */
-    {
-        int retry = 30;
-        uint8_t pwr = 0;
-        do {
-            vTaskDelay(pdMS_TO_TICKS(1));
-            read_reg(BMI270_REG_PWR_CONF, &pwr);
-        } while (pwr == 0 && --retry);
-        /* Note: some BMI270 revisions keep PWR_CONF=0 after reset; proceed anyway */
-    }
-
-    /* Step 3: Disable advance power save */
+    /* Step 2: Disable advance power save */
     write_reg(BMI270_REG_PWR_CONF, 0x00);
     vTaskDelay(pdMS_TO_TICKS(1));
 
