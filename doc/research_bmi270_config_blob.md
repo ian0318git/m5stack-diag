@@ -295,9 +295,15 @@ attempts (base blob, max_fifo, ROM defaults, explicit ODR/range). The BMI270
 responds correctly on I2C (chip_id=0x24, STATUS readable, ERR_REG readable)
 but the sensor data path never activates.
 
-**Final conclusion:** This specific CoreS3 unit has a non-functional BMI270
-sensor. The diagnostics correctly identify this. No software fix can enable
-data output on this unit. A replacement board is needed for IMU testing.
+**Final conclusion (2026-07-24):** The BMI270 is fully functional on this unit.
+The zero-data issue was caused by four distinct software bugs, all fixed:
+
+1. **PWR_CTRL not written** — register address was wrong (0x7E=CMD, not 0x7D=PWR_CTRL)
+2. **Config re-upload skipped** — `static bool loaded` not reset in deinit
+3. **Wrong data-ready register** — used STATUS(0x03) instead of INT_STATUS_1(0x1D)
+4. **Register addresses shifted** — all power/CMD registers were +1 offset
+
+After fixes: `Accel (mg): x=+11 y=+988 z=+3 Gyro: all zeros (stationary)`
 
 ### Update 2026-07-24 — M5Unified register map cross-check
 
