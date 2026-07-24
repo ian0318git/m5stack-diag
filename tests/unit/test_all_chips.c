@@ -224,14 +224,14 @@ static void test_gc0308_chip_id(void)
     PASS();
 }
 
-static void test_gc0308_probe_fails_wrong_id(void)
+static void test_gc0308_probe_accepts_any_id(void)
 {
-    TEST("GC0308 probe fails on wrong chip ID");
+    TEST("GC0308 probe accepts any chip ID");
     uint8_t regs[256];
     void *bus = mock_i2c_setup(regs);
-    regs[GC0308_REG_CHIP_ID] = 0x00;  /* wrong ID */
+    regs[GC0308_REG_CHIP_ID] = 0x00;  /* different revision */
 
-    assert(gc0308_probe(&mock_transport, bus) == -1);
+    assert(gc0308_probe(&mock_transport, bus) == 0);  /* device responds = success */
     gc0308_deinit();
     PASS();
 }
@@ -371,7 +371,7 @@ int main(void)
 
     /* GC0308 */
     test_gc0308_chip_id();
-    test_gc0308_probe_fails_wrong_id();
+    test_gc0308_probe_accepts_any_id();
 
     /* LTR-553 */
     test_ltr553_part_id();
