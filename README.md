@@ -358,6 +358,35 @@ The framework's core principles — **correctness first**, **forced exception ha
 
 ---
 
+## Development Journey
+
+This project was built from scratch through every stage of the **Matt Pocock Engineering Skills** framework:
+
+| Stage | Skill | Outcome |
+|-------|-------|---------|
+| **0. Spec** | `hfs-to-dfs-writer` | Diagnostics Functional Specification |
+| **1. Setup** | `setup-matt-pocock-skills` | Project configuration |
+| **2. Planning** | `wayfinder` + `to-tickets` | 25 GitHub Issues |
+| **3. Reference** | `codebase-design` | fugazi_ng_diag design pattern analysis |
+| **4. Architecture** | `codebase-design` | CoreS3 architecture evaluation |
+| **5. Refactoring** | Lead Developer | Transport seam, SPI2 bus, test extraction |
+| **6. Implementation** | Lead Developer | All 25 tickets complete |
+| **7. Code Review** | `code-review` | 10-angle max-effort, 15 findings fixed |
+| **8. Domain** | `domain-modeling` | CONTEXT.md + 3 ADRs |
+| **9. TDD** | `tdd` | 37 unit tests, 2 bugs found |
+| **10. Research** | `research` | BMI270 config blob + M5Unified reverse engineering |
+| **11. Grilling** | `grilling` | Architecture decision validation |
+| **12. Bug Hunt** | `diagnosing-bugs` | BMI270: 4 bugs fixed (register offset, PWR_CTRL, INT_STATUS, config flag) |
+
+Final hardware verification:
+
+```
+8 passed, 0 failed, 5 skipped
+IMU: Accel (mg): x= +10  y= +988  z=  +4  ← gravity vector detected
+```
+
+---
+
 ## License
 
 This project is licensed under the **MIT License**.
@@ -461,6 +490,35 @@ idf.py -p /dev/ttyACM0 flash monitor
 | **6. 實作 Tickets** | Lead Developer | 完成全部 25 個 tickets：6 個晶片驅動、8 個測試函式、audio HAL、SPI2 bus manager、burn-in CLI |
 | **7. Code Review** | `code-review` | 10 角度最高強度審查：5 個正確性 + 3 個清理 + altitude + conventions。15 個 finding 全部修復（修復率 100%） |
 | **8. 下一步** | `domain-modeling`（規劃中） | 建立 `CONTEXT.md` 領域詞彙與 `docs/adr/` 架構決策記錄 |
+
+---
+
+## 開發旅程
+
+本專案從零開始，完整走過 **Matt Pocock Engineering Skills** 框架的每個階段：
+
+| 階段 | Skill | 成果 |
+|------|-------|------|
+| **0. Spec** | `hfs-to-dfs-writer` | 診斷功能規格書 DFS |
+| **1. Setup** | `setup-matt-pocock-skills` | 專案設定 |
+| **2. Planning** | `wayfinder` + `to-tickets` | 25 個 GitHub Issues |
+| **3. Reference** | `codebase-design` | fugazi_ng_diag 設計模式分析 |
+| **4. Architecture** | `codebase-design` | CoreS3 架構評估 |
+| **5. Refactoring** | Lead Developer | Transport seam、SPI2 bus manager、tests extraction |
+| **6. Implementation** | Lead Developer | 25 tickets 全部完成 |
+| **7. Code Review** | `code-review` | 10 角度 max-effort，15 findings 全部修復 |
+| **8. Domain** | `domain-modeling` | CONTEXT.md + 3 ADRs |
+| **9. TDD** | `tdd` | 37 unit tests，2 bugs found |
+| **10. Research** | `research` | BMI270 config blob 調查 + M5Unified reverse engineering |
+| **11. Grilling** | `grilling` | 架構決策驗證 |
+| **12. Bug Hunt** | `diagnosing-bugs` | BMI270 4 bugs（register offset/PWR_CTRL/INT_STATUS/config flag） |
+
+最終在實機上驗證通過：
+
+```
+8 passed, 0 failed, 5 skipped
+IMU: Accel (mg): x= +10  y= +988  z=  +4  ← 重力感測正常
+```
 
 ---
 
