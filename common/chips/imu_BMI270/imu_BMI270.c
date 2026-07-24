@@ -23,6 +23,7 @@
 
 static const diag_i2c_t *s_i2c = NULL;
 static void             *s_bus = NULL;
+static bool              s_config_loaded = false;
 
 /*===========================================================================*/
 /* I2C helpers                                                               */
@@ -50,8 +51,7 @@ static int read_regs(uint8_t reg, uint8_t *buf, size_t len)
 
 static int load_config(void)
 {
-    static bool loaded = false;
-    if (loaded) return 0;
+    if (s_config_loaded) return 0;
 
     /* Write config in 32-byte chunks */
     write_reg(BMI270_REG_INIT_CTRL, 0x00);
@@ -79,7 +79,7 @@ static int load_config(void)
     for (int r = 0; r < 60; r++) {
         vTaskDelay(pdMS_TO_TICKS(5));
         if (read_reg(BMI270_REG_INT_STATUS, &status) == 0 && (status & BMI270_INT_STAT_DONE)) {
-            loaded = true;
+            s_config_loaded = true;
             vTaskDelay(pdMS_TO_TICKS(50));
             return 0;
         }
@@ -132,6 +132,7 @@ void imu_BMI270_deinit(void)
 {
     if (!s_i2c || !s_bus) return;
     write_reg(BMI270_REG_PWR_CONF, (1 << 1)); /* suspend */
+    s_config_loaded = false;
     s_i2c = NULL;
     s_bus = NULL;
 }
