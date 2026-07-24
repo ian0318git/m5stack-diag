@@ -50,43 +50,48 @@ static int read_regs(uint8_t reg, uint8_t *buf, size_t len)
 
 static int load_config(void)
 {
-    static bool loaded = false;
-    if (loaded) return 0;
+    /* Set word address to 0 (start of config) */
+    uint8_t addr[2] = {0, 0};
+    if (s_i2c->write(s_bus, BMI270_ADDR,
+                     (uint8_t[]){BMI270_REG_INIT_ADDR_0, addr[0], addr[1]}, 3) != 0)
+        return -1;
 
-    /* Write config in 32-byte chunks (per M5Unified BMI270_Class) */
-    for (size_t i = 0; i < sizeof(bmi270_config_file); i += 32) {
-        size_t chunk = sizeof(bmi270_config_file) - i;
-        if (chunk > 32) chunk = 32;
+    /* Write entire config in one burst (matches M5Unified BMI270_Class) */
+    size_t total = sizeof(bmi270_config_file);
+    /* Split into I2C-burst-sized chunks (max 128 bytes per transaction) */
+    for (size_t offset = 0; offset < total; ) {
+        size_t chunk = total - offset;
+        if (chunk > 128) chunk = 128;
 
-        /* Set word address: split byte_index/2 across INIT_ADDR_0/1 */
-        uint8_t addr[2] = {
-            (uint8_t)((i >> 1) & 0x0F),   /* bits [3:0] */
-            (uint8_t)(i >> 5),             /* bits [11:4] */
-        };
-        if (s_i2c->write(s_bus, BMI270_ADDR,
-                         (uint8_t[]){BMI270_REG_INIT_ADDR_0, addr[0], addr[1]}, 3) != 0)
-            return -1;
-
-        /* Burst-write chunk to INIT_DATA */
-        uint8_t buf[33] = {BMI270_REG_INIT_DATA};
-        memcpy(&buf[1], &bmi270_config_file[i], chunk);
+        uint8_t buf[129] = {BMI270_REG_INIT_DATA};
+        memcpy(&buf[1], &bmi270_config_file[offset], chunk);
         if (s_i2c->write(s_bus, BMI270_ADDR, buf, 1 + chunk) != 0)
             return -1;
+        offset += chunk;
+
+        /* Update word address for next chunk */
+        uint16_t word_addr = (uint16_t)(offset / 2);
+        addr[0] = (uint8_t)(word_addr & 0x0F);
+        addr[1] = (uint8_t)(word_addr >> 4);
+        if (offset < total) {
+            if (s_i2c->write(s_bus, BMI270_ADDR,
+                             (uint8_t[]){BMI270_REG_INIT_ADDR_0, addr[0], addr[1]}, 3) != 0)
+                return -1;
+        }
     }
 
-    /* Trigger firmware load (per M5Unified order: INIT_CTRL, then INT_MAP_DATA) */
+    /* Trigger firmware load (per M5Unified order: INIT_CTRL → INT_MAP_DATA) */
     write_reg(BMI270_REG_INIT_CTRL, 0x01);
     write_reg(BMI270_REG_INT_MAP_DATA, 0xFF);
 
-    /* Poll INTERNAL_STATUS for done */
+    /* Wait for feature engine ready (M5Unified polls for any non-zero) */
     uint8_t status = 0;
-    for (int r = 0; r < 60; r++) {
-        if (read_reg(BMI270_REG_INT_STATUS, &status) == 0 && (status & BMI270_INT_STAT_DONE)) {
-            loaded = true;
-            vTaskDelay(pdMS_TO_TICKS(50));
+    for (int r = 0; r < 50; r++) {
+        if (read_reg(BMI270_REG_INT_STATUS, &status) == 0 && status != 0) {
+            vTaskDelay(pdMS_TO_TICKS(20));
             return 0;
         }
-        vTaskDelay(pdMS_TO_TICKS(5));
+        vTaskDelay(pdMS_TO_TICKS(2));
     }
     return -1;
 }
@@ -109,13 +114,22 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
         return -1;
     }
 
-    /* Step 1: Soft reset (CMD_REG = 0x7E per M5Unified) */
+    /* Step 1: Soft reset */
     write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
-    vTaskDelay(pdMS_TO_TICKS(10));
 
-    /* Step 2: Disable advance power save (per M5Unified) */
+    /* Step 2: Wait for reset to complete (PWR_CONF becomes non-zero per M5Unified) */
+    {
+        int retry = 30;
+        uint8_t pwr = 0;
+        do {
+            vTaskDelay(pdMS_TO_TICKS(1));
+            read_reg(BMI270_REG_PWR_CONF, &pwr);
+        } while (pwr == 0 && --retry);
+    }
+
+    /* Step 3: Disable advance power save */
     write_reg(BMI270_REG_PWR_CONF, 0x00);
-    vTaskDelay(pdMS_TO_TICKS(2));
+    vTaskDelay(pdMS_TO_TICKS(1));
 
     /* Step 3: Upload config blob (base 8192 B) */
     if (load_config() != 0) {
