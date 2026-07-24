@@ -59,7 +59,6 @@ static int mock_write_then_read(void *bus, uint16_t addr,
     (void)addr;
     if (!mock_regs) return -1;
 
-    /* wdata is the register address (1 byte for all our drivers) */
     if (wlen != 1) return -1;
     uint8_t reg = *(const uint8_t *)wdata;
     uint8_t *out = (uint8_t *)rdata;

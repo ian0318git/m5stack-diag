@@ -105,6 +105,9 @@ int imu_BMI270_init(const diag_i2c_t *i2c, void *bus)
     if (read_reg(BMI270_REG_CHIP_ID, &chip_id) != 0) {
         return -1;
     }
+    if (chip_id != BMI270_CHIP_ID_VAL) {
+        return -1;
+    }
 
     /* Step 1: Soft reset (CMD_REG = 0x7E per M5Unified) */
     write_reg(BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
@@ -157,10 +160,11 @@ int imu_BMI270_read(imu_BMI270_data_t *data)
         data->accel.x = (int16_t)((int32_t)accel_raw[0] * 8000 / 32768);
         data->accel.y = (int16_t)((int32_t)accel_raw[1] * 8000 / 32768);
         data->accel.z = (int16_t)((int32_t)accel_raw[2] * 8000 / 32768);
-        /* ±2000dps gyro → mdps: raw * 2000000 / 32768 */
-        data->gyro.x  = (int32_t)gyro_raw[0] * 2000000 / 32768;
-        data->gyro.y  = (int32_t)gyro_raw[1] * 2000000 / 32768;
-        data->gyro.z  = (int32_t)gyro_raw[2] * 2000000 / 32768;
+        /* ±2000dps gyro → mdps: raw * 2000000 / 32768
+         * Use int64_t to avoid overflow (raw=32767 → 65B > INT32_MAX) */
+        data->gyro.x  = (int32_t)((int64_t)gyro_raw[0] * 2000000 / 32768);
+        data->gyro.y  = (int32_t)((int64_t)gyro_raw[1] * 2000000 / 32768);
+        data->gyro.z  = (int32_t)((int64_t)gyro_raw[2] * 2000000 / 32768);
     }
 
     read_reg(BMI270_REG_CHIP_ID, &data->chip_id);

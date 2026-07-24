@@ -77,6 +77,9 @@ extern "C" {
 #define BMI270_REG_INT_STATUS    0x21
 #define BMI270_INT_STAT_DONE     (1 << 0)
 
+#define BMI270_STATUS_ACC_DRDY  (1 << 0)
+#define BMI270_STATUS_GYR_DRDY  (1 << 1)
+
 #define BMI270_CHIP_ID_VAL       0x24
 
 /*===========================================================================*/
