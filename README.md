@@ -9,6 +9,9 @@
 [![tag](https://img.shields.io/badge/tag-v1.0.0-green)](https://github.com/ian0318git/m5stack-diag)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
+> **Senior Embedded Engineer Career Break Project**  
+> Built during a career break to keep board bring-up, diagnostics architecture, and modern embedded practices sharp. Translates 25+ years of production networking / Secure Boot / Day-0 experience into a clean, testable, open diagnostic framework.
+
 An embedded diagnostic system for the **M5Stack CoreS3**, built on **ESP-IDF v6.0** with **Clean Architecture** principles and operated through a **USB Serial/JTAG console** (`/dev/ttyACM0`).
 
 ---
@@ -440,6 +443,9 @@ This project is licensed under the **MIT License**.
 [![tag](https://img.shields.io/badge/tag-v1.0.0-green)](https://github.com/ian0318git/m5stack-diag)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
+> **資深嵌入式工程師 Career Break 專案**  
+> 在職涯空窗期間打造，用來保持 Board Bring-up、診斷架構與現代嵌入式實務的敏銳度。把超過 25 年生產級網路設備 / Secure Boot / Day-0 經驗，轉化成乾淨、可測試、可公開的診斷框架。
+
 以 **ESP-IDF v6.0** 框架開發、採用**乾淨架構（Clean Architecture）**、透過 USB Serial/JTAG Console 操作的 M5Stack CoreS3 嵌入式硬體診斷系統。
 
 ---
@@ -511,7 +517,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 
 ## 開發流程
 
-本專案依照 **[Matt Pocock Engineering Skills](https://github.com/mattpocock/mattpocock-skills)** 框架開發——一套結構化的 AI 輔助開發方法論。每個階段呼叫特定 skill 來維持焦點、確保品質，並避免過早最佳化。
+本專案依照 **[Matt Pocock Engineering Skills](https://github.com/mattpocock/matt-pocock-skills)** 框架開發——一套結構化的 AI 輔助開發方法論。每個階段呼叫特定 skill 來維持焦點、確保品質，並避免過早最佳化。
 
 | 階段 | Skill | 內容 |
 |-------|-------|------|
@@ -522,7 +528,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 | **4. 架構評估** | `codebase-design` | 對 CoreS3 程式碼進行 deep/shallow/seam/adapter 分析，識別出：淺層 HAL pass-through、缺少 I2C/SPI transport seam、test 與 main.c 耦合 |
 | **5. 架構重構** | `mattpocock-skills:implement` | 實作改進：`diag_transport.h`（抽象 I²C/SPI seam）、`hal_i2c_adapter.c` + `hal_spi_adapter.c`（ESP-IDF adapters）、`hal_spi2_bus.c`（共用 SPI2 管理器）、提取 test 至 `tests/` |
 | **6. 實作 Tickets** | `mattpocock-skills:implement` | 完成全部 25 個 tickets：6 個晶片驅動、8 個測試函式、audio HAL、SPI2 bus manager、burn-in CLI |
-| **7. Code Review** | `code-review` | 10 角度最高強度審查：5 個正確性 + 3 個清理 + altitude + conventions。15 個 finding 全部修復（修復率 100%） |
+| **7. Code Review** | `code-review` | 10 角度最高強度審查：5 個正確性 + 3 個清理 + altitude + dimensions。15 個 finding 全部修復（修復率 100%） |
 | **8. 下一步** | `domain-modeling`（規劃中） | 建立 `CONTEXT.md` 領域詞彙與 `docs/adr/` 架構決策記錄 |
 
 ---
