@@ -314,8 +314,8 @@ This project was developed following the **[Matt Pocock Engineering Skills](http
 | **2. Spec → Tickets** | `wayfinder` + `to-tickets` | Analysed engineering phase; broke the DFS into 25 actionable GitHub issues (#1–#25) across 4 phases |
 | **3. Reference Analysis** | `codebase-design` | Deep-dive into `example/fugazi_ng_diag/` (Cisco production diagnostics): OOP-in-C via FVT, callin/callout seam pattern, Null Object pattern. Output saved to `doc/fugazi_design_analysis.md` |
 | **4. Architecture Evaluation** | `codebase-design` | Applied the deep/shallow/seam/adapter vocabulary to the CoreS3 codebase. Identified: shallow HAL pass-through, missing I2C/SPI transport seam, test functions coupled to main.c |
-| **5. Architecture Refactor** | (Lead Developer) | Implemented the improvements: `diag_transport.h` (abstract I²C/SPI seam), `hal_i2c_adapter.c` + `hal_spi_adapter.c` (ESP-IDF adapters), `hal_spi2_bus.c` (shared SPI2 manager), extracted test functions to `tests/` |
-| **6. Implement Tickets** | (Lead Developer) | Built all 25 tickets: 6 chip drivers (AW88298, ES7210, GC0308, LTR-553, backlight, button), 8 test functions, audio HAL, SPI2 bus manager, burn-in CLI command |
+| **5. Architecture Refactor** | `mattpocock-skills:implement` | Implemented the improvements: `diag_transport.h` (abstract I²C/SPI seam), `hal_i2c_adapter.c` + `hal_spi_adapter.c` (ESP-IDF adapters), `hal_spi2_bus.c` (shared SPI2 manager), extracted test functions to `tests/` |
+| **6. Implement Tickets** | `mattpocock-skills:implement` | Built all 25 tickets: 6 chip drivers (AW88298, ES7210, GC0308, LTR-553, backlight, button), 8 test functions, audio HAL, SPI2 bus manager, burn-in CLI command |
 | **7. Code Review** | `code-review` | 10-angled max-effort review: 5 correctness angles + 3 cleanup + altitude + conventions. Found 15 findings → 15 fixed (100% fix rate). Included LTR553 register collision, SPI2 bus leak, BMI270 unchecked init, memory leaks, transport seam bypass |
 | **8. Next** | `domain-modeling` (planned) | Formalise domain vocabulary in `CONTEXT.md` and architectural decisions in `docs/adr/` |
 
@@ -403,8 +403,8 @@ This project was built from scratch through every stage of the **Matt Pocock Eng
 | **2. Planning** | `wayfinder` + `to-tickets` | 25 GitHub Issues |
 | **3. Reference** | `codebase-design` | fugazi_ng_diag design pattern analysis |
 | **4. Architecture** | `codebase-design` | CoreS3 architecture evaluation |
-| **5. Refactoring** | Lead Developer | Transport seam, SPI2 bus, test extraction |
-| **6. Implementation** | Lead Developer | All 25 tickets complete |
+| **5. Refactoring** | `mattpocock-skills:implement` | Transport seam, SPI2 bus, test extraction |
+| **6. Implementation** | `mattpocock-skills:implement` | All 25 tickets complete |
 | **7. Code Review** | `code-review` | 10-angle max-effort, 15 findings fixed |
 | **8. Domain** | `domain-modeling` | CONTEXT.md + 3 ADRs |
 | **9. TDD** | `tdd` | 37 unit tests, 2 bugs found |
@@ -520,8 +520,8 @@ idf.py -p /dev/ttyACM0 flash monitor
 | **2. Spec → Tickets** | `wayfinder` + `to-tickets` | 分析工程階段；將 DFS 拆解為 25 個可執行的 GitHub issues（#1–#25） |
 | **3. 參考分析** | `codebase-design` | 深入分析 `example/fugazi_ng_diag/`（Cisco 產線診斷框架）：OOP-in-C via FVT、callin/callout seam 模式、Null Object 模式 |
 | **4. 架構評估** | `codebase-design` | 對 CoreS3 程式碼進行 deep/shallow/seam/adapter 分析，識別出：淺層 HAL pass-through、缺少 I2C/SPI transport seam、test 與 main.c 耦合 |
-| **5. 架構重構** | Lead Developer | 實作改進：`diag_transport.h`（抽象 I²C/SPI seam）、`hal_i2c_adapter.c` + `hal_spi_adapter.c`（ESP-IDF adapters）、`hal_spi2_bus.c`（共用 SPI2 管理器）、提取 test 至 `tests/` |
-| **6. 實作 Tickets** | Lead Developer | 完成全部 25 個 tickets：6 個晶片驅動、8 個測試函式、audio HAL、SPI2 bus manager、burn-in CLI |
+| **5. 架構重構** | `mattpocock-skills:implement` | 實作改進：`diag_transport.h`（抽象 I²C/SPI seam）、`hal_i2c_adapter.c` + `hal_spi_adapter.c`（ESP-IDF adapters）、`hal_spi2_bus.c`（共用 SPI2 管理器）、提取 test 至 `tests/` |
+| **6. 實作 Tickets** | `mattpocock-skills:implement` | 完成全部 25 個 tickets：6 個晶片驅動、8 個測試函式、audio HAL、SPI2 bus manager、burn-in CLI |
 | **7. Code Review** | `code-review` | 10 角度最高強度審查：5 個正確性 + 3 個清理 + altitude + conventions。15 個 finding 全部修復（修復率 100%） |
 | **8. 下一步** | `domain-modeling`（規劃中） | 建立 `CONTEXT.md` 領域詞彙與 `docs/adr/` 架構決策記錄 |
 
@@ -538,8 +538,8 @@ idf.py -p /dev/ttyACM0 flash monitor
 | **2. Planning** | `wayfinder` + `to-tickets` | 25 個 GitHub Issues |
 | **3. Reference** | `codebase-design` | fugazi_ng_diag 設計模式分析 |
 | **4. Architecture** | `codebase-design` | CoreS3 架構評估 |
-| **5. Refactoring** | Lead Developer | Transport seam、SPI2 bus manager、tests extraction |
-| **6. Implementation** | Lead Developer | 25 tickets 全部完成 |
+| **5. Refactoring** | `mattpocock-skills:implement` | Transport seam、SPI2 bus manager、tests extraction |
+| **6. Implementation** | `mattpocock-skills:implement` | 25 tickets 全部完成 |
 | **7. Code Review** | `code-review` | 10 角度 max-effort，15 findings 全部修復 |
 | **8. Domain** | `domain-modeling` | CONTEXT.md + 3 ADRs |
 | **9. TDD** | `tdd` | 37 unit tests，2 bugs found |
