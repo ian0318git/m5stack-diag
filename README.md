@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 > **Senior Embedded Engineer Career Break Project**  
-> Built during a career break to keep board bring-up, diagnostics architecture, and modern embedded practices sharp. Translates 25+ years of production networking / Secure Boot / Day-0 experience into a clean, testable, open diagnostic framework.
+> Built during a career break to keep board bring-up, diagnostics architecture, and modern embedded practices sharp. Translates 25+ years of production networking / Day-0 experience into a clean, testable, open diagnostic framework.
 
 An embedded diagnostic system for the **M5Stack CoreS3**, built on **ESP-IDF v6.0** with **Clean Architecture** principles and operated through a **USB Serial/JTAG console** (`/dev/ttyACM0`).
 
@@ -446,7 +446,7 @@ This project is licensed under the **MIT License**.
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 > **資深嵌入式工程師 Career Break 專案**  
-> 在職涯空窗期間打造，用來保持 Board Bring-up、診斷架構與現代嵌入式實務的敏銳度。把超過 25 年生產級網路設備 / Secure Boot / Day-0 經驗，轉化成乾淨、可測試、可公開的診斷框架。
+> 在職涯空窗期間打造，用來保持 Board Bring-up、診斷架構與現代嵌入式實務的敏銳度。把超過 25 年生產級網路設備 / Day-0 經驗，轉化成乾淨、可測試、可公開的診斷框架。
 
 以 **ESP-IDF v6.0** 框架開發、採用**乾淨架構（Clean Architecture）**、透過 USB Serial/JTAG Console 操作的 M5Stack CoreS3 嵌入式硬體診斷系統。
 
