@@ -1,3 +1,5 @@
+> A production-grade board bring-up diagnostic tool, built during a self-directed career break to prove senior-level embedded work translates to a new platform.
+
 <p align="right">
   <a href="#繁體中文版">🇹🇼 繁體中文</a>
 </p>
