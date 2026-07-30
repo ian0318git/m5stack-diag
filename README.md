@@ -281,7 +281,7 @@ diag> burnin 10
   Result: PASSED
 ```
 
-#### Fugazi-style menu
+#### Interactive menu
 
 ```
 diag> menu
@@ -461,7 +461,7 @@ This project is licensed under the **MIT License**.
 - **完整週邊測試**：LCD、觸控、RTC、IMU、電源管理、喇叭、麥克風、SD 卡、相機、光學感測、背光、按鈕
 - **抽象傳輸層**（`diag_transport.h`）：所有晶片驅動透過 `diag_i2c_t`/`diag_spi_t` 介面通訊，與 ESP-IDF 完全解耦
 - **SPI2 匯流排管理器**：LCD 與 SD 卡共用 SPI2 的參考計數生命週期管理
-- **Fugazi 風格互動選單** + 批次執行 + Burn-In 測試
+- **互動選單** + 批次執行 + Burn-In 測試
 - **元件級錯誤回報**：結構化 `cterr` 風格的除錯提示
 - **乾淨架構分層**（Domain → Interface Adapter → HAL → Chip Drivers）
 - **可重複使用的晶片驅動**：`common/chips/` 下的驅動與平台無關
