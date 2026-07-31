@@ -33,3 +33,4 @@ download.config
 # CVS (legacy from reference project)
 CVS/
 doc/fugazi_design_analysis.md
+example/fugazi_ng_diag/
