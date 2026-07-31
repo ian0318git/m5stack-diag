@@ -27,7 +27,7 @@ This project provides a structured hardware validation tool for the CoreS3 devel
 - **Full peripheral test suite**: LCD (ILI9342C), touch (FT6336U), RTC (BM8563), IMU (BMI270), PMU (AXP2101), speaker (AW88298), microphone (ES7210), SD card, camera (GC0308), proximity/ALS (LTR-553), backlight, button
 - **Abstract transport seam** (`diag_transport.h`): all chip drivers communicate through `diag_i2c_t`/`diag_spi_t` — zero direct ESP-IDF dependency, mockable for unit tests
 - **Shared SPI2 bus manager** for LCD + SD card coexistence (ref-counted lifecycle)
-- **Fugazi-style interactive menu** with batch execution (`run-all`) and burn-in mode
+- **Interactive menu** with batch execution (`run-all`) and burn-in mode
 - **Component-level error reporting** with structured `cterr`-style debug hints
 - **Clean Architecture separation** (Domain → Interface Adapter → HAL → Chip Drivers)
 - **Reusable common chip drivers** under `common/chips/` — platform-agnostic
@@ -86,7 +86,7 @@ This project provides a structured hardware validation tool for the CoreS3 devel
 │       │       └── hal_power.c         # I²C init → delegates to power_AXP2101
 │       ├── tests/                      # Test functions (one per compilation unit)
 │       │   ├── diag_tests.h            # Declarations + global error context
-│       │   ├── fugazi_wrappers.c       # Menu wrappers (int→void* bridge)
+│       │   ├── platform_wrappers.c       # Menu wrappers (int→void* bridge)
 │       │   ├── test_i2c_scan.c
 │       │   ├── test_screen.c
 │       │   ├── test_touch.c
@@ -104,9 +104,9 @@ This project provides a structured hardware validation tool for the CoreS3 devel
 ├── doc/
 │   ├── architecture.md                 # Architecture overview
 │   ├── diag_function_spec.md           # Diagnostics Functional Specification
-│   └── fugazi_design_analysis.md       # Design pattern analysis of reference codebase
+│   └── platform_design_analysis.md       # Design pattern analysis of reference codebase
 ├── example/
-│   └── fugazi_ng_diag/                 # Reference production diagnostics codebase (Cisco)
+│   └── platform_diag/                  # Reference production diagnostics codebase
 └── CMakeLists.txt                      # Top-level ESP-IDF project
 ```
 
@@ -195,7 +195,7 @@ diag>
 | `info` | List all tests and their status |
 | `run <name\|#>` | Run a single test by name or 1-based index |
 | `run-all` | Execute every test sequentially |
-| `menu` | Interactive fugazi-style number menu |
+| `menu` | Interactive number menu |
 | `burnin [iterations]` | Burn-in test (default 100 iterations, stops at first failure) |
 | `errors` | Display structured error report |
 | `status` | Show system status overview |
@@ -317,7 +317,7 @@ This project was developed following the **[Matt Pocock Engineering Skills](http
 | **0. Spec Writing** | `hfs-to-dfs-writer` | Transformed the M5Stack CoreS3 hardware-framework summary (HFS) — pin mappings, I²C address table, power distribution, bus topology — into a complete **Diagnostics Functional Specification (DFS)**. The DFS lives at `doc/diag_function_spec.md` and is the single source of truth for all 25 tickets |
 | **1. Setup** | `setup-matt-pocock-skills` | Scaffolded per-repo config: issue tracker (GitHub), triage labels, domain docs layout |
 | **2. Spec → Tickets** | `wayfinder` + `to-tickets` | Analysed engineering phase; broke the DFS into 25 actionable GitHub issues (#1–#25) across 4 phases |
-| **3. Reference Analysis** | `codebase-design` | Deep-dive into `example/fugazi_ng_diag/` (Cisco production diagnostics): OOP-in-C via FVT, callin/callout seam pattern, Null Object pattern. Output saved to `doc/fugazi_design_analysis.md` |
+| **3. Reference Analysis** | `codebase-design` | Deep-dive into `example/platform_diag/` (production diagnostics reference): OOP-in-C via FVT, callin/callout seam pattern, Null Object pattern. Output saved to `doc/platform_design_analysis.md` |
 | **4. Architecture Evaluation** | `codebase-design` | Applied the deep/shallow/seam/adapter vocabulary to the CoreS3 codebase. Identified: shallow HAL pass-through, missing I2C/SPI transport seam, test functions coupled to main.c |
 | **5. Architecture Refactor** | `mattpocock-skills:implement` | Implemented the improvements: `diag_transport.h` (abstract I²C/SPI seam), `hal_i2c_adapter.c` + `hal_spi_adapter.c` (ESP-IDF adapters), `hal_spi2_bus.c` (shared SPI2 manager), extracted test functions to `tests/` |
 | **6. Implement Tickets** | `mattpocock-skills:implement` | Built all 25 tickets: 6 chip drivers (AW88298, ES7210, GC0308, LTR-553, backlight, button), 8 test functions, audio HAL, SPI2 bus manager, burn-in CLI command |
@@ -358,8 +358,8 @@ The framework's core principles — **correctness first**, **forced exception ha
 | `src/hal/` | CoreS3 board adapters + ESP-IDF transport adapters |
 | `tests/` | Test functions — one compilation unit per test |
 | `doc/diag_function_spec.md` | Full DFS with coverage matrix, failure analysis, debug steps — generated from HFS via `hfs-to-dfs-writer` skill |
-| `doc/fugazi_design_analysis.md` | Design pattern analysis of the reference codebase (fugazi_ng_diag) |
-| `example/fugazi_ng_diag/` | Reference production diagnostics codebase (Cisco) |
+| `doc/platform_design_analysis.md` | Design pattern analysis of the platform_diag reference codebase |
+| `example/platform_diag/` | Reference production diagnostics codebase |
 
 ---
 
@@ -406,7 +406,7 @@ This project was built from scratch through every stage of the **Matt Pocock Eng
 | **0. Spec** | `hfs-to-dfs-writer` | Diagnostics Functional Specification |
 | **1. Setup** | `setup-matt-pocock-skills` | Project configuration |
 | **2. Planning** | `wayfinder` + `to-tickets` | 25 GitHub Issues |
-| **3. Reference** | `codebase-design` | fugazi_ng_diag design pattern analysis |
+| **3. Reference** | `codebase-design` | platform_diag design pattern analysis |
 | **4. Architecture** | `codebase-design` | CoreS3 architecture evaluation |
 | **5. Refactoring** | `mattpocock-skills:implement` | Transport seam, SPI2 bus, test extraction |
 | **6. Implementation** | `mattpocock-skills:implement` | All 25 tickets complete |
@@ -526,7 +526,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 | **0. 規格撰寫** | `hfs-to-dfs-writer` | 將 M5Stack CoreS3 硬體框架摘要（HFS）——接腳對應、I²C 位址表、電源分佈、匯流排拓撲——轉換為完整的**診斷功能規格書（DFS）**。DFS 位於 `doc/diag_function_spec.md`，是全部 25 個 tickets 的單一事實來源 |
 | **1. 設定** | `setup-matt-pocock-skills` | 建立專案設定：issue tracker（GitHub）、triage labels、domain docs 佈局 |
 | **2. Spec → Tickets** | `wayfinder` + `to-tickets` | 分析工程階段；將 DFS 拆解為 25 個可執行的 GitHub issues（#1–#25） |
-| **3. 參考分析** | `codebase-design` | 深入分析 `example/fugazi_ng_diag/`（Cisco 產線診斷框架）：OOP-in-C via FVT、callin/callout seam 模式、Null Object 模式 |
+| **3. 參考分析** | `codebase-design` | 深入分析 `example/platform_diag/`（產線診斷參考框架）：OOP-in-C via FVT、callin/callout seam 模式、Null Object 模式 |
 | **4. 架構評估** | `codebase-design` | 對 CoreS3 程式碼進行 deep/shallow/seam/adapter 分析，識別出：淺層 HAL pass-through、缺少 I2C/SPI transport seam、test 與 main.c 耦合 |
 | **5. 架構重構** | `mattpocock-skills:implement` | 實作改進：`diag_transport.h`（抽象 I²C/SPI seam）、`hal_i2c_adapter.c` + `hal_spi_adapter.c`（ESP-IDF adapters）、`hal_spi2_bus.c`（共用 SPI2 管理器）、提取 test 至 `tests/` |
 | **6. 實作 Tickets** | `mattpocock-skills:implement` | 完成全部 25 個 tickets：6 個晶片驅動、8 個測試函式、audio HAL、SPI2 bus manager、burn-in CLI |
@@ -544,7 +544,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 | **0. Spec** | `hfs-to-dfs-writer` | 診斷功能規格書 DFS |
 | **1. Setup** | `setup-matt-pocock-skills` | 專案設定 |
 | **2. Planning** | `wayfinder` + `to-tickets` | 25 個 GitHub Issues |
-| **3. Reference** | `codebase-design` | fugazi_ng_diag 設計模式分析 |
+| **3. Reference** | `codebase-design` | platform_diag 設計模式分析 |
 | **4. Architecture** | `codebase-design` | CoreS3 架構評估 |
 | **5. Refactoring** | `mattpocock-skills:implement` | Transport seam、SPI2 bus manager、tests extraction |
 | **6. Implementation** | `mattpocock-skills:implement` | 25 tickets 全部完成 |
