@@ -422,17 +422,30 @@ static diag_result_t cmd_ntp_sync(diag_runner_t *runner, int argc, char *argv[])
         return DIAG_FAILED;
     }
 
-    diag_menu_printf("NTP sync: connecting to '%s'...\r\n", ssid);
-    if (hal_wifi_connect(ssid, pass, CONFIG_WIFI_CONNECT_TIMEOUT_MS) != DIAG_PASSED) {
-        diag_menu_printf("NTP sync failed: Wi-Fi connect (reason=%d)\r\n",
-                         hal_wifi_get_disconnect_reason());
+    /* Retry the whole connect+sync cycle once (same pattern as mqtt-pub):
+       right after a run-all the Wi-Fi driver can still be settling. */
+    diag_result_t r = DIAG_FAILED;
+    for (int attempt = 1; attempt <= 2; attempt++) {
+        if (attempt > 1) {
+            diag_menu_printf("NTP sync: retry %d/2 in 3 s...\r\n", attempt);
+            vTaskDelay(pdMS_TO_TICKS(3000));
+        }
+
+        diag_menu_printf("NTP sync: connecting to '%s'...\r\n", ssid);
+        if (hal_wifi_connect(ssid, pass, CONFIG_WIFI_CONNECT_TIMEOUT_MS) != DIAG_PASSED) {
+            diag_menu_printf("NTP sync failed: Wi-Fi connect (reason=%d)\r\n",
+                             hal_wifi_get_disconnect_reason());
+            hal_wifi_deinit();
+            continue;
+        }
+
+        diag_menu_printf("NTP sync: waiting for %s...\r\n", server);
+        r = diag_net_ntp_sync(server, CONFIG_NTP_SYNC_TIMEOUT_MS);
         hal_wifi_deinit();
-        return DIAG_FAILED;
+        if (r == DIAG_PASSED)
+            break;
     }
 
-    diag_menu_printf("NTP sync: waiting for %s...\r\n", server);
-    diag_result_t r = diag_net_ntp_sync(server, CONFIG_NTP_SYNC_TIMEOUT_MS);
-    hal_wifi_deinit();
     if (r != DIAG_PASSED) {
         diag_menu_printf("NTP sync FAILED (RTC unchanged)\r\n");
         return r;
@@ -468,22 +481,33 @@ static diag_result_t cmd_upload(diag_runner_t *runner, int argc, char *argv[])
         return DIAG_FAILED;
     }
 
-    diag_menu_printf("Upload: connecting to '%s'...\r\n", ssid);
-    if (hal_wifi_connect(ssid, pass, CONFIG_WIFI_CONNECT_TIMEOUT_MS) != DIAG_PASSED) {
-        diag_menu_printf("Upload failed: Wi-Fi connect (reason=%d)\r\n",
-                         hal_wifi_get_disconnect_reason());
-        hal_wifi_deinit();
-        return DIAG_FAILED;
-    }
-
-    hal_wifi_info_t info;
-    if (hal_wifi_get_info(&info) != DIAG_PASSED)
-        memset(&info, 0, sizeof(info));
-
+    /* Retry the whole connect+upload cycle once (same pattern as mqtt-pub). */
     int http_status = 0;
-    diag_result_t r = diag_net_upload_results(runner, g_diag_err_ctx,
-                                              url, &info, &http_status);
-    hal_wifi_deinit();
+    diag_result_t r = DIAG_FAILED;
+    for (int attempt = 1; attempt <= 2; attempt++) {
+        if (attempt > 1) {
+            diag_menu_printf("Upload: retry %d/2 in 3 s...\r\n", attempt);
+            vTaskDelay(pdMS_TO_TICKS(3000));
+        }
+
+        diag_menu_printf("Upload: connecting to '%s'...\r\n", ssid);
+        if (hal_wifi_connect(ssid, pass, CONFIG_WIFI_CONNECT_TIMEOUT_MS) != DIAG_PASSED) {
+            diag_menu_printf("Upload failed: Wi-Fi connect (reason=%d)\r\n",
+                             hal_wifi_get_disconnect_reason());
+            hal_wifi_deinit();
+            continue;
+        }
+
+        hal_wifi_info_t info;
+        if (hal_wifi_get_info(&info) != DIAG_PASSED)
+            memset(&info, 0, sizeof(info));
+
+        r = diag_net_upload_results(runner, g_diag_err_ctx,
+                                    url, &info, &http_status);
+        hal_wifi_deinit();
+        if (r == DIAG_PASSED)
+            break;
+    }
     diag_menu_printf("Upload: HTTP %d — %s\r\n", http_status,
                      r == DIAG_PASSED ? "PASSED" : "FAILED");
     return r;

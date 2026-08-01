@@ -870,14 +870,16 @@ over the Wi-Fi connection. The server defaults to
 per-run: `ntp-sync <server>`. On success the RTC is written with the
 UTC time (no timezone handling); on any failure — no Wi-Fi, sync
 timeout, or an implausible time (outside 2024–2100) — the RTC is left
-untouched and the command returns FAILED.
+untouched and the command returns FAILED. The connect+sync cycle is
+retried once after a 3 s delay (same pattern as `mqtt-pub`).
 
 #### Diagnostic Upload Utility
 
 The `upload` command builds a JSON report of the runner's test records
 and the error context, then POSTs it to the configured URL
 (`CONFIG_WIFI_DIAG_UPLOAD_URL`, overridable via `wifi-set url`).
-An HTTP 2xx response is required for PASSED.
+An HTTP 2xx response is required for PASSED. The connect+upload cycle
+is retried once after a 3 s delay (same pattern as `mqtt-pub`).
 
 ```json
 {
