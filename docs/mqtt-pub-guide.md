@@ -239,6 +239,10 @@ A: 在 — `wifi-set` 寫入 NVS flash，重開機不消失。
 A: 可以，`wifi-set mqtt mqtt://你的broker:1883` 即可。broker 需與設備網路互通
 （設備連的 Wi-Fi 要能到達 broker）。
 
+**Q: HTTP `upload` 要用哪個測試 server？**
+A: `http://postman-echo.com/post` 已驗證可用（HTTP 200 → PASSED）。
+注意 `http://httpbin.org/post` 已失效（2026-08 起連線逾時，主機端亦無法連上）。
+
 ---
 
 原始碼：`src/diag_net.c` · `src/hal/hal_wifi.c` · `src/main.c` · `tools/mqtt_replay.py`
