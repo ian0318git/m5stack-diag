@@ -101,7 +101,7 @@ This project provides a structured hardware validation tool for the CoreS3 devel
 │       │   ├── test_proximity.c
 │       │   └── test_button.c
 │       └── CMakeLists.txt
-├── doc/
+├── docs/
 │   ├── architecture.md                 # Architecture overview
 │   ├── diag_function_spec.md           # Diagnostics Functional Specification
 │   └── platform_design_analysis.md       # Design pattern analysis of reference codebase
@@ -314,15 +314,15 @@ This project was developed following the **[Matt Pocock Engineering Skills](http
 
 | Stage | Skill | What was done |
 |-------|-------|---------------|
-| **0. Spec Writing** | `hfs-to-dfs-writer` | Transformed the M5Stack CoreS3 hardware-framework summary (HFS) — pin mappings, I²C address table, power distribution, bus topology — into a complete **Diagnostics Functional Specification (DFS)**. The DFS lives at `doc/diag_function_spec.md` and is the single source of truth for all 25 tickets |
+| **0. Spec Writing** | `hfs-to-dfs-writer` | Transformed the M5Stack CoreS3 hardware-framework summary (HFS) — pin mappings, I²C address table, power distribution, bus topology — into a complete **Diagnostics Functional Specification (DFS)**. The DFS lives at `docs/diag_function_spec.md` and is the single source of truth for all 25 tickets |
 | **1. Setup** | `setup-matt-pocock-skills` | Scaffolded per-repo config: issue tracker (GitHub), triage labels, domain docs layout |
 | **2. Spec → Tickets** | `wayfinder` + `to-tickets` | Analysed engineering phase; broke the DFS into 25 actionable GitHub issues (#1–#25) across 4 phases |
-| **3. Reference Analysis** | `codebase-design` | Deep-dive into `example/platform_diag/` (production diagnostics reference): OOP-in-C via FVT, callin/callout seam pattern, Null Object pattern. Output saved to `doc/platform_design_analysis.md` |
+| **3. Reference Analysis** | `codebase-design` | Deep-dive into `example/platform_diag/` (production diagnostics reference): OOP-in-C via FVT, callin/callout seam pattern, Null Object pattern. Output saved to `docs/platform_design_analysis.md` |
 | **4. Architecture Evaluation** | `codebase-design` | Applied the deep/shallow/seam/adapter vocabulary to the CoreS3 codebase. Identified: shallow HAL pass-through, missing I2C/SPI transport seam, test functions coupled to main.c |
 | **5. Architecture Refactor** | `mattpocock-skills:implement` | Implemented the improvements: `diag_transport.h` (abstract I²C/SPI seam), `hal_i2c_adapter.c` + `hal_spi_adapter.c` (ESP-IDF adapters), `hal_spi2_bus.c` (shared SPI2 manager), extracted test functions to `tests/` |
 | **6. Implement Tickets** | `mattpocock-skills:implement` | Built all 25 tickets: 6 chip drivers (AW88298, ES7210, GC0308, LTR-553, backlight, button), 8 test functions, audio HAL, SPI2 bus manager, burn-in CLI command |
 | **7. Code Review** | `code-review` | 10-angled max-effort review: 5 correctness angles + 3 cleanup + altitude + conventions. Found 15 findings → 15 fixed (100% fix rate). Included LTR553 register collision, SPI2 bus leak, BMI270 unchecked init, memory leaks, transport seam bypass |
-| **8. Next** | `domain-modeling` (planned) | Formalise domain vocabulary in `CONTEXT.md` and architectural decisions in `doc/adr/` |
+| **8. Next** | `domain-modeling` (planned) | Formalise domain vocabulary in `CONTEXT.md` and architectural decisions in `docs/adr/` |
 
 The framework's core principles — **correctness first**, **forced exception handling**, **no silent failures**, and the **deep module** heuristic — are reflected throughout the codebase. Each chip driver is a deep module: small interface (`diag_i2c_t` + init/read/deinit), large implementation hidden behind.
 
@@ -357,8 +357,8 @@ The framework's core principles — **correctness first**, **forced exception ha
 | `include/hal/` | HAL interface contracts (board-level abstraction) |
 | `src/hal/` | CoreS3 board adapters + ESP-IDF transport adapters |
 | `tests/` | Test functions — one compilation unit per test |
-| `doc/diag_function_spec.md` | Full DFS with coverage matrix, failure analysis, debug steps — generated from HFS via `hfs-to-dfs-writer` skill |
-| `doc/platform_design_analysis.md` | Design pattern analysis of the platform_diag reference codebase |
+| `docs/diag_function_spec.md` | Full DFS with coverage matrix, failure analysis, debug steps — generated from HFS via `hfs-to-dfs-writer` skill |
+| `docs/platform_design_analysis.md` | Design pattern analysis of the platform_diag reference codebase |
 | `example/platform_diag/` | Reference production diagnostics codebase |
 
 ---
@@ -523,7 +523,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 
 | 階段 | Skill | 內容 |
 |-------|-------|------|
-| **0. 規格撰寫** | `hfs-to-dfs-writer` | 將 M5Stack CoreS3 硬體框架摘要（HFS）——接腳對應、I²C 位址表、電源分佈、匯流排拓撲——轉換為完整的**診斷功能規格書（DFS）**。DFS 位於 `doc/diag_function_spec.md`，是全部 25 個 tickets 的單一事實來源 |
+| **0. 規格撰寫** | `hfs-to-dfs-writer` | 將 M5Stack CoreS3 硬體框架摘要（HFS）——接腳對應、I²C 位址表、電源分佈、匯流排拓撲——轉換為完整的**診斷功能規格書（DFS）**。DFS 位於 `docs/diag_function_spec.md`，是全部 25 個 tickets 的單一事實來源 |
 | **1. 設定** | `setup-matt-pocock-skills` | 建立專案設定：issue tracker（GitHub）、triage labels、domain docs 佈局 |
 | **2. Spec → Tickets** | `wayfinder` + `to-tickets` | 分析工程階段；將 DFS 拆解為 25 個可執行的 GitHub issues（#1–#25） |
 | **3. 參考分析** | `codebase-design` | 深入分析 `example/platform_diag/`（產線診斷參考框架）：OOP-in-C via FVT、callin/callout seam 模式、Null Object 模式 |
@@ -531,7 +531,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 | **5. 架構重構** | `mattpocock-skills:implement` | 實作改進：`diag_transport.h`（抽象 I²C/SPI seam）、`hal_i2c_adapter.c` + `hal_spi_adapter.c`（ESP-IDF adapters）、`hal_spi2_bus.c`（共用 SPI2 管理器）、提取 test 至 `tests/` |
 | **6. 實作 Tickets** | `mattpocock-skills:implement` | 完成全部 25 個 tickets：6 個晶片驅動、8 個測試函式、audio HAL、SPI2 bus manager、burn-in CLI |
 | **7. Code Review** | `code-review` | 10 角度最高強度審查：5 個正確性 + 3 個清理 + altitude + dimensions。15 個 finding 全部修復（修復率 100%） |
-| **8. 下一步** | `domain-modeling`（規劃中） | 建立 `CONTEXT.md` 領域詞彙與 `doc/adr/` 架構決策記錄 |
+| **8. 下一步** | `domain-modeling`（規劃中） | 建立 `CONTEXT.md` 領域詞彙與 `docs/adr/` 架構決策記錄 |
 
 ---
 

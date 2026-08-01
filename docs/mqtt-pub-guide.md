@@ -202,4 +202,4 @@ TOPIC: diagtest
 ---
 
 原始碼：`src/diag_net.c` · `src/hal/hal_wifi.c` · `src/main.c`
-規格：`doc/diag_function_spec.md` §MQTT Publish Utility
+規格：`docs/diag_function_spec.md` §MQTT Publish Utility
