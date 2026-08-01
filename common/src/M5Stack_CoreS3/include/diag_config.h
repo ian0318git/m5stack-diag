@@ -161,6 +161,15 @@ extern "C" {
 #define CONFIG_POWER_TEST_TIMEOUT_MS    5000
 
 /*===========================================================================*/
+/* Wi-Fi / network timeouts                                                  */
+/*===========================================================================*/
+
+#define CONFIG_WIFI_CONNECT_TIMEOUT_MS  15000
+#define CONFIG_NTP_SYNC_TIMEOUT_MS      15000
+#define CONFIG_UPLOAD_TIMEOUT_MS        15000
+#define CONFIG_WIFI_TEST_TIMEOUT_MS     (CONFIG_WIFI_CONNECT_TIMEOUT_MS + 5000)
+
+/*===========================================================================*/
 /* Menu configuration                                                        */
 /*===========================================================================*/
 

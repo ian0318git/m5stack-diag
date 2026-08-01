@@ -17,6 +17,10 @@ CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT=y
 # === Flash (CoreS3 = 16MB, DIO mode) ===
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 
+# Wi-Fi + MQTT push the image past 1MB; use the large single-app
+# partition table (factory = 1500KB) instead of the stock 1MB table.
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+
 # === CPU & Cache ===
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_ESP32S3_DATA_CACHE_64KB=y
@@ -41,3 +45,8 @@ CONFIG_COMPILER_OPTIMIZATION_PERF=y
 # === Watchdog ===
 CONFIG_ESP_TASK_WDT_EN=n
 CONFIG_ESP_INT_WDT=n
+
+# === Wi-Fi diagnostics ===
+# Upload endpoint uses plain http and mqtt by design; TLS (mbedtls)
+# would add ~150KB+ and risk overflowing the 1500KB factory partition.
+CONFIG_ESP_HTTP_CLIENT_ENABLE_HTTPS=n

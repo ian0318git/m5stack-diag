@@ -1,0 +1,34 @@
+menu "Wi-Fi Diagnostics"
+
+config WIFI_DIAG_SSID
+    string "Wi-Fi SSID (station)"
+    default ""
+    help
+        Access point the diagnostics join for the connectivity test,
+        NTP sync and result upload. Empty = test reports SKIPPED.
+        Overridden at runtime by 'wifi-set ssid <name>' (NVS wins).
+
+config WIFI_DIAG_PASSWORD
+    string "Wi-Fi password"
+    default ""
+
+config WIFI_DIAG_NTP_SERVER
+    string "NTP server"
+    default "pool.ntp.org"
+
+config WIFI_DIAG_UPLOAD_URL
+    string "Diagnostic upload URL (http://...)"
+    default ""
+    help
+        HTTP endpoint that receives the JSON test report via 'upload'.
+        Overridden at runtime by 'wifi-set url <value>' (NVS wins).
+
+config WIFI_DIAG_MQTT_URL
+    string "MQTT broker URL (mqtt://host:1883)"
+    default ""
+    help
+        MQTT broker that receives the JSON test report via 'mqtt-pub'.
+        TCP only (no TLS). Overridden at runtime by
+        'wifi-set mqtt <value>' (NVS wins).
+
+endmenu

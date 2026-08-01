@@ -23,3 +23,4 @@ diag_result_t fugazi_test_camera(int param)     { (void)param; return test_camer
 diag_result_t fugazi_test_proximity(int param)  { (void)param; return test_proximity(NULL); }
 diag_result_t fugazi_test_sdcard(int param)     { (void)param; return test_sdcard(NULL); }
 diag_result_t fugazi_test_button(int param)     { (void)param; return test_button(NULL); }
+diag_result_t fugazi_test_wifi(int param)       { (void)param; return test_wifi(NULL); }

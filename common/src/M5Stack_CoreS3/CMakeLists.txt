@@ -15,6 +15,8 @@ idf_component_register(
         "src/hal/hal_rtc.c"
         "src/hal/hal_imu.c"
         "src/hal/hal_power.c"
+        "src/hal/hal_wifi.c"
+        "src/diag_net.c"
 
         "${PROJECT_DIR}/common/chips/lcd_ILI9342C/lcd_ILI9342C.c"
         "${PROJECT_DIR}/common/chips/touch_FT6336/touch_FT6336.c"
@@ -40,6 +42,7 @@ idf_component_register(
         "tests/test_proximity.c"
         "tests/test_sdcard.c"
         "tests/test_button.c"
+        "tests/test_wifi.c"
         "tests/fugazi_wrappers.c"
 
     INCLUDE_DIRS
@@ -73,5 +76,10 @@ idf_component_register(
         freertos
         esp_system
         log
+        esp_wifi
+        esp_netif
+        esp_event
+        esp_http_client
+        mqtt
 )
 

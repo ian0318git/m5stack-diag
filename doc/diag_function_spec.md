@@ -253,6 +253,10 @@ the USB Serial/JTAG port.
 | **Camera** | Camera Register Test | I2C@0x21 + AW9523B P1_0 | ESP32-S3→GC0308 | Explicitly | No | I2C probe; chip ID read. SKIP if no flex cable detected |
 | **Proximity** | Proximity Read | I2C@0x23 | LTR-553ALS-WA | Explicitly | No | Read ALS and proximity registers. SKIP if no flex cable |
 | **Visual** | Charge LED | AXP2101 CHG_LED | AXP2101→LED | Manually | No | Operator observes LED state |
+| **Connectivity** | Wi-Fi Station Connect | 2.4 GHz radio | ESP32-S3→AP→DHCP | Explicitly | Yes | Join SSID, obtain IP, report RSSI. SKIP if no credentials or no AP found |
+| | NTP Time Sync | UDP/123 | SNTP→BM8563 | Explicitly | No | On-demand; writes RTC on success, RTC untouched on failure |
+| | Diagnostic Upload | HTTP POST | ESP32-S3→server | Explicitly | No | On-demand; JSON of test results and error context |
+| | MQTT Publish | MQTT over TCP | ESP32-S3→broker | Explicitly | No | On-demand; JSON published to broker topic |
 | **Utilities** | I2C Bus Scan Utility | SYS I2C | All slaves | Manually | No | Full address-range scan |
 | | System Status | All | All P0/P1 | Manually | No | Aggregate health summary |
 
@@ -725,6 +729,56 @@ down the issue.
 
 ---
 
+#### Connectivity — Wi-Fi Station Test
+
+This test joins a Wi-Fi access point in station mode and verifies that
+the ESP32-S3 obtains an IP address via DHCP. On success it reports the
+assigned IP, RSSI (with an excellent/good/fair/poor quality rating),
+and channel. Credentials are resolved at runtime: NVS settings written
+by `wifi-set` take priority over the `CONFIG_WIFI_DIAG_*` menuconfig
+defaults. If no SSID is configured, the test reports SKIPPED with an
+advisory note. The test is part of `run-all`; in a no-network
+environment it reports SKIPPED (not FAILED) so a bare factory board
+still passes the batch.
+
+##### Test Path Block Diagram
+
+```
+ESP32-S3 radio ── 2.4 GHz ── Wi-Fi AP ── DHCP server
+     │                                   │
+     ├── (success) ── IP + RSSI + channel reported
+     └── (failure)  ── disconnect reason code reported
+```
+
+**Result mapping (disconnect reason → test result):**
+
+| Condition | Reason code | Result |
+|-----------|-------------|--------|
+| No SSID configured | — | SKIPPED (advisory) |
+| AP not found / out of range | `WIFI_REASON_NO_AP_FOUND` | SKIPPED (advisory) |
+| Wrong password / auth failure | `AUTH_FAIL`, `HANDSHAKE_TIMEOUT`, `MIC_FAILURE`, `NO_AP_FOUND_W_COMPATIBLE_SECURITY` | FAILED (password hint) |
+| Any other connect/DHCP failure | other | FAILED (reachability hint) |
+
+**Failure Analysis:**
+
+A FAILED result after a successful prior run may indicate the AP is
+out of range, the password changed, the DHCP server is unavailable, or
+the AP is operating on a channel/band the ESP32-S3 cannot join (2.4 GHz
+only). A SKIPPED result is not a failure — it means no credentials are
+configured or no matching AP is present.
+
+If any failure occurs in this test, try the Debugging Steps to narrow
+down the issue.
+
+1. Verify the AP is powered on, in range, and broadcasting 2.4 GHz.
+2. Re-check the SSID spelling: `wifi-set ssid <name>`.
+3. Re-check the password: `wifi-set pass <password>` (case-sensitive).
+4. Confirm the AP security mode (WPA2/WPA3) is supported.
+5. Confirm the DHCP server is running on the AP/LAN.
+6. Review the disconnect reason code printed by `wifi connect`.
+
+---
+
 #### Camera — Camera Register Test (GC0308)
 
 This on-demand test checks the GC0308 camera sensor at I2C address 0x21.
@@ -808,6 +862,54 @@ BM8563   @0x51:  OK (2025-07-19 14:32)
 BMI270   @0x69:  OK (chip_id=0x24)
 ```
 
+#### NTP Time Sync Utility
+
+The `ntp-sync` command synchronises the BM8563 RTC from an NTP server
+over the Wi-Fi connection. The server defaults to
+`CONFIG_WIFI_DIAG_NTP_SERVER` (`pool.ntp.org`) and can be overridden
+per-run: `ntp-sync <server>`. On success the RTC is written with the
+UTC time (no timezone handling); on any failure — no Wi-Fi, sync
+timeout, or an implausible time (outside 2024–2100) — the RTC is left
+untouched and the command returns FAILED.
+
+#### Diagnostic Upload Utility
+
+The `upload` command builds a JSON report of the runner's test records
+and the error context, then POSTs it to the configured URL
+(`CONFIG_WIFI_DIAG_UPLOAD_URL`, overridable via `wifi-set url`).
+An HTTP 2xx response is required for PASSED.
+
+```json
+{
+  "app": "m5s3_diag", "idf": "v6.0.2",
+  "mac": "a4:cf:12:34:56:78",
+  "wifi": { "ssid": "MyNet", "ip": "192.168.1.42", "rssi": -55, "channel": 6 },
+  "rtc": "2026-08-01 12:34:56",
+  "tests": [ { "id": "wifi", "result": "PASSED", "elapsed_ms": 3214, "message": "..." } ],
+  "errors": [ { "component": "WIFI", "location": "MB/WIFI", "message": "...",
+                "count": 1, "debug1": "...", "debug2": "..." } ],
+  "summary": { "total": 14, "passed": 12, "skipped": 1, "failed": 1 }
+}
+```
+
+#### MQTT Publish Utility
+
+The `mqtt-pub` command publishes the same JSON report to an MQTT
+broker (`CONFIG_WIFI_DIAG_MQTT_URL`, overridable via `wifi-set mqtt`).
+The broker URI takes the form `mqtt://host:1883` (TCP, no TLS). The
+report is published to topic `m5s3_diag/<mac>` (configurable per-run:
+`mqtt-pub <topic>`) with QoS 1 — a broker PUBACK is required for
+PASSED.
+
+#### Ping Utility
+
+The `wifi ping <host>` command verifies network reachability over the
+Wi-Fi link. It sends 5 ICMP echo requests (64-byte payload, 1 s
+interval, 1 s timeout) to the target — an IP literal or hostname
+(default `1.1.1.1`) — and reports the reply count plus RTT statistics
+(min/avg/max). At least one reply is required for PASSED; the result
+is reported after the Wi-Fi session is torn down.
+
 ### System Level Tests
 
 #### Burn-In Test (P2, on-demand)
@@ -817,6 +919,10 @@ user-specified number of iterations (default 100) or until the first
 failure. Each iteration's result is logged. The total iteration count
 and any failures are reported at completion. This test is intended for
 intermittent fault reproduction during EDVT and field RMA.
+
+The Wi-Fi Station test is part of `run-all` (and therefore burn-in);
+in a no-network environment it reports SKIPPED, which is not counted
+as a failure, so burn-in gating is unaffected on bare boards.
 
 ---
 
@@ -838,6 +944,11 @@ traditional CLI with typed commands:
 | `screen-on` / `screen-off` | Manually control the LCD power state |
 | `reboot` | Software reset the ESP32-S3 |
 | `shutdown` | Power off via AXP2101 |
+| `wifi` | Wi-Fi status; `wifi connect` / `wifi disconnect` / `wifi ping <host>` |
+| `wifi-set` | Store credentials to NVS: `wifi-set ssid\|pass\|url\|ntp\|mqtt <value>\|clear` |
+| `ntp-sync` | Sync RTC from NTP: `ntp-sync [server]` |
+| `upload` | POST JSON test report to the upload URL |
+| `mqtt-pub` | Publish JSON test report to MQTT broker: `mqtt-pub [topic]` |
 
 The second tier is the `menu` command, which presents a numbered list
 of tests and accepts a single-digit (or two-digit) selection:
@@ -876,6 +987,21 @@ result and error count are displayed until reset).
 4. **Camera/proximity flex**: These are optional assemblies. The
    diagnostics detect their absence at the I2C probe level and report
    SKIPPED rather than FAILED.
+5. **Wi-Fi credential precedence**: NVS settings written by `wifi-set`
+   override the `CONFIG_WIFI_DIAG_*` menuconfig defaults. `wifi-set
+   clear` erases the NVS overrides, reverting to the compiled defaults.
+   Credentials are stored in plaintext in the NVS `diag_wifi`
+   namespace; flash encryption is out of scope.
+6. **Wi-Fi upload transport**: The upload URL defaults to plain `http://`;
+   TLS is disabled (`CONFIG_ESP_HTTP_CLIENT_ENABLE_HTTPS=n`) to keep
+   the image within the 1 MB factory partition. MQTT uses plain TCP
+   (`mqtt://`) for the same reason.
+7. **NTP timezone**: NTP writes UTC to the RTC; there is no timezone
+   handling. The RTC is only modified by an explicit `ntp-sync`; a
+   failed sync leaves it untouched.
+8. **Wi-Fi radio**: 2.4 GHz only. The ESP32-S3 has no 5 GHz support.
+   CoreS3 boards have no external antenna — the built-in PCB antenna
+   is used.
 
 ---
 
@@ -887,6 +1013,11 @@ consecutive times with zero failures. The test image is built with
 ESP-IDF v6.0 and the `idf.py build` toolchain. A candidate release
 that produces any FAILED result on a known-good unit is held back
 until the root cause is identified and corrected.
+
+`run-all` now includes the Wi-Fi Station test. Regression runs are
+performed in the lab Wi-Fi environment; on a board with no credentials
+configured the test reports SKIPPED, which is not a failure and does
+not hold the release.
 
 ---
 

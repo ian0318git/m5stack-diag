@@ -35,6 +35,7 @@ diag_result_t test_camera(void *context);
 diag_result_t test_proximity(void *context);
 diag_result_t test_sdcard(void *context);
 diag_result_t test_button(void *context);
+diag_result_t test_wifi(void *context);
 
 /* Fugazi-style wrappers (int param signature for the menu engine) */
 diag_result_t fugazi_test_i2c_scan(int param);
@@ -50,6 +51,7 @@ diag_result_t fugazi_test_camera(int param);
 diag_result_t fugazi_test_proximity(int param);
 diag_result_t fugazi_test_sdcard(int param);
 diag_result_t fugazi_test_button(int param);
+diag_result_t fugazi_test_wifi(int param);
 
 #ifdef __cplusplus
 }

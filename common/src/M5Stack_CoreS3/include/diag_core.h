@@ -70,6 +70,7 @@ typedef enum {
     DIAG_TEST_PROXIMITY  = 10,
     DIAG_TEST_SDCARD     = 11,
     DIAG_TEST_BUTTON     = 12,
+    DIAG_TEST_WIFI       = 13,
     /* --- add new IDs above this line --- */
     DIAG_TEST_COUNT
 } diag_test_id_t;

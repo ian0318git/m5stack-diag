@@ -34,6 +34,8 @@
 #include "hal_rtc.h"
 #include "hal_imu.h"
 #include "hal_power.h"
+#include "hal_wifi.h"
+#include "diag_net.h"
 
 static const char *TAG = "m5s3_diag";
 
@@ -65,6 +67,7 @@ static const diag_menu_xtable_t s_main_menu[] = {
     { "Proximity (LTR-553)",      fugazi_test_proximity,0, F_PERIPH, NULL, 0 },
     { "SD Card (microSD)",        fugazi_test_sdcard,   0, F_PERIPH, NULL, 0 },
     { "Button (PWR)",             fugazi_test_button,   0, F_PERIPH, NULL, 0 },
+    { "Wi-Fi Connectivity",       fugazi_test_wifi,     0, F_PERIPH, NULL, 0 },
 };
 #define MAIN_MENU_COUNT (sizeof(s_main_menu) / sizeof(s_main_menu[0]))
 
@@ -101,6 +104,8 @@ static const diag_test_t s_tests[] = {
                     test_sdcard,   NULL, CONFIG_DEFAULT_TEST_TIMEOUT_MS),
     DIAG_TEST_ENTRY(DIAG_TEST_BUTTON,   "button",    "Press side PWR button",
                     test_button,  NULL, CONFIG_DEFAULT_TEST_TIMEOUT_MS),
+    DIAG_TEST_ENTRY(DIAG_TEST_WIFI,     "wifi",      "Join Wi-Fi AP, get IP, report RSSI",
+                    test_wifi,    NULL, CONFIG_WIFI_TEST_TIMEOUT_MS),
 };
 
 static const diag_test_suite_t s_suite = {
@@ -282,6 +287,249 @@ static diag_result_t cmd_shutdown(diag_runner_t *runner, int argc, char *argv[])
     return DIAG_ERROR;
 }
 
+/*---------------------------------------------------------------------------*/
+/* Wi-Fi / network commands                                                  */
+/*---------------------------------------------------------------------------*/
+
+static diag_result_t cmd_wifi(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)runner;
+
+    char ssid[64], pass[64];
+    hal_wifi_cfg_get_ssid(ssid, sizeof(ssid));
+    hal_wifi_cfg_get_password(pass, sizeof(pass));
+
+    diag_menu_printf("\r\n========== Wi-Fi Status ==========\r\n");
+    diag_menu_printf("SSID: %s\r\n",
+                     ssid[0] ? ssid : "(none — use 'wifi-set ssid <name>')");
+
+    if (argc >= 2 && strcmp(argv[1], "connect") == 0) {
+        if (ssid[0] == '\0') {
+            diag_menu_printf("Cannot connect: no SSID\r\n");
+            return DIAG_FAILED;
+        }
+        diag_menu_printf("Connecting...\r\n");
+        diag_result_t r = hal_wifi_connect(ssid, pass,
+                                           CONFIG_WIFI_CONNECT_TIMEOUT_MS);
+        if (r == DIAG_PASSED) {
+            hal_wifi_info_t info;
+            if (hal_wifi_get_info(&info) == DIAG_PASSED) {
+                diag_menu_printf("Connected: IP %u.%u.%u.%u, RSSI %d dBm, "
+                                 "ch %u\r\n",
+                                 info.ip[0], info.ip[1], info.ip[2],
+                                 info.ip[3], info.rssi, info.channel);
+            }
+        } else {
+            diag_menu_printf("Connect failed (reason=%d)\r\n",
+                             hal_wifi_get_disconnect_reason());
+        }
+        hal_wifi_deinit();
+        return r;
+    }
+
+    if (argc >= 2 && strcmp(argv[1], "disconnect") == 0) {
+        hal_wifi_deinit();
+        diag_menu_printf("Wi-Fi disconnected\r\n");
+    }
+
+    if (argc >= 2 && strcmp(argv[1], "ping") == 0) {
+        if (ssid[0] == '\0') {
+            diag_menu_printf("Cannot ping: no SSID\r\n");
+            return DIAG_FAILED;
+        }
+        diag_menu_printf("Connecting...\r\n");
+        diag_result_t cr = hal_wifi_connect(ssid, pass,
+                                            CONFIG_WIFI_CONNECT_TIMEOUT_MS);
+        if (cr != DIAG_PASSED) {
+            diag_menu_printf("Connect failed (reason=%d)\r\n",
+                             hal_wifi_get_disconnect_reason());
+            hal_wifi_deinit();
+            return cr;
+        }
+
+        const char *target = (argc >= 3) ? argv[2] : "1.1.1.1";
+        diag_menu_printf("Pinging %s...\r\n", target);
+        uint32_t sent = 0, received = 0, min_ms = 0, avg_ms = 0, max_ms = 0;
+        diag_result_t r = diag_net_ping(target, 0, &sent, &received,
+                                        &min_ms, &avg_ms, &max_ms);
+        if (r == DIAG_PASSED) {
+            diag_menu_printf("Ping %s: %lu/%lu replies, RTT "
+                             "%lu/%lu/%lu ms (min/avg/max)\r\n",
+                             target, (unsigned long)received,
+                             (unsigned long)sent,
+                             (unsigned long)min_ms, (unsigned long)avg_ms,
+                             (unsigned long)max_ms);
+        } else {
+            diag_menu_printf("Ping %s: FAILED (%lu/%lu replies)\r\n",
+                             target, (unsigned long)received,
+                             (unsigned long)sent);
+        }
+        hal_wifi_deinit();
+        return r;
+    }
+
+    diag_menu_printf("====================================\r\n");
+    return DIAG_PASSED;
+}
+
+static diag_result_t cmd_wifi_set(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)runner;
+    if (argc < 3 && !(argc == 2 && strcmp(argv[1], "clear") == 0)) {
+        diag_menu_printf("Usage: wifi-set ssid|pass|url|ntp|mqtt <value> "
+                         "| wifi-set clear\r\n");
+        diag_menu_printf("  Credentials are stored in NVS and override "
+                         "menuconfig\r\n");
+        return DIAG_FAILED;
+    }
+
+    diag_result_t r;
+    if (argc == 2 && strcmp(argv[1], "clear") == 0) {
+        r = hal_wifi_cfg_clear();
+        diag_menu_printf("wifi-set clear: %s\r\n",
+                         r == DIAG_PASSED ? "NVS overrides erased" : "FAILED");
+        return r;
+    }
+
+    if      (strcmp(argv[1], "ssid") == 0) r = hal_wifi_cfg_set_ssid(argv[2]);
+    else if (strcmp(argv[1], "pass") == 0) r = hal_wifi_cfg_set_password(argv[2]);
+    else if (strcmp(argv[1], "url")  == 0) r = hal_wifi_cfg_set_upload_url(argv[2]);
+    else if (strcmp(argv[1], "ntp")  == 0) r = hal_wifi_cfg_set_ntp(argv[2]);
+    else if (strcmp(argv[1], "mqtt") == 0) r = hal_wifi_cfg_set_mqtt_url(argv[2]);
+    else {
+        diag_menu_printf("Unknown key: %s\r\n", argv[1]);
+        return DIAG_FAILED;
+    }
+    diag_menu_printf("wifi-set %s: %s\r\n", argv[1],
+                     r == DIAG_PASSED ? "saved to NVS" : "FAILED");
+    return r;
+}
+
+static diag_result_t cmd_ntp_sync(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)runner;
+    char server[64], ssid[64], pass[64];
+    if (argc >= 2)
+        snprintf(server, sizeof(server), "%s", argv[1]);
+    else
+        hal_wifi_cfg_get_ntp(server, sizeof(server));
+
+    hal_wifi_cfg_get_ssid(ssid, sizeof(ssid));
+    hal_wifi_cfg_get_password(pass, sizeof(pass));
+
+    if (ssid[0] == '\0') {
+        diag_menu_printf("NTP sync failed: no Wi-Fi credentials configured\r\n");
+        return DIAG_FAILED;
+    }
+
+    diag_menu_printf("NTP sync: connecting to '%s'...\r\n", ssid);
+    if (hal_wifi_connect(ssid, pass, CONFIG_WIFI_CONNECT_TIMEOUT_MS) != DIAG_PASSED) {
+        diag_menu_printf("NTP sync failed: Wi-Fi connect (reason=%d)\r\n",
+                         hal_wifi_get_disconnect_reason());
+        hal_wifi_deinit();
+        return DIAG_FAILED;
+    }
+
+    diag_menu_printf("NTP sync: waiting for %s...\r\n", server);
+    diag_result_t r = diag_net_ntp_sync(server, CONFIG_NTP_SYNC_TIMEOUT_MS);
+    hal_wifi_deinit();
+    if (r != DIAG_PASSED) {
+        diag_menu_printf("NTP sync FAILED (RTC unchanged)\r\n");
+        return r;
+    }
+
+    if (hal_rtc_init() == DIAG_PASSED) {
+        hal_rtc_time_t t;
+        if (hal_rtc_get_time(&t) == DIAG_PASSED) {
+            char buf[24];
+            diag_menu_printf("RTC set: %s\r\n",
+                             hal_rtc_format(&t, buf, sizeof(buf)));
+        }
+        hal_rtc_deinit();
+    }
+    return DIAG_PASSED;
+}
+
+static diag_result_t cmd_upload(diag_runner_t *runner, int argc, char *argv[])
+{
+    (void)argc; (void)argv;
+    char url[256], ssid[64], pass[64];
+    hal_wifi_cfg_get_upload_url(url, sizeof(url));
+    if (url[0] == '\0') {
+        diag_menu_printf("Upload failed: no URL. Use: wifi-set url "
+                         "http://host:port/endpoint\r\n");
+        return DIAG_FAILED;
+    }
+
+    hal_wifi_cfg_get_ssid(ssid, sizeof(ssid));
+    hal_wifi_cfg_get_password(pass, sizeof(pass));
+    if (ssid[0] == '\0') {
+        diag_menu_printf("Upload failed: no Wi-Fi credentials configured\r\n");
+        return DIAG_FAILED;
+    }
+
+    diag_menu_printf("Upload: connecting to '%s'...\r\n", ssid);
+    if (hal_wifi_connect(ssid, pass, CONFIG_WIFI_CONNECT_TIMEOUT_MS) != DIAG_PASSED) {
+        diag_menu_printf("Upload failed: Wi-Fi connect (reason=%d)\r\n",
+                         hal_wifi_get_disconnect_reason());
+        hal_wifi_deinit();
+        return DIAG_FAILED;
+    }
+
+    hal_wifi_info_t info;
+    if (hal_wifi_get_info(&info) != DIAG_PASSED)
+        memset(&info, 0, sizeof(info));
+
+    int http_status = 0;
+    diag_result_t r = diag_net_upload_results(runner, g_diag_err_ctx,
+                                              url, &info, &http_status);
+    hal_wifi_deinit();
+    diag_menu_printf("Upload: HTTP %d — %s\r\n", http_status,
+                     r == DIAG_PASSED ? "PASSED" : "FAILED");
+    return r;
+}
+
+static diag_result_t cmd_mqtt_pub(diag_runner_t *runner, int argc, char *argv[])
+{
+    char broker[256], ssid[64], pass[64];
+    hal_wifi_cfg_get_mqtt_url(broker, sizeof(broker));
+    if (broker[0] == '\0') {
+        diag_menu_printf("MQTT publish failed: no broker. Use: wifi-set mqtt "
+                         "mqtt://host:1883\r\n");
+        return DIAG_FAILED;
+    }
+
+    hal_wifi_cfg_get_ssid(ssid, sizeof(ssid));
+    hal_wifi_cfg_get_password(pass, sizeof(pass));
+    if (ssid[0] == '\0') {
+        diag_menu_printf("MQTT publish failed: no Wi-Fi credentials "
+                         "configured\r\n");
+        return DIAG_FAILED;
+    }
+
+    diag_menu_printf("MQTT: connecting to '%s'...\r\n", ssid);
+    if (hal_wifi_connect(ssid, pass, CONFIG_WIFI_CONNECT_TIMEOUT_MS) != DIAG_PASSED) {
+        diag_menu_printf("MQTT publish failed: Wi-Fi connect (reason=%d)\r\n",
+                         hal_wifi_get_disconnect_reason());
+        hal_wifi_deinit();
+        return DIAG_FAILED;
+    }
+
+    hal_wifi_info_t info;
+    if (hal_wifi_get_info(&info) != DIAG_PASSED)
+        memset(&info, 0, sizeof(info));
+
+    bool pub_ok = false;
+    const char *topic = (argc >= 2) ? argv[1] : NULL;
+    diag_result_t r = diag_net_publish_mqtt(runner, g_diag_err_ctx,
+                                            broker, topic, &info, &pub_ok);
+    hal_wifi_deinit();
+    diag_menu_printf("MQTT publish: %s (%s)\r\n",
+                     r == DIAG_PASSED ? "PASSED" : "FAILED",
+                     pub_ok ? "acknowledged" : "no ack");
+    return r;
+}
+
 /*===========================================================================*/
 /* Entry point                                                               */
 /*===========================================================================*/
@@ -326,6 +574,11 @@ void app_main(void)
         { "screen-off", "Turn display off",             cmd_screen_off },
         { "reboot",     "Software reset the system",    cmd_reboot     },
         { "shutdown",   "Power off the system",         cmd_shutdown   },
+        { "wifi",       "Wi-Fi status: wifi [connect|disconnect|ping <host>]", cmd_wifi },
+        { "wifi-set",   "Set Wi-Fi/NTP/upload config: wifi-set ssid|pass|url|ntp|mqtt <v>|clear", cmd_wifi_set },
+        { "ntp-sync",   "Sync RTC from NTP: ntp-sync [server]",  cmd_ntp_sync },
+        { "upload",     "POST JSON test report to upload URL",   cmd_upload },
+        { "mqtt-pub",   "Publish JSON test report to MQTT broker: mqtt-pub [topic]", cmd_mqtt_pub },
     };
     for (size_t i = 0; i < DIAG_ARRAY_SIZE(ext_cmds); i++) {
         diag_menu_register_cmd(&ext_cmds[i]);
