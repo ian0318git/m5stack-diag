@@ -162,6 +162,29 @@ TOPIC: diagtest
 | 設備端輸出 | ❌ `MQTT publish: FAILED (no ack)` | broker 不可達 / PUBACK 逾時（10s）→ 檢查 broker 位址 |
 | 設備端輸出 | ⚠️ `MQTT publish failed: no broker` | 未設定 `wifi-set mqtt` → 先設定 |
 
+### 3.4 接收端實測結果（2026-08）
+
+| 接收端 | 平台 | 結果 | 備註 |
+|--------|------|------|------|
+| MyMQTT | Android | ✅ 收到完整 JSON | 純訂閱工具，最簡單 |
+| MQTT Explorer | Windows/Mac/Linux | ✅ 收到完整 JSON | 樹狀 topic + JSON pretty-print，開發期推薦 |
+| MQTT PanelX (IoT MQTT Dashboard) | Android | ⚠️ 未收到 | app 自身設定問題（MyMQTT 同環境可收到），非硬體/發布端問題 |
+
+## 4. 重傳工具（tools/mqtt_replay.py）
+
+不需要碰硬體，即可重發一份模擬的診斷報告到 broker — 用於驗證訂閱端、儀表板開發或 demo：
+
+```bash
+python3 tools/mqtt_replay.py                    # 預設 broker.emqx.io + topic diagtest
+python3 tools/mqtt_replay.py --topic mytopic    # 指定 topic
+python3 tools/mqtt_replay.py --broker mqtt://host:1883
+python3 tools/mqtt_replay.py --file report.json # 自訂 payload
+python3 tools/mqtt_replay.py --listen           # 訂閱模式（驗證收到）
+```
+
+> 需要 `pip install paho-mqtt`。發布內容為設備 `mqtt-pub` 的相同 JSON 格式
+> （含 `wifi`、`rtc`、`tests`、`errors`、`summary` 欄位）。
+
 ## 4. 排錯指南
 
 ### 4.1 訂閱收不到訊息
@@ -199,7 +222,24 @@ TOPIC: diagtest
 | `ntp-sync` | NTP 校時並寫入 BM8563 RTC |
 | `wifi ping <host>` | ICMP 連通性測試（IP 或 hostname） |
 
+## 6. 常見 Q&A
+
+**Q: 手機 app 訂閱了但收不到？**
+A: 先確認 app 顯示 Connected（連不上 = 網路/port 問題，可能 ISP 擋 1883）。
+再確認有按 Subscribe（輸入 topic ≠ 訂閱）。最後確認 widget 有綁定 topic 且
+payload 格式選「原始數據」— 儀表板型 app（如 PanelX）訂閱後還需要建 widget 才顯示。
+
+**Q: 發布時訂閱端還沒連上，訊息會補送嗎？**
+A: 不會（無 retain）。MQTT 發布是即時的 — 訂閱端要先連線訂閱，發布才會收到。
+
+**Q: 設備重開機後設定還在嗎？**
+A: 在 — `wifi-set` 寫入 NVS flash，重開機不消失。
+
+**Q: broker 可以換成自己的嗎？**
+A: 可以，`wifi-set mqtt mqtt://你的broker:1883` 即可。broker 需與設備網路互通
+（設備連的 Wi-Fi 要能到達 broker）。
+
 ---
 
-原始碼：`src/diag_net.c` · `src/hal/hal_wifi.c` · `src/main.c`
+原始碼：`src/diag_net.c` · `src/hal/hal_wifi.c` · `src/main.c` · `tools/mqtt_replay.py`
 規格：`docs/diag_function_spec.md` §MQTT Publish Utility

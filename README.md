@@ -28,6 +28,8 @@ This project provides a structured hardware validation tool for the CoreS3 devel
 - **Abstract transport seam** (`diag_transport.h`): all chip drivers communicate through `diag_i2c_t`/`diag_spi_t` — zero direct ESP-IDF dependency, mockable for unit tests
 - **Shared SPI2 bus manager** for LCD + SD card coexistence (ref-counted lifecycle)
 - **Interactive menu** with batch execution (`run-all`) and burn-in mode
+- **Wi-Fi connectivity**: station test (in `run-all`), `wifi ping`, NTP time sync into the BM8563 RTC
+- **Result reporting over MQTT/HTTP**: JSON report published via `mqtt-pub` (QoS 1) or POSTed via `upload` — viewable on phone/desktop dashboards ([guide](docs/mqtt-pub-guide.md))
 - **Component-level error reporting** with structured `cterr`-style debug hints
 - **Clean Architecture separation** (Domain → Interface Adapter → HAL → Chip Drivers)
 - **Reusable common chip drivers** under `common/chips/` — platform-agnostic
@@ -204,6 +206,11 @@ diag>
 | `reboot` | Software reset the system |
 | `shutdown` | Power off the system |
 | `reset` | Clear stored test results and error records |
+| `wifi` | Wi-Fi status; `wifi connect` / `wifi disconnect` / `wifi ping <host>` |
+| `wifi-set` | Store Wi-Fi/NTP/upload config to NVS: `wifi-set ssid\|pass\|url\|ntp\|mqtt <value>\|clear` |
+| `ntp-sync` | Sync the RTC from NTP: `ntp-sync [server]` |
+| `upload` | POST JSON test report to the upload URL |
+| `mqtt-pub` | Publish JSON test report to MQTT broker (QoS 1): `mqtt-pub [topic]` |
 | `exit` / `quit` | Exit the menu |
 
 ### Test List
@@ -223,6 +230,7 @@ diag>
 | 11 | `camera` | GC0308 probe + chip ID (SKIP if flex cable absent) |
 | 12 | `proximity` | LTR-553 ALS + proximity read (SKIP if flex cable absent) |
 | 13 | `button` | PWR button press test (5 s operator window) |
+| 14 | `wifi` | Join Wi-Fi AP, get IP, report RSSI (SKIP if no credentials/AP) |
 
 ### Example Sessions
 
@@ -305,6 +313,30 @@ diag> menu
   [a]ll  [r]eset  [e]rrors  [q]uit
   Select test #:
 ```
+
+### Viewing Results over MQTT
+
+Test results are published as a JSON report via `mqtt-pub` (QoS 1)
+to a configurable broker — viewable on any MQTT client:
+
+```bash
+# Device side (one-time setup, persisted in NVS):
+#   wifi-set ssid "your-ssid" ; wifi-set pass "your-password"
+#   wifi-set mqtt mqtt://broker.emqx.io:1883
+#   mqtt-pub diagtest            # publishes the JSON report
+
+# Host side — re-publish the report without touching hardware:
+python3 tools/mqtt_replay.py              # default broker/topic
+python3 tools/mqtt_replay.py --listen     # subscribe and watch
+```
+
+| Receiver | Result |
+|----------|--------|
+| MyMQTT (Android) | ✅ verified |
+| MQTT Explorer (Windows/Mac/Linux) | ✅ verified |
+| MQTT PanelX (Android) | ⚠️ not verified (app settings) |
+
+Full implementation + testing guide: [`docs/mqtt-pub-guide.md`](docs/mqtt-pub-guide.md)
 
 ---
 
@@ -462,6 +494,8 @@ This project is licensed under the **MIT License**.
 - **抽象傳輸層**（`diag_transport.h`）：所有晶片驅動透過 `diag_i2c_t`/`diag_spi_t` 介面通訊，與 ESP-IDF 完全解耦
 - **SPI2 匯流排管理器**：LCD 與 SD 卡共用 SPI2 的參考計數生命週期管理
 - **互動選單** + 批次執行 + Burn-In 測試
+- **Wi-Fi 連網**：station 連線測試（加入 run-all）、`wifi ping`、NTP 校時寫入 BM8563 RTC
+- **結果上傳 MQTT/HTTP**：`mqtt-pub`（QoS 1）發布 JSON 報告或 `upload` POST 上傳 — 手機/桌面板儀表板即時查看（[指南](docs/mqtt-pub-guide.md)）
 - **元件級錯誤回報**：結構化 `cterr` 風格的除錯提示
 - **乾淨架構分層**（Domain → Interface Adapter → HAL → Chip Drivers）
 - **可重複使用的晶片驅動**：`common/chips/` 下的驅動與平台無關
@@ -495,6 +529,11 @@ idf.py -p /dev/ttyACM0 flash monitor
 | `reboot` | 軟體重置 |
 | `shutdown` | 系統關機 |
 | `reset` | 清除測試結果與錯誤記錄 |
+| `wifi` | Wi-Fi 狀態；`wifi connect` / `wifi disconnect` / `wifi ping <主機>` |
+| `wifi-set` | 儲存 Wi-Fi/NTP/上傳設定到 NVS：`wifi-set ssid\|pass\|url\|ntp\|mqtt <值>\|clear` |
+| `ntp-sync` | NTP 校時並寫入 RTC：`ntp-sync [伺服器]` |
+| `upload` | POST JSON 測試報告到上傳 URL |
+| `mqtt-pub` | 發布 JSON 測試報告到 MQTT broker（QoS 1）：`mqtt-pub [topic]` |
 | `exit` / `quit` | 離開選單 |
 
 ### 測試清單
@@ -514,6 +553,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 | 11 | `camera` | GC0308 相機探測（選購件） |
 | 12 | `proximity` | LTR-553 光學感測（選購件） |
 | 13 | `button` | PWR 按鈕測試 |
+| 14 | `wifi` | 連接 Wi-Fi AP、取得 IP、回報 RSSI（無憑證/AP 時 SKIP） |
 
 ---
 
