@@ -4,12 +4,12 @@
 
 ### Issue tracker
 
-Issues are tracked as GitHub issues. See `docs/agents/issue-tracker.md`.
+Issues are tracked as GitHub issues. See `doc/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Labels match the default vocabulary. See `docs/agents/triage-labels.md`.
+Labels match the default vocabulary. See `doc/agents/triage-labels.md`.
 
 ### Domain docs
 
-Single-context layout at repo root. See `docs/agents/domain.md`.
+Single-context layout at repo root. See `doc/agents/domain.md`.

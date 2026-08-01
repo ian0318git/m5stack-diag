@@ -322,7 +322,7 @@ This project was developed following the **[Matt Pocock Engineering Skills](http
 | **5. Architecture Refactor** | `mattpocock-skills:implement` | Implemented the improvements: `diag_transport.h` (abstract I²C/SPI seam), `hal_i2c_adapter.c` + `hal_spi_adapter.c` (ESP-IDF adapters), `hal_spi2_bus.c` (shared SPI2 manager), extracted test functions to `tests/` |
 | **6. Implement Tickets** | `mattpocock-skills:implement` | Built all 25 tickets: 6 chip drivers (AW88298, ES7210, GC0308, LTR-553, backlight, button), 8 test functions, audio HAL, SPI2 bus manager, burn-in CLI command |
 | **7. Code Review** | `code-review` | 10-angled max-effort review: 5 correctness angles + 3 cleanup + altitude + conventions. Found 15 findings → 15 fixed (100% fix rate). Included LTR553 register collision, SPI2 bus leak, BMI270 unchecked init, memory leaks, transport seam bypass |
-| **8. Next** | `domain-modeling` (planned) | Formalise domain vocabulary in `CONTEXT.md` and architectural decisions in `docs/adr/` |
+| **8. Next** | `domain-modeling` (planned) | Formalise domain vocabulary in `CONTEXT.md` and architectural decisions in `doc/adr/` |
 
 The framework's core principles — **correctness first**, **forced exception handling**, **no silent failures**, and the **deep module** heuristic — are reflected throughout the codebase. Each chip driver is a deep module: small interface (`diag_i2c_t` + init/read/deinit), large implementation hidden behind.
 
@@ -531,7 +531,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 | **5. 架構重構** | `mattpocock-skills:implement` | 實作改進：`diag_transport.h`（抽象 I²C/SPI seam）、`hal_i2c_adapter.c` + `hal_spi_adapter.c`（ESP-IDF adapters）、`hal_spi2_bus.c`（共用 SPI2 管理器）、提取 test 至 `tests/` |
 | **6. 實作 Tickets** | `mattpocock-skills:implement` | 完成全部 25 個 tickets：6 個晶片驅動、8 個測試函式、audio HAL、SPI2 bus manager、burn-in CLI |
 | **7. Code Review** | `code-review` | 10 角度最高強度審查：5 個正確性 + 3 個清理 + altitude + dimensions。15 個 finding 全部修復（修復率 100%） |
-| **8. 下一步** | `domain-modeling`（規劃中） | 建立 `CONTEXT.md` 領域詞彙與 `docs/adr/` 架構決策記錄 |
+| **8. 下一步** | `domain-modeling`（規劃中） | 建立 `CONTEXT.md` 領域詞彙與 `doc/adr/` 架構決策記錄 |
 
 ---
 
