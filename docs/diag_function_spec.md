@@ -901,6 +901,10 @@ report is published to topic `m5s3_diag/<mac>` (configurable per-run:
 `mqtt-pub <topic>`) with QoS 1 — a broker PUBACK is required for
 PASSED.
 
+The whole connect+publish cycle is retried once after a 3 s delay:
+immediately after a `run-all` the Wi-Fi driver can still be settling,
+and a fresh init+connect occasionally fails transiently.
+
 #### Ping Utility
 
 The `wifi ping <host>` command verifies network reachability over the

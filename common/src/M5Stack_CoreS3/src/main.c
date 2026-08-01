@@ -507,23 +507,38 @@ static diag_result_t cmd_mqtt_pub(diag_runner_t *runner, int argc, char *argv[])
         return DIAG_FAILED;
     }
 
-    diag_menu_printf("MQTT: connecting to '%s'...\r\n", ssid);
-    if (hal_wifi_connect(ssid, pass, CONFIG_WIFI_CONNECT_TIMEOUT_MS) != DIAG_PASSED) {
-        diag_menu_printf("MQTT publish failed: Wi-Fi connect (reason=%d)\r\n",
-                         hal_wifi_get_disconnect_reason());
+    const char *topic = (argc >= 2) ? argv[1] : NULL;
+    bool pub_ok = false;
+    diag_result_t r = DIAG_FAILED;
+
+    /* Retry the whole connect+publish cycle once: immediately after a
+       run-all the Wi-Fi driver can still be settling, and a fresh
+       init+connect occasionally fails transiently. */
+    for (int attempt = 1; attempt <= 2; attempt++) {
+        if (attempt > 1) {
+            diag_menu_printf("MQTT: retry %d/2 in 3 s...\r\n", attempt);
+            vTaskDelay(pdMS_TO_TICKS(3000));
+        }
+
+        diag_menu_printf("MQTT: connecting to '%s'...\r\n", ssid);
+        if (hal_wifi_connect(ssid, pass, CONFIG_WIFI_CONNECT_TIMEOUT_MS) != DIAG_PASSED) {
+            diag_menu_printf("MQTT publish failed: Wi-Fi connect (reason=%d)\r\n",
+                             hal_wifi_get_disconnect_reason());
+            hal_wifi_deinit();
+            continue;
+        }
+
+        hal_wifi_info_t info;
+        if (hal_wifi_get_info(&info) != DIAG_PASSED)
+            memset(&info, 0, sizeof(info));
+
+        r = diag_net_publish_mqtt(runner, g_diag_err_ctx,
+                                  broker, topic, &info, &pub_ok);
         hal_wifi_deinit();
-        return DIAG_FAILED;
+        if (r == DIAG_PASSED)
+            break;
     }
 
-    hal_wifi_info_t info;
-    if (hal_wifi_get_info(&info) != DIAG_PASSED)
-        memset(&info, 0, sizeof(info));
-
-    bool pub_ok = false;
-    const char *topic = (argc >= 2) ? argv[1] : NULL;
-    diag_result_t r = diag_net_publish_mqtt(runner, g_diag_err_ctx,
-                                            broker, topic, &info, &pub_ok);
-    hal_wifi_deinit();
     diag_menu_printf("MQTT publish: %s (%s)\r\n",
                      r == DIAG_PASSED ? "PASSED" : "FAILED",
                      pub_ok ? "acknowledged" : "no ack");
