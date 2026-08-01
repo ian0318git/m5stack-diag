@@ -16,7 +16,7 @@ lifecycle stages: board bring-up (register-level access, fault isolation),
 engineering validation (margin/stress observation), and manufacturing
 (pass/fail batch testing). The package operates exclusively over the
 ESP32-S3 built-in USB Serial/JTAG console, presenting an interactive
-command menu driven by the fugazi-style menu engine.
+command menu driven by the interactive menu engine.
 
 ## SKUs
 
@@ -223,7 +223,7 @@ the USB Serial/JTAG port.
    Serial/JTAG console.
 2. `app_main()` initialises NVS flash storage, the USB Serial/JTAG driver,
    and the error-reporting context.
-3. The fugazi-style menu engine builds the test table from a static
+3. The interactive menu engine builds the test table from a static
    `diag_menu_xtable_t` array.
 4. The interactive CLI loop begins, accepting commands over USB.
 5. No test runs automatically at boot — the operator selects a test via
@@ -937,7 +937,7 @@ traditional CLI with typed commands:
 | `info` | List all tests and last-run status |
 | `run <name\|#>` | Execute a single test by name or numeric index |
 | `run-all` | Execute all P0+P1 tests in dependency order |
-| `menu` | Enter interactive fugazi-style number menu |
+| `menu` | Enter interactive number menu |
 | `errors` | Display the structured error report |
 | `status` | Display aggregate system health |
 | `reset` | Clear all stored test results and error records |
@@ -1078,7 +1078,7 @@ appears once the USB Serial/JTAG console is ready.
 
 ### Command-Line Output
 
-Errors follow the fugazi cterr-style structured format:
+Errors follow the cterr-style structured format:
 
 ```
 ========== Error Report ==========

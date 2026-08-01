@@ -43,5 +43,5 @@ typedef struct {
 
 ## Related
 
-- The fugazi reference codebase (`example/fugazi_ng_diag/`) uses the same pattern with `callin_fvt_t` / `callout_fvt_t` function vector tables, though with separate tables for device-provided and device-needed functions
+- The reference codebase (`example/platform_diag/`) uses the same pattern with `callin_fvt_t` / `callout_fvt_t` function vector tables, though with separate tables for device-provided and device-needed functions
 - ADR-0002 documents the SPI2 bus manager that builds on this seam

@@ -41,5 +41,5 @@ On the CoreS3, each I2C peripheral IC is a singleton — there is exactly one AX
 
 ## Related
 
-- The fugazi reference codebase uses the same pattern in all chip drivers
+- The reference codebase uses the same pattern in all chip drivers
 - AW9523B uses an extended version with `s_refcount` to allow safe sharing across 4 board adapters

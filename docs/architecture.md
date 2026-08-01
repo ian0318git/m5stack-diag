@@ -1,4 +1,4 @@
-參考的code base:example/fugazi_ng_diag/common/src/fugazi/mb_tests.c
+參考的code base: example/platform_diag/
 common/src/M5Stack_CoreS3/
 ├── include/
 │   ├── diag_config.h       # 系統全域配置與引腳定義
