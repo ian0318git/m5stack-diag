@@ -12,6 +12,7 @@ docs/
 ├── architecture.md                  # 架構概覽（歷史參考，以 CONTEXT.md 為準）
 ├── research_bmi270_config_blob.md   # BMI270 config blob 拒絕根因分析
 ├── mqtt-pub-guide.md                # mqtt-pub 實作與測試指南
+├── mqtt-source-code-tutorial.md     # MQTT 原始碼逐層導讀教學（學習用）
 ├── adr/                             # Architecture Decision Records
 │   ├── 0001-abstract-transport-seam.md
 │   ├── 0002-spi2-bus-manager.md
@@ -53,6 +54,7 @@ docs/
 |------|------|------|
 | [`research_bmi270_config_blob.md`](research_bmi270_config_blob.md) | BMI270 拒收 Bosch config blob 的根因分析（I2C 通訊正常但 loader 拒收） | 開發 |
 | [`mqtt-pub-guide.md`](mqtt-pub-guide.md) | mqtt-pub 實作架構 + 端到端測試 SOP + 排錯指南 | 開發、測試 |
+| [`mqtt-source-code-tutorial.md`](mqtt-source-code-tutorial.md) | MQTT 原始碼逐層導讀：命令層→服務層→JSON→事件同步→NVS，含動手練習 | 想學 MQTT/ESP-IDF 的開發者 |
 
 ## 文件優先序（讀文件時）
 
