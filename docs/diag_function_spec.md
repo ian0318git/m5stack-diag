@@ -44,7 +44,7 @@ audio subsystems.
 |---------|------|----------|-------------|-------|
 | 0x34 | AXP2101 | PMIC — battery, LDOs, DC-DC | Always-on (VBUS/battery) | Platform root — all other power depends on this |
 | 0x58 | AW9523B | GPIO expander | AXP2101 rail | Controls RST/INT for touch, LCD, audio, camera |
-| 0x38 | FT6336U | Capacitive touch controller | AXP2101 LDOIO0 (reg 0x90) | TOUCH_RST via AW9523B P0_0 |
+| 0x38 | FT6336U | Capacitive touch controller | AXP2101 ALDO4 (reg 0x90 bit0) | TOUCH_RST via AW9523B P0_0 |
 | 0x51 | BM8563 | RTC | AXP2101 RTC_VDD | VL flag indicates power loss |
 | 0x69 | BMI270 | 6-axis IMU (accel + gyro) | AXP2101 rail | Chip ID register 0x00 = 0x24 expected |
 | 0x10 | BMM150 | 3-axis magnetometer | Shared with BMI270 | Via BMI270 auxiliary I2C sensor hub — not directly on SYS I2C |
@@ -69,8 +69,8 @@ the diagnostics must ensure they are tested sequentially.
 |------|--------|-------------|
 | VBUS | USB Type-C | AXP2101 input, battery charger |
 | BAT | 500 mAh LiPo | AXP2101 battery input |
-| DLDO1 | AXP2101 reg 0x12 | LCD backlight (LX1) |
-| LDOIO0 | AXP2101 reg 0x90 | FT6336U touch VCC (3.3 V) |
+| DLDO1 | AXP2101 reg 0x90 bit7 (enable), reg 0x99 (voltage) | LCD backlight (SY7088 boost → LED) |
+| ALDO4 | AXP2101 reg 0x90 bit0 | FT6336U touch VCC (3.3 V) |
 | RTC_VDD | AXP2101 | BM8563 backup |
 | SYS_3V3 | AXP2101 DC-DC | Digital core, I2C pull-ups, all peripheral ICs |
 
@@ -144,8 +144,8 @@ During EDVT the diagnostics must provide:
 - **Iteration count** — every test tracks execution count and cumulative
   error count so that intermittent failures can be reproduced by looping.
 - **Voltage and temperature observation** — the AXP2101 PMIC supports
-  on-chip ADC measurements for battery voltage, VBUS voltage, charge
-  current, and die temperature; these are read and logged without
+  on-chip ADC measurements for battery voltage, VBUS voltage, system
+  voltage, and die temperature; these are read and logged without
   requiring external measurement equipment.
 - **Margin utilities** — the backlight brightness (AXP2101 DLDO1) and
   audio output level (AW88298) are software-adjustable to stress the
@@ -241,8 +241,8 @@ the USB Serial/JTAG port.
 | | PMU Register Test | I2C@0x34 | ESP32-S3→AXP2101 | Explicitly | Yes | Verifies chip ID, reads battery/voltage/temperature ADCs |
 | | GPIO Expander Test | I2C@0x58 | ESP32-S3→AW9523B | Explicitly | Yes | Verifies chip ID, toggles each output pin |
 | **Display** | LCD Internal Test | SPI2 (G37/G36/G3/G35) | ESP32-S3→ILI9342C | Explicitly | Yes | Init sequence, colour fill, text, crosshair; RST via AW9523B P1_1 |
-| | Backlight Test | AXP2101 DLDO1 | ESP32-S3→AXP2101→LCD LX1 | Explicitly | Yes | Enables DLDO1 at 3.3 V via PMU register 0x12; visual check by operator |
-| **Touch** | Touch Register Test | I2C@0x38 + AW9523B P0_0/P1_2 | ESP32-S3→FT6336U | Explicitly | Yes | Power via AXP2101 LDOIO0; read device mode + firmware version |
+| | Backlight Test | AXP2101 DLDO1 | ESP32-S3→AXP2101→LCD LX1 | Explicitly | Yes | Enables DLDO1 at 3.3 V via PMU registers 0x90/0x99; visual check by operator |
+| **Touch** | Touch Register Test | I2C@0x38 + AW9523B P0_0/P1_2 | ESP32-S3→FT6336U | Explicitly | Yes | Power via AXP2101 ALDO4; read device mode + firmware version |
 | | Touch Read Test | I2C@0x38 | FT6336U→SYS I2C | Explicitly | Yes | Read touch-point coordinates; operator touches panel |
 | **RTC** | RTC Register Test | I2C@0x51 | ESP32-S3→BM8563 | Explicitly | Yes | Read time registers; verify BCD range; check VL flag |
 | **IMU** | IMU Register Test | I2C@0x69 | ESP32-S3→BMI270 | Explicitly | Yes | Read chip ID (0x24); soft-reset; read accel/gyro data |
@@ -316,15 +316,19 @@ down the issue.
 #### Platform — PMU Register Test (AXP2101)
 
 This test verifies communication with the AXP2101 PMIC at address 0x34.
-The chip version register (0x01) is read and must return a non-zero
-value. The power status register (0x00) is read to determine VBUS
-presence, battery connection, and charging state. Battery voltage is
-read as a 12-bit ADC value from registers 0x34–0x35 (1.1 mV/LSB) and
-converted to millivolts. Battery percentage is estimated from a
+The chip ID register (0x03) is read and must return a non-zero value
+(a real AXP2101 reads 0x4A). The ADC channels are enabled via register
+0x30. The power status register (0x00) is read to determine VBUS
+presence (bit 5) and battery connection (bit 3); the charge state
+(charging / discharging / standby) comes from register 0x01 bits [7:5].
+Battery voltage is read as a 13-bit ADC value (H5L8, LSB = 1 mV) from
+registers 0x34–0x35. Battery percentage is estimated from a
 voltage-based lookup: ≥4200 mV → 100 %, 3700–4200 mV → linear
-0–100 %, 3400–3700 mV → 0–10 %, <3400 mV → 0 %. VBUS voltage,
-charge current, and die temperature are also read from their respective
-ADC registers and reported.
+0–100 %, 3400–3700 mV → 0–10 %, <3400 mV → 0 %. VBUS voltage
+(register 0x38, 14-bit), system voltage (register 0x3A, 14-bit), and
+die temperature (register 0x3C, T = 22 + (7274 − raw) / 20 °C) are
+also read and reported. The AXP2101 has no charge-current ADC channel;
+charging state is reported from the Status2 register instead.
 
 If the battery-present bit (register 0x00 bit 3) is 0, battery
 percentage is reported as 0 and the test emits a warning — this is
@@ -335,8 +339,8 @@ expected if the battery is fully depleted or disconnected.
 ```
 ESP32-S3 ── I2C@0x34 ── AXP2101 PMIC ──┬── Battery (500 mAh LiPo)
                                          ├── VBUS (USB Type-C)
-                                         ├── DLDO1 → LCD backlight
-                                         ├── LDOIO0 → FT6336U VCC
+                                         ├── DLDO1 → SY7088 boost → LCD backlight
+                                         ├── ALDO4 → FT6336U VCC
                                          └── CHG_LED → Red LED
 ```
 
@@ -401,16 +405,32 @@ down the issue.
 #### Display — LCD Internal Test (ILI9342C)
 
 This test initialises the ILI9342C display controller over the shared
-SPI2 bus (MOSI=G37, SCK=G36, CS=G3, DC=G35). LCD_RST is controlled via
-AW9523B P1_1. Backlight power is supplied by AXP2101 DLDO1 (register
-0x12 written to 0x0C). The test proceeds through the following sequence:
+SPI2 bus (MOSI=G37, SCK=G36, CS=G3, DC=G35). **G35 doubles as SPI2
+MISO and the D/C line.** For the LCD, the SPI2 bus must be initialised
+WITHOUT MISO (miso_io_num = -1) so G35 stays a plain GPIO output
+driving D/C — claiming MISO there makes the ESP-IDF SPI driver reserve
+G35 and silently kills the D/C toggle (this is exactly how the working
+CoreS3_Guard reference configures it). The SD card test re-initialises
+the bus with MISO=G35. LCD and SD use is strictly sequential. SPI
+clock is 40 MHz. LCD_RST is controlled via AW9523B P1_1. Backlight
+power is supplied by AXP2101 DLDO1 (reg 0x90 bit7 enable, reg 0x99 =
+0x1C for 3.3 V) feeding the SY7088 boost converter, whose BOOST_EN is
+AW9523B P1_7. **The AXP2101 must enable the full LDO set (reg 0x90 =
+0xBF, as M5Unified does): bit5 BLDO1 = LCD digital VDD — the POR
+default (0x0B) leaves it off, so a backlit panel stays black if only
+DLDO1 is enabled.** The test proceeds through the following sequence:
 
 1. Precondition check: AXP2101 and AW9523B must both respond. If not,
    the test reports PRECONDITION_FAILED.
 2. Assert AW9523B P1_1 = 0 for 10 ms, then release.
-3. Send the full ILI9342C init sequence (commands 0xCB, 0xCF, 0xE8,
-   0xEA, 0xB1, 0xB6, 0xF2, 0x3A=0x55, 0x36, gamma curves, 0x11
-   SLEEP_OUT with 120 ms wait, 0x29 DISP_ON).
+3. Send the full ILI9342C init sequence. **The 0xC8 SETEXTC command
+   (password 0xFF, 0x93, 0x42) MUST be sent first** — until the
+   external-command lock is released the panel ignores every
+   configuration command, leaving a lit but blank display. The sequence
+   then follows m5gfx's Panel_ILI9342 list: power control (0xC0/0xC1/
+   0xC5/0xB0/0xF6), gamma (0xE0/0xE1), display function (0xB6), idle
+   off (0x38), 0x3A=0x55, 0x36, INVON 0x21 (CoreS3 panel is inverted),
+   0x11 SLEEP_OUT with 120 ms wait, 0x29 DISP_ON.
 4. Fill the 320×240 frame buffer sequentially with RED, GREEN, BLUE,
    and BLACK, each displayed for 500 ms.
 5. Draw the text "CoreS3 Diagnostic" in cyan in the centre of the
@@ -425,7 +445,7 @@ AW9523B P1_1. Backlight power is supplied by AXP2101 DLDO1 (register
 ESP32-S3 ── SPI2 (MOSI=G37, SCK=G36, CS=G3, DC=G35) ── ILI9342C
                 │                                            │
                 └── AW9523B P1_1 ── LCD_RST (active-low) ────┘
-AXP2101 DLDO1 (reg 0x12) ── LX1 ── LCD backlight LED
+AXP2101 DLDO1 (reg 0x90/0x99) ── SY7088 boost ── LCD backlight LED
 ```
 
 **Failure Analysis:**
@@ -439,12 +459,35 @@ line. If the init succeeds but colour fills are visibly incorrect
 does not illuminate, the AXP2101 DLDO1 register may not be set
 correctly.
 
+**Known board quirks (verified on this unit, 2026-08):**
+
+1. **Transport**: the ESP-IDF SPI master driver cannot drive this panel
+   — it IOMUX-pins G36/G37, reserves G35 and deasserts CS per byte, all
+   of which the ILI9342C rejects. The LCD is driven by a GPIO bit-bang
+   (SPI mode 0, CS held low per command+data sequence), implemented in
+   `hal_screen.c`.
+2. **Bring-up per draw**: the panel goes deaf after each bring-up once
+   the ~1 s display window closes. Every draw stage re-runs the full
+   bring-up (AXP2101 rails + AW9523B config + reset + init list);
+   full-screen fills are done as 60-row strips, each with its own
+   bring-up.
+3. **AW9523B GCR**: reg 0x11 bit4 (push-pull) is mandatory — the POR
+   default (open-drain) leaves LCD RST (P1_1) high-Z, so the panel
+   stays in reset despite the register read-back showing 1.
+4. **BLDO1** (reg 0x90 bit5) = LCD digital VDD; the POR default leaves
+   it off, so a backlit panel stays black if only DLDO1 is enabled.
+   The full M5Unified value 0x90 = 0xBF (all LDOs) is required.
+5. **Display-hold defect**: this unit's panel blanks its display ~1 s
+   after each bring-up regardless of activity (power/backlight/RST
+   verified fine). The final frame is kept readable by flicker-
+   refreshing (bring-up + redraw every ~0.8 s).
+
 If any failure occurs in this test, try the Debugging Steps to narrow
 down the issue.
 
 1. Run the I2C Bus Scan to confirm AXP2101 and AW9523B are present.
-2. Run the PMU Register Test and verify that DLDO1 (register 0x12)
-   reads back 0x0C.
+2. Run the PMU Register Test and verify that DLDO1 is enabled
+   (reg 0x90 bit7) with voltage set (reg 0x99 = 0x1C for 3.3 V).
 3. Run the GPIO Expander Test and verify that P1_1 toggles correctly.
 4. Check SPI2 signals (MOSI=G37, SCK=G36, CS=G3, DC=G35) with an
    oscilloscope during the init sequence.
@@ -455,16 +498,17 @@ down the issue.
 #### Touch — Touch Register Test (FT6336U)
 
 This test verifies the FT6336U capacitive touch controller over SYS I2C
-at address 0x38. Touch power is supplied by the AXP2101 LDOIO0
-(register 0x90 written to 0x07 for 3.3 V output). The AW9523B GPIO
-expander controls TOUCH_RST (P0_0, active-low) and receives TOUCH_INT
-(P1_2, open-drain input).
+at address 0x38. Touch power is supplied by the AXP2101 ALDO4 (reg 0x90
+bit0; set via read-modify-write so the other LDO enables — including
+DLDO1 backlight — are preserved). The AW9523B GPIO expander controls
+TOUCH_RST (P0_0, active-low) and receives TOUCH_INT (P1_2, open-drain
+input).
 
 The test sequence is:
 
 1. Precondition: verify AXP2101 and AW9523B respond.
-2. Write AXP2101 register 0x90 = 0x07. Wait 50 ms for the LDO to
-   stabilise.
+2. Set AXP2101 reg 0x90 bit0 (ALDO4) via read-modify-write. Wait
+   50 ms for the LDO to stabilise.
 3. Assert AW9523B P0_0 = 0 for 10 ms, then release. Wait 50 ms for
    the FT6336U internal boot sequence.
 4. Probe the I2C bus at 0x38. If NACK, try 0x3A (alternative address).
@@ -479,7 +523,7 @@ then reads coordinates from registers 0x03–0x0D for each point.
 ##### Test Path Block Diagram
 
 ```
-AXP2101 LDOIO0 (reg 0x90) ── FT6336U VCC
+AXP2101 ALDO4 (reg 0x90 bit0) ── FT6336U VCC
 ESP32-S3 ── I2C@0x38 ── FT6336U
 AW9523B P0_0 ── FT6336U RST
 AW9523B P1_2 ←── FT6336U INT
@@ -488,7 +532,7 @@ AW9523B P1_2 ←── FT6336U INT
 **Failure Analysis:**
 
 If the FT6336U does not ACK at 0x38 or 0x3A, the most likely cause is
-the power rail (AXP2101 LDOIO0 not enabled) or the RST line (AW9523B
+the power rail (AXP2101 ALDO4 not enabled) or the RST line (AW9523B
 P0_0 held low). If the chip ACKs but the device mode register returns
 an unexpected value, the chip may be in an error state (e.g. firmware
 CRC failure). If the firmware version reads 0, the chip is present but
@@ -501,7 +545,7 @@ down the issue.
 2. Run the GPIO Expander Test and verify P0_0 toggles.
 3. Run the I2C Bus Scan to confirm whether 0x38 responds at all.
 4. Probe the FT6336U at 0x3A as an alternative address.
-5. Check the LDOIO0 voltage on the FT6336U VCC pin with a voltmeter.
+5. Check the ALDO4 voltage on the FT6336U VCC pin with a voltmeter.
 6. Replace the CoreS3 board and retest.
 
 ---
@@ -854,7 +898,7 @@ a single-page summary table. This is the recommended first step when
 debugging a unit:
 
 ```
-AXP2101  @0x34:  OK (v0x15, BAT=4120mV 98%)
+AXP2101  @0x34:  OK (v0x4A, BAT=4120mV 98%)
 AW9523B  @0x58:  OK
 FT6336U  @0x38:  OK (fw=0x02)
 ILI9342C (SPI):  OK
@@ -1090,7 +1134,7 @@ Errors follow the cterr-style structured format:
 ========== Error Report ==========
   Total errors: 2
   [1] I2C / MB/I2C (x2)
-      : I2C@0x38 FT6336U: no ACK — check AXP2101 LDOIO0
+      : I2C@0x38 FT6336U: no ACK — check AXP2101 ALDO4
       > Check power supply to the missing device
       > Verify pull-up resistors and I2C connections
 ==================================

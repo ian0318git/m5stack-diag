@@ -39,8 +39,8 @@ diag_result_t test_sdcard(void *context)
 
     diag_menu_printf("\r\nSD Card Test (SPI2 CS=G4)\r\n");
 
-    /* Step 1: Acquire shared SPI2 bus */
-    if (hal_spi2_bus_init() != DIAG_PASSED) {
+    /* Step 1: Acquire shared SPI2 bus (SD mode: G35 = MISO) */
+    if (hal_spi2_bus_init(true) != DIAG_PASSED) {
         if (g_diag_err_ctx) {
             diag_err_add(g_diag_err_ctx, "SPI2 bus init failed");
             diag_err_set_debug(g_diag_err_ctx,

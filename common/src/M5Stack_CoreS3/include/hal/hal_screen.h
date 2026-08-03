@@ -51,6 +51,12 @@ diag_result_t hal_screen_init(void);
  */
 void hal_screen_deinit(void);
 
+/**
+ * @brief Keep the panel awake (the panel blanks ~1 s after the last
+ * SPI activity on this unit — re-send DISPON periodically).
+ */
+void hal_screen_keepalive(void);
+
 /*===========================================================================*/
 /* Basic drawing                                                             */
 /*===========================================================================*/

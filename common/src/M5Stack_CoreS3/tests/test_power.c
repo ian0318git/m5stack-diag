@@ -8,6 +8,8 @@
 #include "diag_tests.h"
 #include "diag_menu.h"
 #include "hal_power.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 diag_result_t test_power(void *context)
 {
@@ -28,6 +30,9 @@ diag_result_t test_power(void *context)
         return r;
     }
 
+    /* Let the ADC complete at least one conversion cycle after enabling */
+    vTaskDelay(pdMS_TO_TICKS(200));
+
     hal_power_data_t pwr;
     r = hal_power_read(&pwr);
     if (r == DIAG_PASSED) {
@@ -38,10 +43,10 @@ diag_result_t test_power(void *context)
         diag_menu_printf("  USB:     %u mV %s\r\n",
                          pwr.usb_millivolts,
                          (pwr.flags & HAL_POWER_FLAG_USB) ? "connected" : "disconnected");
-        diag_menu_printf("  Charge:  %u mA %s\r\n",
-                         pwr.charge_current_ma,
+        diag_menu_printf("  Charge:  %s\r\n",
                          (pwr.flags & HAL_POWER_FLAG_BAT_CHARGING) ? "charging" :
-                         (pwr.flags & HAL_POWER_FLAG_BAT_FULL) ? "full" : "idle");
+                         (pwr.flags & HAL_POWER_FLAG_BAT_DISCHARGING) ? "discharging" :
+                         "idle");
         diag_menu_printf("  Temp:    %u C\r\n", pwr.temperature_celsius);
     } else {
         if (g_diag_err_ctx)

@@ -31,6 +31,7 @@ extern "C" {
 #define ILI9342_CMD_CASET       0x2A
 #define ILI9342_CMD_RASET       0x2B
 #define ILI9342_CMD_RAMWR       0x2C
+#define ILI9342_CMD_INVON       0x21
 #define ILI9342_CMD_MADCTL      0x36
 #define ILI9342_CMD_COLMOD      0x3A
 

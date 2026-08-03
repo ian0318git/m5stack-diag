@@ -58,17 +58,16 @@ diag_result_t hal_power_read(hal_power_data_t *data)
     power_AXP2101_data_t raw;
     if (power_AXP2101_read(&raw) != 0) return DIAG_FAILED;
 
-    data->battery_millivolts = raw.battery_millivolts;
-    data->battery_percent    = raw.battery_percent;
-    data->usb_millivolts     = raw.usb_millivolts;
-    data->system_millivolts  = raw.system_millivolts;
-    data->charge_current_ma  = raw.charge_current_ma;
+    data->battery_millivolts  = raw.battery_millivolts;
+    data->battery_percent     = raw.battery_percent;
+    data->usb_millivolts      = raw.usb_millivolts;
+    data->system_millivolts   = raw.system_millivolts;
     data->temperature_celsius = raw.temperature_celsius;
 
     data->flags = HAL_POWER_FLAG_NONE;
-    if (raw.flags & AXP2101_FLAG_USB)          data->flags |= HAL_POWER_FLAG_USB;
-    if (raw.flags & AXP2101_FLAG_BAT_CHARGING) data->flags |= HAL_POWER_FLAG_BAT_CHARGING;
-    if (raw.flags & AXP2101_FLAG_BAT_FULL)     data->flags |= HAL_POWER_FLAG_BAT_FULL;
+    if (raw.flags & AXP2101_FLAG_USB)             data->flags |= HAL_POWER_FLAG_USB;
+    if (raw.flags & AXP2101_FLAG_BAT_CHARGING)    data->flags |= HAL_POWER_FLAG_BAT_CHARGING;
+    if (raw.flags & AXP2101_FLAG_BAT_DISCHARGING) data->flags |= HAL_POWER_FLAG_BAT_DISCHARGING;
 
     return DIAG_PASSED;
 }

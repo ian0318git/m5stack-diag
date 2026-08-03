@@ -4,6 +4,13 @@
  * CoreS3 shares SPI2 (MOSI=G37, MISO=G35, SCK=G36) between the
  * ILI9342C LCD (CS=G3) and the microSD card slot (CS=G4).
  *
+ * IMPORTANT: G35 is BOTH the LCD D/C line and the SD card MISO line.
+ * The bus is therefore initialised with or without MISO depending on
+ * which peripheral is active (LCD: no MISO, G35 stays a plain GPIO
+ * output driving D/C — this is exactly how the working reference
+ * CoreS3_Guard project configures it; SD: with MISO=G35). The tests
+ * are strictly sequential, so each side re-initialises the bus.
+ *
  * This module uses a reference count so both peripherals can share
  * the bus without double-initialising or causing contention.
  *
@@ -30,7 +37,7 @@ static sdspi_dev_handle_t  s_sd_handle = -1;
 /* Bus lifecycle                                                             */
 /*===========================================================================*/
 
-diag_result_t hal_spi2_bus_init(void)
+diag_result_t hal_spi2_bus_init(bool with_miso)
 {
     if (s_refcount > 0) {
         s_refcount++;
@@ -39,7 +46,10 @@ diag_result_t hal_spi2_bus_init(void)
 
     spi_bus_config_t bus_cfg = {
         .mosi_io_num     = CONFIG_LCD_MOSI_PIN,
-        .miso_io_num     = CONFIG_LCD_MISO_PIN,
+        /* with_miso=false (LCD): G35 stays as the D/C GPIO output.
+         * If MISO were claimed here, the ESP-IDF SPI driver reserves
+         * G35 and reconfigures it, silently killing the D/C line. */
+        .miso_io_num     = with_miso ? CONFIG_LCD_MISO_PIN : -1,
         .sclk_io_num     = CONFIG_LCD_SCLK_PIN,
         .quadwp_io_num   = -1,
         .quadhd_io_num   = -1,

@@ -12,6 +12,7 @@
 #include "hal_i2c_helpers.h"
 #include "hal_i2c_adapter.h"
 #include "hal_power.h"
+#include "power_AXP2101.h"
 #include "touch_FT6336.h"
 #include "aw9523b.h"
 #include "diag_config.h"
@@ -25,9 +26,6 @@ static i2c_master_dev_handle_t s_i2c_dev = NULL;
 static i2c_master_dev_handle_t s_aw9523b_dev = NULL;
 static bool s_initialised = false;
 
-#define AXP2101_REG_GPIO0_LDO     0x90
-#define AXP2101_GPIO0_3V3         0x07
-
 static diag_result_t touch_power_on(void)
 {
     if (hal_power_init() != DIAG_PASSED) {
@@ -40,8 +38,18 @@ static diag_result_t touch_power_on(void)
         return DIAG_FAILED;
     }
 
-    uint8_t cmd[2] = { AXP2101_REG_GPIO0_LDO, AXP2101_GPIO0_3V3 };
-    esp_err_t err = i2c_master_transmit(pmu, cmd, 2, -1);
+    /* FT6336U VCC = AXP2101 ALDO4 = bit0 of the LDO enable register 0x90.
+     * Read-modify-write: the other bits (DLDO1 backlight, ALDO1..3, BLDO1)
+     * control rails that must stay enabled — never write 0x90 wholesale. */
+    uint8_t reg = AXP2101_REG_LDO_EN;
+    uint8_t ldo_en = 0;
+    esp_err_t err = i2c_master_transmit_receive(pmu, &reg, 1, &ldo_en, 1, -1);
+    if (err != ESP_OK) {
+        return DIAG_FAILED;
+    }
+
+    uint8_t cmd[2] = { AXP2101_REG_LDO_EN, ldo_en | AXP2101_LDO_ALDO4 };
+    err = i2c_master_transmit(pmu, cmd, 2, -1);
     if (err != ESP_OK) {
         return DIAG_FAILED;
     }
@@ -61,6 +69,10 @@ static diag_result_t gpio_exp_init(void)
     if (aw9523b_init(&g_diag_i2c_adapter, (void *)s_aw9523b_dev) != 0) {
         return DIAG_FAILED;
     }
+
+    /* GCR (0x11) bit4 = push-pull output mode — without it the port
+     * outputs are open-drain and TOUCH_RST can never drive high. */
+    i2c_master_transmit(s_aw9523b_dev, (uint8_t[]){ 0x11, 0x10 }, 2, -1);
 
     /* P0_0 = TOUCH_RST: GPIO mode, output, held low */
     aw9523b_pin_set_gpio_mode(AW9523B_PIN_TOUCH_RST);
