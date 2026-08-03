@@ -73,6 +73,7 @@ extern "C" {
 #define AW9523B_PIN_LCD_RST       9           /* P1_1: ILI9342C RST        */
 #define AW9523B_PIN_TOUCH_INT     10          /* P1_2: FT6336U INT         */
 #define AW9523B_PIN_SPK_INT       11          /* P1_3: AW88298 INT         */
+#define AW9523B_PIN_BOOST_EN      15          /* P1_7: SY7088 LCD boost EN */
 
 /*===========================================================================*/
 /* LCD / Screen Configuration (ILI9342C, SPI)                                */
@@ -81,7 +82,9 @@ extern "C" {
 /*
  * CoreS3 uses an ILI9342C 320×240 IPS LCD driven over SPI.
  * RST is controlled via AW9523B P1_1 (not a direct GPIO).
- * Backlight is controlled via AXP2101 DLDO1 (not a GPIO).
+ * Backlight: AXP2101 DLDO1 supplies the SY7088 boost converter
+ * (DLDO1 reg 0x90 bit7 + reg 0x99), and AW9523B P1_7 = SY7088 BOOST_EN
+ * must be set high (per M5Unified CoreS3 power init).
  *
  * SPI bus is shared with the microSD card slot.
  */
@@ -95,7 +98,7 @@ extern "C" {
 
 #define CONFIG_LCD_WIDTH          320
 #define CONFIG_LCD_HEIGHT         240
-#define CONFIG_LCD_SPI_CLOCK_HZ   80000000      /* 80 MHz                    */
+#define CONFIG_LCD_SPI_CLOCK_HZ   40000000      /* 40 MHz (working CoreS3 ref) */
 
 /*===========================================================================*/
 /* Touch Configuration (FT6336U)                                             */

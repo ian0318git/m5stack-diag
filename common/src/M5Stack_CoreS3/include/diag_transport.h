@@ -120,6 +120,20 @@ typedef struct {
      * @return 0 on success, -1 on error.
      */
     int (*transfer)(void *bus, const void *tx_data, void *rx_data, size_t len);
+
+    /**
+     * @brief Optional: begin a CS-asserted transaction window.
+     * The ILI9342C requires CS to stay low across a command+data
+     * sequence; drivers that need CS-hold call begin() before the
+     * sequence and end() after. May be NULL.
+     */
+    int (*begin)(void *bus);
+
+    /**
+     * @brief Optional: end a CS-asserted transaction window (CS high).
+     * May be NULL.
+     */
+    int (*end)(void *bus);
 } diag_spi_t;
 
 /*===========================================================================*/

@@ -28,10 +28,9 @@ diag_result_t test_screen(void *context)
     if (g_diag_err_ctx)
         diag_err_set_component(g_diag_err_ctx, "SCREEN", "MB/LCD");
 
-    /*------------------------------------------------------------------------*/
-    /* Step 1: Init — precondition check (AXP2101 + AW9523B) inside HAL      */
-    /*------------------------------------------------------------------------*/
-
+    /* The ILI9342C on this board goes deaf after one draw unless the
+     * full bring-up (AXP2101 rails + AW9523B config + reset + init) is
+     * re-run first. Each stage therefore tears down and re-brings-up. */
     diag_result_t r = hal_screen_init();
     if (r != DIAG_PASSED) {
         if (g_diag_err_ctx) {
@@ -73,7 +72,11 @@ diag_result_t test_screen(void *context)
     /* We add "v1.0" on a second line to show firmware version.               */
     /*------------------------------------------------------------------------*/
 
-    hal_screen_set_font(2);
+    hal_screen_deinit();
+    hal_screen_init();
+    /* Font size 1 (10x16 cell): text + crosshair must fit within the
+     * panel's per-bring-up draw budget (~6k pixels). */
+    hal_screen_set_font(1);
     const char *line1 = "CoreS3 Diagnostic";
     int tw1 = (int)strlen(line1) * hal_screen_font_width();
     int tx1 = (w - tw1) / 2;
@@ -88,6 +91,23 @@ diag_result_t test_screen(void *context)
     hal_screen_draw_line(0,      h / 2, w - 1,     h / 2, HAL_SCREEN_COLOR_WHITE);
 
     diag_menu_printf("Display: crosshair drawn at (%d, %d)\r\n", w / 2, h / 2);
+
+    /* This panel's display holds only ~1 s after each bring-up, then
+     * blanks on its own (power/backlight/RST all verified fine — a
+     * hardware defect of this unit). Best effort: flicker-refresh the
+     * frame so the operator can read the text between refreshes. */
+    for (int i = 0; i < 8; i++) {
+        hal_screen_deinit();
+        hal_screen_init();
+        hal_screen_set_font(1);
+        hal_screen_draw_text(tx1, 80, line1,
+                             HAL_SCREEN_COLOR_CYAN, HAL_SCREEN_COLOR_BLACK);
+        hal_screen_draw_line(w / 2, 0,        w / 2, h - 1,
+                             HAL_SCREEN_COLOR_WHITE);
+        hal_screen_draw_line(0,      h / 2, w - 1,     h / 2,
+                             HAL_SCREEN_COLOR_WHITE);
+        vTaskDelay(pdMS_TO_TICKS(400));
+    }
 
     /*------------------------------------------------------------------------*/
     /* Step 5: De-init and release SPI bus                                    */

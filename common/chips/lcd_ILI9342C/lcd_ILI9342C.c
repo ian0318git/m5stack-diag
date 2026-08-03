@@ -56,62 +56,84 @@ int lcd_ILI9342C_init(const diag_spi_t *spi, void *spi_bus,
                        void (*dc_set)(int level),
                        void (*set_rst)(int level))
 {
-    if (!spi || !spi_bus) return -1;
+    /* spi_bus may be NULL with a self-contained transport (the bit-bang
+     * adapter uses fixed board pins and ignores the bus handle). */
+    if (!spi) return -1;
     s_spi     = spi;
     s_spi_bus = spi_bus;
     s_dc_set  = dc_set;
     s_set_rst = set_rst;
 
-    /* Hardware reset */
+    /* Hardware reset: 20 ms low, then 64 ms before any command
+     * (matches M5Unified: rst low 8 ms, high + 64 ms, then the list).
+     * NO software reset — the hardware reset covers it, and the proven
+     * m5gfx sequence relies on it. */
     if (s_set_rst) {
         s_set_rst(0);
-        esp_rom_delay_us(10000);
+        esp_rom_delay_us(20000);
         s_set_rst(1);
-        esp_rom_delay_us(10000);
+        esp_rom_delay_us(64000);
     }
 
-    /* Software reset */
-    spi_cmd(ILI9342_CMD_SWRESET);
-    esp_rom_delay_us(5000);
+    /* CS-asserted window for the whole init sequence (required by the
+     * ILI9342C — per-byte CS pulses corrupt the command framing). */
+    if (s_spi->begin) s_spi->begin(s_spi_bus);
 
-    /* Common ILI9341-compatible init sequence (valid for ILI9342C) */
-    spi_cmd_data(0xCB, (uint8_t[]){0x39, 0x2C, 0x00, 0x34, 0x02}, 5);
-    spi_cmd_data(0xCF, (uint8_t[]){0x00, 0xC1, 0x30}, 3);
-    spi_cmd_data(0xE8, (uint8_t[]){0x85, 0x00, 0x78}, 3);
-    spi_cmd_data(0xEA, (uint8_t[]){0x00, 0x00}, 2);
-    spi_cmd_data(0xB1, (uint8_t[]){0x00, 0x1B}, 2);
-    spi_cmd_d1(0xB6, 0x0A);
-    spi_cmd_d1(0xF2, 0x00);
+    /* ILI9342C init — byte-for-byte the sequence proven on this panel
+     * (m5gfx Panel_ILI9342 list0 + M5GFX begin, verified by the bit-bang
+     * test): SETEXTC unlock first, DISPON BEFORE SLPOUT, and
+     * COLMOD/MADCTL/INVON AFTER sleep-out — the panel may ignore
+     * configuration commands while asleep. */
+    spi_cmd_data(0xC8, (uint8_t[]){0xFF, 0x93, 0x42}, 3);  /* SETEXTC unlock */
 
-    /* Colour mode: 16-bit RGB565 */
+    /* Power control */
+    spi_cmd_data(0xC0, (uint8_t[]){0x12, 0x12}, 2);        /* PWCTR1 */
+    spi_cmd_d1(0xC1, 0x03);                                /* PWCTR2 */
+    spi_cmd_d1(0xC5, 0xF2);                                /* VMCTR1 */
+    spi_cmd_d1(0xB0, 0xE0);
+    spi_cmd_data(0xF6, (uint8_t[]){0x01, 0x00, 0x00}, 3);
+
+    /* Gamma correction (ILI9342C values from m5gfx) */
+    spi_cmd_data(0xE0, (uint8_t[]){
+        0x00, 0x0C, 0x11, 0x04, 0x11, 0x08, 0x37, 0x89,
+        0x4C, 0x06, 0x0C, 0x0A, 0x2E, 0x34, 0x0F
+    }, 15);
+    spi_cmd_data(0xE1, (uint8_t[]){
+        0x00, 0x0B, 0x11, 0x05, 0x13, 0x09, 0x33, 0x67,
+        0x48, 0x07, 0x0E, 0x0B, 0x2E, 0x33, 0x0F
+    }, 15);
+
+    /* Display function control + idle mode off */
+    spi_cmd_data(0xB6, (uint8_t[]){0x08, 0x82, 0x1D, 0x04}, 4);
+    spi_cmd(0x38);
+
+    /* Display on, then sleep out (m5gfx list order) */
+    spi_cmd(ILI9342_CMD_DISPON);
+    spi_cmd(ILI9342_CMD_SLPOUT);
+    esp_rom_delay_us(120000);
+
+    /* Post-sleep-out configuration (m5gfx begin order: setColorDepth,
+     * setRotation, invertDisplay): colour mode 16-bit RGB565 */
     spi_cmd_d1(ILI9342_CMD_COLMOD, 0x55);
 
     /* Memory access: BGR order, mirrored for CoreS3 orientation */
     spi_cmd_d1(ILI9342_CMD_MADCTL, ILI9342_MADCTL_MX |
                                     ILI9342_MADCTL_BGR);
 
-    /* Gamma correction */
-    spi_cmd_data(0xE0, (uint8_t[]){
-        0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E, 0xF1,
-        0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00
-    }, 15);
-    spi_cmd_data(0xE1, (uint8_t[]){
-        0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31, 0xC1,
-        0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F
-    }, 15);
-
-    /* Sleep out & display on */
-    spi_cmd(ILI9342_CMD_SLPOUT);
-    esp_rom_delay_us(120000);
-    spi_cmd(ILI9342_CMD_DISPON);
+    /* CoreS3 panel is inverted (m5gfx Panel_M5StackCoreS3: invert=true) */
+    spi_cmd(ILI9342_CMD_INVON);
     esp_rom_delay_us(10000);
 
+    if (s_spi->end) s_spi->end(s_spi_bus);   /* CS released */
     return 0;
 }
 
 void lcd_ILI9342C_deinit(void)
 {
-    if (s_set_rst) s_set_rst(0);
+    /* Leave the panel out of reset (RST high) — a low here would keep
+     * the panel deaf for the next init. */
+    if (s_spi->end) s_spi->end(s_spi_bus);
+    if (s_set_rst) s_set_rst(1);
     s_spi = NULL;
     s_spi_bus = NULL;
 }

@@ -44,7 +44,14 @@ extern "C" {
  * First call initialises the bus; subsequent calls increment a ref count.
  * Caller must pair each init() with a deinit().
  */
-diag_result_t hal_spi2_bus_init(void);
+/**
+ * @brief Initialise the shared SPI2 bus (refcounted).
+ * @param with_miso  true for the SD card (G35 = MISO), false for the
+ *                   LCD (G35 = D/C GPIO output). LCD and SD usage must
+ *                   be strictly sequential — the bus is re-initialised
+ *                   between the two.
+ */
+diag_result_t hal_spi2_bus_init(bool with_miso);
 
 /**
  * @brief Release SPI2 bus (ref-counted).

@@ -22,10 +22,10 @@ extern "C" {
 
 /** Power supply status bitmask. */
 typedef enum {
-    HAL_POWER_FLAG_NONE         = 0,
-    HAL_POWER_FLAG_USB          = (1 << 0),   /* USB/VBUS present          */
-    HAL_POWER_FLAG_BAT_CHARGING = (1 << 1),   /* Battery is charging        */
-    HAL_POWER_FLAG_BAT_FULL     = (1 << 2),   /* Battery charge complete    */
+    HAL_POWER_FLAG_NONE             = 0,
+    HAL_POWER_FLAG_USB              = (1 << 0),   /* USB/VBUS present      */
+    HAL_POWER_FLAG_BAT_CHARGING     = (1 << 1),   /* Battery charging      */
+    HAL_POWER_FLAG_BAT_DISCHARGING  = (1 << 2),   /* Battery discharging   */
 } hal_power_flags_t;
 
 /** PMU status snapshot. */
@@ -34,7 +34,6 @@ typedef struct {
     uint8_t    battery_percent;        /* Estimated capacity 0..100    */
     uint16_t   usb_millivolts;         /* VBUS voltage (mV)            */
     uint16_t   system_millivolts;      /* System output voltage (mV)   */
-    uint16_t   charge_current_ma;      /* Battery charge current (mA)  */
     uint8_t    temperature_celsius;    /* Chip temperature (°C)        */
     hal_power_flags_t flags;           /* Status flags                 */
 } hal_power_data_t;
